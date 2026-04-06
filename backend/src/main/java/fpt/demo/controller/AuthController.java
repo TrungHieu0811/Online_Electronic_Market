@@ -41,7 +41,7 @@ public class AuthController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(401).body(Map.of("error", "Sai tài khoản, mật khẩu hoặc tài khoản bị khóa!"));
+            return ResponseEntity.status(401).body(Map.of("error", "Incorrect account, password, or account locked.!"));
         }
     }
     // API 1: Xác thực lúc mới đăng ký

@@ -21,13 +21,13 @@ public class EmailServiceImpl implements EmailService {
         
         // Bước B: Điền thông tin vào tờ giấy
         message.setTo(toEmail); // Gửi cho ai?
-        message.setSubject("Mã xác thực tài khoản ElectroMart"); // Tiêu đề là gì?
+        message.setSubject("ElectroMart account verification code"); // Tiêu đề là gì?
         
         // Nội dung bức thư (Dùng dấu + và \n để nối chữ và xuống dòng cho đẹp)
-        message.setText("Xin chào,\n\n"
-                + "Mã OTP để xác thực tài khoản của bạn là: " + otpCode + "\n\n"
-                + "Vui lòng không chia sẻ mã này cho bất kỳ ai. Mã sẽ hết hạn sau 5 phút.\n\n"
-                + "Trân trọng,\nĐội ngũ ElectroMart.");
+        message.setText("Hello,\n\n"
+                + "Your ElectroMart account verification code is: " + otpCode + "\n\n"
+                + "Please do not share this code with anyone. It will expire in 5 minutes.\n\n"
+                + "Best regards,\nThe ElectroMart Team.");
 
         // Bước C: Đưa tờ giấy cho Bưu điện gửi đi
         mailSender.send(message);

@@ -236,8 +236,10 @@ class _OtpScreenState extends State<OtpScreen> {
                 const SizedBox(height: 24),
 
                 // NÚT GỬI LẠI MÃ KÈM ĐẾM NGƯỢC
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center, // Căn giữa theo chiều ngang
+                  crossAxisAlignment:
+                      WrapCrossAlignment.center, // Căn giữa theo chiều dọc
                   children: [
                     const Text(
                       "Have not received OTP?",
