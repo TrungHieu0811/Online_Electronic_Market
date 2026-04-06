@@ -57,7 +57,7 @@ public class User {
     private LocalDate dob;
 
     private String avatarUrl;
-    
+
     @Builder.Default
     private Integer rewardPoints = 0;
     @Builder.Default
@@ -79,8 +79,8 @@ public class User {
 
     @Builder.Default
     private Boolean emailConfirmed = false;
-    
-    private String otpCode; 
+
+    private String otpCode;
     private LocalDateTime otpExpiration;
 
     private LocalDateTime createdAt;

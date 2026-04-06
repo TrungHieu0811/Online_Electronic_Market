@@ -42,12 +42,12 @@ public class UserController {
     @PutMapping("/me")
     public ResponseEntity<?> updateProfile(Principal principal, @RequestBody UserUpdateDto request) {
         if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập!");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("You are not logged in.!");
         }
 
         // Tìm user đang đăng nhập
         User currentUser = userRepository.findByUsername(principal.getName())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
+                .orElseThrow(() -> new RuntimeException("No user found!"));
 
         // Kiểm tra xem user có gửi dữ liệu nào lên không thì mới cập nhật dữ liệu đó
         if (request.getFullName() != null && !request.getFullName().isEmpty()) {
@@ -73,6 +73,6 @@ public class UserController {
         // Lưu lại vào DB   
         userRepository.save(currentUser);
 
-        return ResponseEntity.ok("Cập nhật thông tin thành công!");
+        return ResponseEntity.ok("Information updated successfully!");
     }
 }

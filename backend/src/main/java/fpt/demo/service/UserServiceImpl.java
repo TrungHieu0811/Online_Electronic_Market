@@ -22,7 +22,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserProfileResponseDto getUserProfile(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+                .orElseThrow(() -> new IllegalArgumentException("User not found!"));
 
         return UserProfileResponseDto.builder()
                 .id(user.getId())
@@ -45,7 +45,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserProfileResponseDto updateProfile(String username, UserProfileResponseDto updateRequest) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+                .orElseThrow(() -> new IllegalArgumentException("User not found!"));
 
         if (updateRequest.getFullName() != null) user.setFullName(updateRequest.getFullName());
         if (updateRequest.getPhone() != null) user.setPhone(updateRequest.getPhone());
@@ -62,10 +62,10 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void disableUser(Integer targetUserId, Integer adminId, String reasonText) {
         User targetUser = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng cần khóa!"));
+                .orElseThrow(() -> new IllegalArgumentException("No user to be locked found.!"));
 
         User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin Admin!"));
+                .orElseThrow(() -> new IllegalArgumentException("Admin information not found!"));
 
         targetUser.setStatus(false);
         userRepository.save(targetUser);
@@ -75,7 +75,7 @@ public class UserServiceImpl implements UserService {
         log.setAdmin(admin);
         log.setUser(targetUser);
         log.setActionType("BLOCK");
-        log.setDetails("Trạng thái chuyển thành khóa, thu hồi toàn bộ phiên đăng nhập.");
+        log.setDetails("Status changed to locked, all login sessions revoked.");
         log.setReason(reasonText);
         
         userManagementRepository.save(log);

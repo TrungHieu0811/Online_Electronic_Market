@@ -28,7 +28,7 @@ public class ApplicationConfig {
     public UserDetailsService userDetailsService() {
         return username -> {
             fpt.demo.entity.User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy user: " + username));
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
             return new org.springframework.security.core.userdetails.User(
                     user.getUsername(),
