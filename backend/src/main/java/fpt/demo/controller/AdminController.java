@@ -28,16 +28,16 @@ public class AdminController {
         
         try {
             // Lấy lý do khóa từ body JSON (ví dụ: {"reason": "Bom hàng 3 lần"})
-            String reasonText = requestBody.getOrDefault("reason", "Vi phạm chính sách");
+            String reasonText = requestBody.getOrDefault("reason", "Policy violation");
 
             // Lấy ID của Admin đang thực hiện hành động này
             User admin = userRepository.findByUsername(principal.getName())
-                    .orElseThrow(() -> new RuntimeException("Lỗi xác thực Admin"));
+                    .orElseThrow(() -> new RuntimeException("Admin authentication error"));
 
             // Gọi hàm xử lý nghiệp vụ
             userService.disableUser(userId, admin.getId(), reasonText);
 
-            return ResponseEntity.ok(Map.of("message", "Đã khóa tài khoản thành công!"));
+            return ResponseEntity.ok(Map.of("message", "Account successfully locked.!"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
