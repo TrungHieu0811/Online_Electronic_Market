@@ -1,4 +1,5 @@
 import { Search, User, ShoppingCart } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const categories = ['Mobiles', 'Laptops', 'TV & Audio', 'Appliances', 'Accessories'];
 
@@ -52,13 +53,13 @@ export default function Header() {
                         <span className='hidden text-sm font-medium md:block'>Account</span>
                     </a>
 
-                    <a href='#' className='relative flex items-center gap-2 hover:text-[#045fae]'>
+                    <Link to='/cart' className='relative flex items-center gap-2 hover:text-[#045fae]'>
                         <ShoppingCart className='h-6 w-6' />
                         <span className='absolute -right-2 -top-2 rounded-full bg-[#FFD700] px-1.5 text-[10px] font-bold text-[#045fae]'>
                             0
                         </span>
                         <span className='hidden text-sm font-medium md:block'>Cart</span>
-                    </a>
+                    </Link>
                 </div>
             </nav>
 
