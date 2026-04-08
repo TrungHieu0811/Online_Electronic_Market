@@ -74,38 +74,52 @@ class ApiService {
         '/auth/register',
         data: request.toJson(),
       );
-      // --- SỬA DÒNG NÀY ---
 
-      // Thử bóc tách trường 'message' từ JSON trả về
+      // Thử bóc tách trường 'message' từ JSON trả về (nếu Backend trả về {message: "..."})
       if (response.data is Map && response.data.containsKey('message')) {
-        return response.data['message']; // Trả về câu thông báo thực sự
+        return response.data['message'];
       }
 
-      // Fallback: Nếu không tìm thấy trường 'message', trả về câu mặc định
+      // Fallback mặc định khi thành công
       return 'Register successfully!';
-
-      // --- HẾT PHẦN SỬA ---
     } on DioException catch (e) {
       if (e.response != null) {
         // IN LỖI RA CONSOLE ĐỂ BẮT BỆNH
         print("=== [DEBUG] LỖI TỪ BACKEND: ${e.response?.data}");
 
-        // Cố gắng bóc tách lỗi Validation của Spring Boot
-        if (e.response?.data is Map) {
-          final data = e.response?.data;
+        final data = e.response?.data;
 
-          // Nếu có mảng "errors" (Lỗi Validation của Spring Boot)
-          if (data['errors'] != null && (data['errors'] as List).isNotEmpty) {
-            throw Exception(
-              data['errors'][0]['defaultMessage'] ?? 'Data is not valid',
-            );
+        // BẮT LỖI 400 TỪ GLOBAL EXCEPTION HANDLER
+        if (e.response?.statusCode == 400 && data is Map) {
+          // 1. Kiểm tra lỗi logic nghiệp vụ (IllegalArgumentException từ Backend)
+          // File GlobalExceptionHandler của bạn trả về: {"error": "..."}
+          if (data.containsKey('error')) {
+            throw Exception(data['error']);
           }
 
-          // Lỗi thông thường (VD: Trùng email)
-          if (data['message'] != null) {
-            throw Exception(data['message']);
+          // 2. Kiểm tra lỗi Validation từ DTO (@NotBlank, @Email...)
+          // Spring Boot trả về danh sách lỗi. Ví dụ: {"email": "Lỗi 1", "phone": "Lỗi 2"}
+          if (data.isNotEmpty) {
+            // Lấy giá trị lỗi đầu tiên trong Map để hiển thị
+            throw Exception(data.values.first.toString());
           }
         }
+
+        // Bắt lỗi Validation kiểu cũ (trường hợp Spring Boot chưa config GlobalExceptionHandler chuẩn)
+        if (data is Map &&
+            data['errors'] != null &&
+            (data['errors'] as List).isNotEmpty) {
+          throw Exception(
+            data['errors'][0]['defaultMessage'] ?? 'Data is not valid',
+          );
+        }
+
+        // Bắt lỗi có chứa trường message (thường là lỗi 500 hoặc RuntimeException)
+        if (data is Map && data['message'] != null) {
+          throw Exception(data['message']);
+        }
+
+        // Nếu không rơi vào các trường hợp trên
         throw Exception('Server error: ${e.response?.statusCode}');
       } else {
         throw Exception('Cannot connect, please recheck internet!');
