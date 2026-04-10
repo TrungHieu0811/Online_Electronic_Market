@@ -15,7 +15,6 @@ import AdminRoutes from './AdminRoutes';
 export default function AppRoutes() {
     return (
         <Routes>
-            {/* User layout */}
             <Route
                 path='/'
                 element={
@@ -34,14 +33,7 @@ export default function AppRoutes() {
                 }
             />
 
-            <Route
-                path='/profile/*'
-                element={
-                    <MainLayout>
-                        <UserRoutes />
-                    </MainLayout>
-                }
-            />
+            <Route path='/profile/*' element={<UserRoutes />} />
 
             <Route
                 path='/cart'
@@ -58,7 +50,6 @@ export default function AppRoutes() {
             <Route path='/check-otp' element={<CheckOTP />} />
             <Route path='/reset-password' element={<ResetPassword />} />
 
-            {/* Admin riêng */}
             <Route path='/admin/*' element={<AdminRoutes />} />
         </Routes>
     );

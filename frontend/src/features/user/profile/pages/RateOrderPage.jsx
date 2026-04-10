@@ -80,17 +80,17 @@ export default function RateOrderPage() {
 
         const hasInvalidRating = payload.reviews.some((r) => r.rating < 1 || r.rating > 5);
         if (hasInvalidRating) {
-            alert('Vui lòng chọn số sao cho tất cả sản phẩm.');
+            alert('Please select a rating for all products.');
             return;
         }
 
         try {
             setSubmitting(true);
             await submitOrderReviews(orderId, payload);
-            alert('Gửi đánh giá thành công!');
+            alert('Reviews submitted successfully!');
         } catch (err) {
             console.error(err);
-            alert(err?.response?.data?.error || 'Gửi đánh giá thất bại!');
+            alert(err?.response?.data?.error || 'Failed to submit reviews!');
         } finally {
             setSubmitting(false);
         }
@@ -105,19 +105,19 @@ export default function RateOrderPage() {
     }
 
     if (!order) {
-        return <div className='p-10'>Không có dữ liệu đơn hàng.</div>;
+        return <div className='p-10'>No order data available.</div>;
     }
 
     return (
-        <main className='mx-auto max-w-4xl px-6 pb-24 pt-32'>
+        <main className='mx-auto max-w-4xl px-6 pb-10 pt-14'>
             <OrderReviewHeader orderId={order.orderId} status={order.status} />
 
             {order.items.length === 0 ? (
                 <div className='rounded-2xl bg-white p-8 text-center shadow-[0px_12px_32px_rgba(0,26,64,0.08)]'>
-                    <h2 className='mb-2 text-2xl font-bold text-slate-900'>
-                        Không còn sản phẩm cần đánh giá
-                    </h2>
-                    <p className='text-slate-600'>Đơn hàng này đã được đánh giá hết rồi.</p>
+                    <h2 className='mb-2 text-2xl font-bold text-slate-900'>No items to review</h2>
+                    <p className='text-slate-600'>
+                        This order has already been reviewed. Thank you.
+                    </p>
                 </div>
             ) : (
                 <form onSubmit={handleSubmit}>
