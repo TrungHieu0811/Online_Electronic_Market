@@ -1,149 +1,158 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  MdLockOutline, 
-  MdOutlineVisibility, 
-  MdOutlineVisibilityOff, 
-  MdPassword, 
-  MdCheckCircleOutline 
-} from "react-icons/md";
+import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { MdLockReset, MdLockOutline, MdVerifiedUser, MdArrowForward } from "react-icons/md";
+import { toast } from 'react-toastify';
+import { authApi } from '../../services/authApi';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Lấy email từ các bước trước truyền sang (rất quan trọng cho DTO)
-  const email = location.state?.email || "email_cua_ban@example.com";
+  // 👉 Nhận email và otp từ trang CheckOTP truyền sang
+  const email = location.state?.email;
+  const otp = location.state?.otp;
 
-  // State quản lý form và ẩn/hiện mật khẩu
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+  const [formData, setFormData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
 
-  const handleSubmit = (e) => {
+  // Rào chắn bảo vệ: Nếu user tự gõ URL /reset-password mà không đi qua luồng OTP thì đá về trang Quên mật khẩu
+  if (!email || !otp) {
+    return <Navigate to="/forgot-password" replace />;
+  }
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    setFormErrors({
+      ...formErrors,
+      [e.target.name]: ''
+    });
+  };
+
+  const validateForm = () => {
+    let errors = {};
+    if (!formData.newPassword) {
+      errors.newPassword = "Please enter a new password.";
+    } else if (formData.newPassword.length < 6) {
+      errors.newPassword = "Password must be at least 6 characters long.";
+    }
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match!";
+    }
+    return errors;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate cơ bản trước khi gọi API
-    if (newPassword !== confirmPassword) {
-      alert("The verification password does not match. Please check again!");
-      return;
-    }
-    
-    if (newPassword.length < 6) {
-      alert("The password must be at least 6 characters long!");
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors);
       return;
     }
 
-    // Gói DTO chuẩn bị gửi cho Spring Boot
-    const resetPasswordDTO = {
-      email: email,
-      newPassword: newPassword
-    };
+    setIsLoading(true);
 
-    console.log("Sending DTO to reset password:", resetPasswordDTO);
-    
-    // Giả lập thành công: Thông báo và đẩy về trang Login
-    alert("Password reset successfully! Please log in again.");
-    navigate('/login');
+    try {
+      // 👉 Gọi API đổi mật khẩu
+      const successMessage = await authApi.resetPassword(email, otp, formData.newPassword);
+      
+      toast.success(successMessage || "Password reset successfully! Please login.");
+      
+      // Thành công thì đá về trang Login
+      navigate('/login');
+      
+    } catch (errorMessage) {
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getInputClass = (fieldName) => {
+    const baseClass = "w-full h-12 pl-12 pr-4 bg-slate-50 dark:bg-slate-800 border rounded-xl outline-none transition-all text-slate-900 dark:text-white ";
+    if (formErrors[fieldName]) {
+      return baseClass + "border-red-500 focus:ring-2 focus:ring-red-500/20";
+    }
+    return baseClass + "border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary focus:border-transparent";
   };
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display min-h-screen flex items-center justify-center p-4">
-      {/* Card Container */}
       <div className="w-full max-w-[420px] bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
         
-        {/* Header Section */}
+        {/* Header Icon */}
         <div className="pt-10 pb-6 flex flex-col items-center">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <MdPassword className="text-4xl text-primary" />
+            <MdLockReset className="text-4xl text-primary" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
             Create New Password
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 text-center px-6">
-            Your new password must be different from previously used passwords.
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 text-center px-8">
+            Your new password must be different from previous used passwords.
           </p>
         </div>
 
         {/* Form */}
         <div className="p-8 pt-0">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             
-            {/* Tên tài khoản (Chỉ đọc) */}
-            <div className="text-center mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-800">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Account being restored:</p>
-              <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{email}</p>
-            </div>
-
             {/* New Password Input */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                <MdLockOutline className="text-lg text-slate-400" />
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 New Password
               </label>
               <div className="relative">
+                <MdLockOutline className={`absolute left-4 top-1/2 -translate-y-1/2 text-xl ${formErrors.newPassword ? 'text-red-500' : 'text-slate-400'}`} />
                 <input 
-                  className="w-full pl-4 pr-12 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-slate-900 dark:text-white" 
-                  placeholder="Enter at least 6 characters" 
-                  type={showNewPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
+                  name="newPassword"
+                  className={getInputClass('newPassword')}
+                  placeholder="••••••••" 
+                  type="password"
+                  value={formData.newPassword}
+                  onChange={handleChange}
                 />
-                <button 
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showNewPassword ? <MdOutlineVisibilityOff className="text-xl" /> : <MdOutlineVisibility className="text-xl" />}
-                </button>
               </div>
+              {formErrors.newPassword && <p className="text-xs text-red-500 mt-1">{formErrors.newPassword}</p>}
             </div>
 
             {/* Confirm Password Input */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                <MdCheckCircleOutline className="text-lg text-slate-400" />
-                Confirm new password
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Confirm New Password
               </label>
               <div className="relative">
+                <MdVerifiedUser className={`absolute left-4 top-1/2 -translate-y-1/2 text-xl ${formErrors.confirmPassword ? 'text-red-500' : 'text-slate-400'}`} />
                 <input 
-                  className="w-full pl-4 pr-12 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-slate-900 dark:text-white" 
-                  placeholder="Enter new password again" 
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
+                  name="confirmPassword"
+                  className={getInputClass('confirmPassword')}
+                  placeholder="••••••••" 
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
                 />
-                <button 
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showConfirmPassword ? <MdOutlineVisibilityOff className="text-xl" /> : <MdOutlineVisibility className="text-xl" />}
-                </button>
               </div>
+              {formErrors.confirmPassword && <p className="text-xs text-red-500 mt-1">{formErrors.confirmPassword}</p>}
             </div>
 
             {/* Submit Button */}
             <button 
-              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-lg transition-colors shadow-md mt-4" 
+              disabled={isLoading}
+              className={`w-full h-14 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-4 group ${isLoading ? 'bg-slate-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/90 shadow-primary/20'}`} 
               type="submit"
             >
-              Save New Password
+              <span>{isLoading ? 'Resetting...' : 'Reset Password'}</span>
+              {!isLoading && <MdArrowForward className="text-xl group-hover:translate-x-1 transition-transform" />}
             </button>
           </form>
-
-          {/* Cancel Link */}
-          <div className="mt-6 text-center">
-            <Link 
-              to="/login" 
-              className="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-            >
-              Cancel and return to Login
-            </Link>
-          </div>
         </div>
         
       </div>
