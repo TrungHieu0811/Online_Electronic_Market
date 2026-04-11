@@ -1,64 +1,101 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { MdArrowBack, MdVerifiedUser } from "react-icons/md";
+import { toast } from 'react-toastify';
+import { authApi } from '../../services/authApi';
 
 const CheckOTP = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const email = location.state?.email || "your_email@example.com";
   
-  // Lấy email từ trang trước truyền sang (nếu có), nếu không có thì để trống
-  const email = location.state?.email || "email_cua_ban@example.com";
+  // Lấy chữ flow=... trực tiếp từ thanh địa chỉ URL
+  const searchParams = new URLSearchParams(location.search);
+  const isForgotPasswordFlow = searchParams.get('flow') === 'forgot';
 
-  // Mảng lưu 6 số OTP
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  
-  // Dùng useRef để điều khiển việc focus vào các ô input
+  const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef([]);
 
+  // Hàm xử lý khi gõ từng ô số
   const handleChange = (index, value) => {
-    // Chỉ cho phép nhập số
     if (isNaN(value)) return;
 
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Tự động nhảy sang ô tiếp theo nếu đã nhập và chưa phải ô cuối cùng
+    // Tự động nhảy sang ô tiếp theo
     if (value !== '' && index < 5) {
       inputRefs.current[index + 1].focus();
     }
   };
 
+  // Hàm xử lý khi bấm Backspace để lùi ô
   const handleKeyDown = (index, e) => {
-    // Xử lý khi bấm nút Backspace (Xóa)
     if (e.key === 'Backspace') {
       if (index > 0 && otp[index] === '') {
-        // Nếu ô hiện tại rỗng và bấm xóa, lùi về ô trước đó
         inputRefs.current[index - 1].focus();
       }
     }
   };
 
-  const handleSubmit = (e) => {
+  // Hàm Xử lý Xác nhận OTP
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const otpValue = otp.join('');
     
-    // Yêu cầu phải nhập đủ 6 số
+    // 👉 ĐÃ FIX LỖI ALERT: Thay bằng toast.warning
     if (otpValue.length < 6) {
-      alert("Please enter the complete 6-digit OTP.");
+      toast.warning("Please enter all 6 digits of the OTP.");
       return;
     }
 
-    // Ở đây sau này bạn sẽ gói DTO (email + otpValue) gửi xuống Spring Boot
-    console.log("Verifying OTP:", { email: email, otp: otpValue });
-    
-    // Giả lập: Nếu mã đúng, chuyển sang trang Reset Password
-    // navigate('/reset-password', { state: { email: email } });
+    setIsLoading(true);
+
+    try {
+      if (isForgotPasswordFlow) {
+        // Luồng QUÊN MẬT KHẨU: Check OTP xong thì chuyển sang trang Reset Password
+        const successMessage = await authApi.checkOtp(email, otpValue);
+        toast.success(successMessage || "OTP verified successfully! Please set a new password.");
+        navigate('/reset-password', { state: { email: email, otp: otpValue } });
+      } else {
+        // Luồng ĐĂNG KÝ: Verify Email xong thì chuyển về Login
+        const successMessage = await authApi.verifyEmail(email, otpValue);
+        toast.success(successMessage || "Account verified successfully!");
+        navigate('/login');
+      }
+    } catch (errorMessage) {
+      // Bắt lỗi hiển thị Toast đỏ
+      toast.error(errorMessage);
+      
+      // Tự động xóa sạch 6 ô để người dùng nhập lại
+      setOtp(['', '', '', '', '', '']);
+      if (inputRefs.current[0]) {
+        inputRefs.current[0].focus(); 
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Hàm Xử lý Gửi lại mã
+  const handleResendOtp = async () => {
+    toast.info("Resending OTP...");
+    try {
+      // Dùng chung hàm resend hoặc forgot tùy vào luồng
+      const message = isForgotPasswordFlow 
+          ? await authApi.forgotPassword(email) 
+          : await authApi.resendOtp(email);
+          
+      toast.success(message || "OTP has been resent. Please check your email.");
+    } catch (errorMessage) {
+      toast.error(errorMessage);
+    }
   };
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display min-h-screen flex items-center justify-center p-4">
-      {/* Card Container */}
       <div className="w-full max-w-[420px] bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
         
         {/* Header Section */}
@@ -70,7 +107,7 @@ const CheckOTP = () => {
             Verify OTP
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 text-center px-6">
-            The 6-digit verification code has been sent to <br />
+            A 6-digit verification code has been sent to <br />
             <span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>
           </p>
         </div>
@@ -87,7 +124,6 @@ const CheckOTP = () => {
                   type="text"
                   maxLength="1"
                   value={digit}
-                  // Gắn từng ô input vào mảng refs
                   ref={(el) => (inputRefs.current[index] = el)}
                   onChange={(e) => handleChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
@@ -98,25 +134,30 @@ const CheckOTP = () => {
 
             {/* Resend Code */}
             <div className="text-center text-sm">
-              <span className="text-slate-500 dark:text-slate-400"> Haven't received the code? </span>
-              <button type="button" className="font-bold text-primary hover:underline">
+              <span className="text-slate-500 dark:text-slate-400">Didn't receive the code? </span>
+              <button 
+                type="button" 
+                onClick={handleResendOtp}
+                className="font-bold text-primary hover:underline"
+              >
                 Resend now
               </button>
             </div>
 
             {/* Submit Button */}
             <button 
-              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-lg transition-colors shadow-md mt-2" 
+              disabled={isLoading}
+              className={`w-full text-white font-bold py-3.5 rounded-lg transition-colors shadow-md mt-2 ${isLoading ? 'bg-slate-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}`} 
               type="submit"
             >
-              Verify OTP
+              {isLoading ? 'Verifying...' : 'Confirm OTP'}
             </button>
           </form>
 
           {/* Back Link */}
           <div className="mt-8 text-center">
             <Link 
-              to="/forgot-password" 
+              to={isForgotPasswordFlow ? "/forgot-password" : "/register"} 
               className="inline-flex items-center justify-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors"
             >
               <MdArrowBack className="text-lg" />

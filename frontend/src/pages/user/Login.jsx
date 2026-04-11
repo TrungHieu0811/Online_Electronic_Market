@@ -1,146 +1,204 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { MdOutlineMail, MdOutlineLock, MdOutlineBolt, MdLock, MdBolt } from "react-icons/md";
-import { MdOutlineVisibility, MdOutlineVisibilityOff } from "react-icons/md";
+import { Link, useNavigate } from 'react-router-dom';
 import { FaApple } from "react-icons/fa";
-// "Md" viết tắt của Material Design. "Outline" là kiểu viền nét thanh mà bạn thích.
+import { FcGoogle } from "react-icons/fc"; 
+import { toast } from 'react-toastify';
+import { authApi } from '../../services/authApi';
+import { 
+  MdBolt, 
+  MdShoppingCart, 
+  MdOutlineMail, 
+  MdLockOutline, 
+  MdArrowForward,
+  MdStar,
+  MdLogin
+} from "react-icons/md";
+
 const Login = () => {
-  // State để điều khiển việc ẩn/hiện mật khẩu
-  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    username: '', 
+    password: ''
+  });
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate cơ bản ở Frontend (Tiếng Anh)
+    if (!formData.username.trim() || !formData.password) {
+      toast.warning('Please enter both username/email and password!');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await authApi.login(formData);
+      
+      let token = null;
+      if (typeof response === 'string') {
+        token = response; 
+      } else if (typeof response === 'object' && response !== null) {
+        token = response.token || response.accessToken || response.access_token || response.jwt;
+      }
+
+      if (token) {
+        localStorage.setItem('token', token); 
+        
+        toast.success("Login successful!");
+        navigate('/'); 
+      } else {
+        toast.warning("Login successful, but failed to retrieve token!");
+        console.log("Server Response:", response); 
+      }
+
+    } catch (errorMessage) {
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark font-display min-h-screen flex items-center justify-center p-4">
-      {/* Login Card Container */}
-      <div className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
-
-        {/* Top Section with Logo/Image */}
-        <div className="relative h-48 w-full bg-primary/10 flex items-center justify-center overflow-hidden">
-          {/* Background Pattern/Image */}
-          <div
-            className="absolute inset-0 opacity-20 bg-center bg-cover"
-            style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')" }}
-          ></div>
-
-          {/* Logo Section */}
-          {/* Phần Logo được bọc bởi class cha để căn giữa */}
-          <div className="flex flex-col items-center">
-
-            {/* 1. Khối màu xanh (Blue Square) */}
-            <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center shadow-lg mb-3">
-              {/* 2. Icon được căn giữa một cách tự nhiên nhờ flex của cha */}
-              <MdBolt className="text-white text-5xl" />
+    <div className="bg-background-light dark:bg-background-dark font-display min-h-screen flex flex-col">
+      {/* Navigation Header */}
+      <header className="w-full border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-md">
+              <MdBolt className="text-white text-2xl" />
             </div>
-
-            {/* 3. Văn bản phía dưới (Text below) */}
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Electro<span className="text-primary">Mart</span>
-            </h1>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">ElectroMart</h1>
           </div>
-
-          {/* Decorative Accent */}
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-accent-yellow"></div>
+          <div className="flex items-center gap-4">
+            <button className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+              <MdShoppingCart className="text-xl" />
+            </button>
+          </div>
         </div>
+      </header>
 
-        <div className="p-8">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Welcome Back</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Please enter your details to sign in</p>
+      {/* Main Content: Login Card */}
+      <main className="flex-grow flex items-center justify-center p-4 md:p-8">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          
+          {/* Card Header */}
+          <div className="p-8 pb-0">
+            <div className="flex items-center gap-2 text-primary mb-2">
+              <MdLogin className="text-lg" />
+              <span className="text-xs font-bold uppercase tracking-wider">Welcome back</span>
+            </div>
+            <h2 className="text-3xl font-black text-slate-900 dark:text-slate-100 mb-2">Login</h2>
+            <p className="text-slate-500 dark:text-slate-400">Log in to access exclusive deals and manage your orders.</p>
           </div>
 
-          {/* Login Form */}
-          <form className="space-y-5">
-            {/* Email Input */}
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
-              <div className="relative">
-                <MdOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl" />
-                <input
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-slate-900 dark:text-white"
-                  placeholder="name@example.com"
-                  type="email"
-                />
-              </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-8 space-y-5">
+            
+            {/* Username/Email Field */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <MdOutlineMail className="text-lg text-slate-400" />
+                Username
+              </label>
+              <input 
+                name="username" 
+                value={formData.username}
+                onChange={handleChange}
+                className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" 
+                placeholder="Enter your username" 
+                type="text" 
+              />
             </div>
 
-            {/* Password Input */}
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-center">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Password</label>
-                {/* Link sang trang quên mật khẩu (sẽ làm sau) */}
-                <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
+            {/* Password Field */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <MdLockOutline className="text-lg text-slate-400" />
+                  Password
+                </label>
+                <Link to="/forgot-password" className="text-xs font-semibold text-primary hover:underline">
                   Forgot Password?
                 </Link>
               </div>
-              <div className="relative">
-                <MdLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl" />
-                <input
-                  className="w-full pl-12 pr-12 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-slate-900 dark:text-white"
-                  placeholder="••••••••"
-                  type={showPassword ? "text" : "password"}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showPassword ? (
-                    <MdOutlineVisibilityOff className="text-xl" />
-                  ) : (
-                    <MdOutlineVisibility className="text-xl" />
-                  )}
-                </button>
+              <input 
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" 
+                placeholder="••••••••" 
+                type="password" 
+              />
+            </div>
+
+            {/* Login Button */}
+            <button 
+              disabled={isLoading}
+              className={`w-full h-14 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-4 group ${isLoading ? 'bg-slate-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/90 shadow-primary/20'}`} 
+              type="submit"
+            >
+              <span>{isLoading ? 'Authenticating...' : 'Login'}</span>
+              {!isLoading && <MdArrowForward className="text-xl group-hover:translate-x-1 transition-transform" />}
+            </button>
+
+            {/* Divider */}
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white dark:bg-slate-900 px-2 text-slate-500">Or continue with</span>
               </div>
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center gap-2">
-              <input className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary" id="remember" type="checkbox" />
-              <label className="text-sm text-slate-600 dark:text-slate-400" htmlFor="remember">Remember me for 30 days</label>
+            {/* Social Login */}
+            <div className="grid grid-cols-2 gap-4">
+              <button className="h-12 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" type="button">
+                <div className="w-5 h-5 bg-accent-blue rounded-full flex items-center justify-center">
+                  <FcGoogle />
+                </div>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Google</span>
+              </button>
+              <button className="h-12 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" type="button">
+                <FaApple />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Apple</span>
+              </button>
             </div>
-
-            {/* Submit Button */}
-            <button className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2 mt-2" type="submit">
-              Login to Account
-              <span className="material-symbols-outlined text-lg">login</span>
-            </button>
           </form>
 
-          {/* Social Login Divider */}
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white dark:bg-slate-900 px-2 text-slate-500 font-medium">Or continue with</span>
-            </div>
+          {/* Footer Link */}
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-6 text-center border-t border-slate-200 dark:border-slate-800">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Don't have an account? 
+              <Link to="/register" className="text-accent-blue font-bold hover:underline ml-1">Register now</Link>
+            </p>
           </div>
-
-          {/* Social Buttons */}
-          <div className="grid grid-cols-2 gap-4">
-            <button className="flex items-center justify-center gap-2 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-              <img alt="Google" className="w-4 h-4" src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Google</span>
-            </button>
-            <button className="flex items-center justify-center gap-2 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-              <FaApple />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Apple</span>
-            </button>
-          </div>
-
-          {/* Link sang trang Register (nhớ đảm bảo UserRoutes có path="/register") */}
-          <p className="text-center mt-8 text-sm text-slate-600 dark:text-slate-400">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-primary font-bold hover:underline">
-              Register
-            </Link>
-          </p>
         </div>
+      </main>
 
-        {/* Accent Bottom */}
-        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 text-center border-t border-slate-100 dark:border-slate-800">
-          <p className="text-xs text-slate-400">Secure 256-bit SSL Encrypted Connection</p>
+      {/* Simple Footer */}
+      <footer className="py-8 text-center border-t border-slate-200 dark:border-slate-800 mt-auto">
+        <div className="flex items-center justify-center gap-6 mb-4">
+          <span className="text-accent-yellow flex items-center">
+            <MdStar className="text-lg" />
+          </span>
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-[0.2em]">Trusted by 50k+ Customers</span>
+          <span className="text-accent-yellow flex items-center">
+             <MdStar className="text-lg" />
+          </span>
         </div>
-      </div>
+        <p className="text-xs text-slate-400">© 2026 ElectroMart Inc. All rights reserved.</p>
+      </footer>
     </div>
   );
 };
