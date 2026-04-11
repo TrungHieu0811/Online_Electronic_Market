@@ -125,6 +125,7 @@ const ResetPassword = () => {
             </div>
 
             {/* Confirm Password Input */}
+            {/* Confirm Password Input */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Confirm New Password
