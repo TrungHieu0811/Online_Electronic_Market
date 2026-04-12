@@ -20,16 +20,16 @@ export default function OrdersPage() {
                 setLoading(true);
                 const data = await getMyOrders();
 
-                if (Array.isArray(data)) {
-                    const sortedOrders = [...data].sort((a, b) => {
-                        const dateA = new Date(a.createdAt || a.created_at || 0);
-                        const dateB = new Date(b.createdAt || b.created_at || 0);
-                        return dateB - dateA;
-                    });
-                    setOrders(sortedOrders);
-                } else {
-                    setOrders([]);
-                }
+                // Backend trả về Page<Order>, nên lấy data.content
+                const orderList = Array.isArray(data?.content) ? data.content : [];
+
+                const sortedOrders = [...orderList].sort((a, b) => {
+                    const dateA = new Date(a.createdAt || a.created_at || 0);
+                    const dateB = new Date(b.createdAt || b.created_at || 0);
+                    return dateB - dateA;
+                });
+
+                setOrders(sortedOrders);
             } catch (error) {
                 console.error('Failed to load orders:', error);
                 setOrders([]);
@@ -77,6 +77,8 @@ export default function OrdersPage() {
 
         if (orders.length > 0) {
             checkReviewableOrders();
+        } else {
+            setReviewableMap({});
         }
     }, [orders]);
 
