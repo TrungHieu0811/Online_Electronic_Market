@@ -1,70 +1,22 @@
-import React, {useEffect, useState, useCallback} from 'react';
-import {useParams, useSearchParams} from 'react-router-dom';
+import React, {useEffect, useState, useCallback, useMemo} from 'react';
+import {useNavigate, useParams, useSearchParams} from 'react-router-dom';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faChevronDown, faXmark, faMagnifyingGlass, faChevronUp, faFilter} from '@fortawesome/free-solid-svg-icons';
-import api from '../../../services/api';
+import {faMagnifyingGlass, faChevronDown, faFilter} from '@fortawesome/free-solid-svg-icons';
+// import api from '../../../services/api';
 import ProductCard from '@/components/productComponents/productCard';
-
-const FILTER_CONFIGS = {
-	mobile: {
-		attributes: [
-			{key: 'Storage', label: 'Storage', options: ['64GB', '128GB', '256GB', '512GB', '1TB']},
-			{key: 'RAM', label: 'RAM', options: ['4GB', '6GB', '8GB', '12GB', '16GB']},
-			{key: 'Display', label: 'Display', options: ['OLED', 'AMOLED', 'LCD', 'Retina']},
-			{key: 'OS', label: 'OS', options: ['iOS', 'Android']},
-			{key: 'Battery', label: 'Battery', options: ['3000mAh', '4000mAh', '5000mAh', '6000mAh']},
-		],
-	},
-	laptop: {
-		attributes: [
-			{key: 'RAM', label: 'RAM', options: ['8GB', '16GB', '32GB', '64GB']},
-			{key: 'Storage', label: 'Storage', options: ['256GB SSD', '512GB SSD', '1TB SSD', '2TB SSD']},
-			{
-				key: 'Processor',
-				label: 'CPU',
-				options: ['Intel Core i5', 'Intel Core i7', 'Intel Core i9', 'AMD Ryzen 5', 'AMD Ryzen 7', 'Apple M2', 'Apple M3'],
-			},
-			{key: 'Display', label: 'Screen size', options: ['13 inch', '14 inch', '15.6 inch', '16 inch', '17 inch']},
-			{
-				key: 'Graphics',
-				label: 'GPU',
-				options: ['Intel Iris Xe', 'NVIDIA RTX 3050', 'NVIDIA RTX 3060', 'NVIDIA RTX 4060', 'AMD Radeon'],
-			},
-		],
-	},
-	tablet: {
-		attributes: [
-			{key: 'Storage', label: 'Storage', options: ['64GB', '128GB', '256GB', '512GB']},
-			{key: 'RAM', label: 'RAM', options: ['4GB', '6GB', '8GB', '12GB']},
-			{key: 'Display', label: 'Screen size', options: ['8 inch', '10 inch', '11 inch', '12.9 inch']},
-			{key: 'OS', label: 'OS', options: ['iPadOS', 'Android']},
-			{key: 'Connectivity', label: 'Connectivity', options: ['WiFi', 'WiFi + 4G', 'WiFi + 5G']},
-		],
-	},
-	accessories: {
-		attributes: [
-			{key: 'Type', label: 'Type', options: ['Headphones', 'Charger', 'Cable', 'Case', 'Mouse', 'Keyboard']},
-			{key: 'Connectivity', label: 'Connectivity', options: ['Bluetooth', 'Wired', 'USB-C', 'Lightning']},
-		],
-	},
-};
-
-function getFilterConfig(slug) {
-	if (!slug) return {attributes: []};
-	if (FILTER_CONFIGS[slug]) return FILTER_CONFIGS[slug];
-	const key = Object.keys(FILTER_CONFIGS).find((k) => slug.includes(k));
-	return key ? FILTER_CONFIGS[key] : {attributes: []};
-}
+import FilterBar from '@/components/productComponents/FilterBar';
+import BrandFilter from '@/components/productComponents/BrandFilter';
+import CategoryFilter from '@/components/productComponents/CategoryFilter';
+import {DEFAULT_FILTER_CONFIG} from '@/config/filterConfigs';
+import api from '@/services/api';
 
 const SORT_OPTIONS = [
-	{label: 'Newest', value: 'createdAt,desc'},
-	{label: 'Price: Low to High', value: 'salePrice,asc'},
-	{label: 'Price: High to Low', value: 'salePrice,desc'},
-	{label: 'Best Rating', value: 'averageRating,desc'},
-	{label: 'Most Viewed', value: 'viewCount,desc'},
+	{label: 'Mới', value: 'createdAt,desc'},
+	{label: 'Nổi bật', value: 'isFeatured,desc;createdAt,desc'},
+	{label: 'Bán chạy', value: 'viewCount,desc;averageRating,desc'},
 ];
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 
 function SkeletonCard() {
 	return (
@@ -82,213 +34,178 @@ function SkeletonCard() {
 	);
 }
 
-function FilterSection({label, children, defaultOpen = true}) {
-	const [open, setOpen] = useState(defaultOpen);
-	return (
-		<div className="border-b border-gray-100 pb-4 mb-4 last:border-0 last:mb-0 last:pb-0">
-			<button onClick={() => setOpen((o) => !o)} className="flex items-center justify-between w-full mb-3 group">
-				<span className="text-sm font-medium text-gray-700">{label}</span>
-				<FontAwesomeIcon
-					icon={open ? faChevronUp : faChevronDown}
-					style={{fontSize: 11}}
-					className="text-gray-400 group-hover:text-gray-600 transition-colors"
-				/>
-			</button>
-			{open && children}
-		</div>
-	);
-}
-
-function PriceRange({minPrice, maxPrice, onChange}) {
-	const [min, setMin] = useState(minPrice || '');
-	const [max, setMax] = useState(maxPrice || '');
-
-	useEffect(() => {
-		setMin(minPrice || '');
-	}, [minPrice]);
-	useEffect(() => {
-		setMax(maxPrice || '');
-	}, [maxPrice]);
-
-	return (
-		<div className="flex flex-col gap-2">
-			<div className="flex items-center gap-2">
-				<input
-					type="number"
-					placeholder="Min"
-					value={min}
-					onChange={(e) => setMin(e.target.value)}
-					className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-blue-400"
-				/>
-				<span className="text-gray-400 flex-shrink-0">—</span>
-				<input
-					type="number"
-					placeholder="Max"
-					value={max}
-					onChange={(e) => setMax(e.target.value)}
-					className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-blue-400"
-				/>
-			</div>
-			<div className="flex gap-2">
-				<button
-					onClick={() => onChange({minPrice: min, maxPrice: max})}
-					className="flex-1 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-				>
-					Apply
-				</button>
-
-				{(min || max) && (
-					<button
-						onClick={() => {
-							setMin('');
-							setMax('');
-							onChange({minPrice: '', maxPrice: ''});
-						}}
-						className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500"
-					>
-						Clear
-					</button>
-				)}
-			</div>
-		</div>
-	);
-}
-
-// ── FilterPanel: attributes[key] là string[] ──────────────────────────────────
-function FilterPanel({config, filters, onChange, onClear}) {
-	const hasAnyFilter =
-		Object.values(filters.attributes || {}).some((arr) => arr?.length > 0) || filters.minPrice || filters.maxPrice;
-
-	return (
-		<div className="bg-white border border-gray-200 rounded-2xl p-4 sticky top-4">
-			<div className="flex items-center justify-between mb-4">
-				<span className="text-sm font-semibold text-gray-800">Filters</span>
-				{hasAnyFilter && (
-					<button
-						onClick={onClear}
-						className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors"
-					>
-						<FontAwesomeIcon icon={faXmark} style={{fontSize: 10}} />
-						Clear all
-					</button>
-				)}
-			</div>
-
-			<FilterSection label="Price (USD)">
-				<PriceRange
-					minPrice={filters.minPrice}
-					maxPrice={filters.maxPrice}
-					onChange={({minPrice, maxPrice}) => onChange({minPrice, maxPrice})}
-				/>
-			</FilterSection>
-
-			{config?.attributes?.map((attr) => {
-				// selectedValues là string[] cho attr này
-				const selectedValues = filters.attributes?.[attr.key] ?? [];
-
-				return (
-					<FilterSection key={attr.key} label={attr.label}>
-						<div className="flex flex-col gap-2">
-							{attr.options.map((opt) => {
-								const checked = selectedValues.includes(opt);
-								return (
-									<label key={opt} className="flex items-center gap-2 cursor-pointer group">
-										<input
-											type="checkbox"
-											checked={checked}
-											onChange={() => {
-												// toggle: thêm hoặc bỏ opt khỏi mảng
-												const next = checked ? selectedValues.filter((v) => v !== opt) : [...selectedValues, opt];
-												onChange({
-													attributes: {
-														...filters.attributes,
-														[attr.key]: next,
-													},
-												});
-											}}
-											className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"
-										/>
-										<span className="text-xs text-gray-600 group-hover:text-gray-900 transition-colors">{opt}</span>
-									</label>
-								);
-							})}
-						</div>
-					</FilterSection>
-				);
-			})}
-		</div>
-	);
-}
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function CategoryPage() {
 	const {slug} = useParams();
 	const [searchParams, setSearchParams] = useSearchParams();
-	const filterConfig = getFilterConfig(slug);
-
 	const [products, setProducts] = useState([]);
 	const [pageData, setPageData] = useState(null);
 	const [loading, setLoading] = useState(true);
-	const [showFilter, setShowFilter] = useState(false);
+	const [brands, setBrands] = useState([]);
+	const [categories, setCategories] = useState([]);
+	const [showFilterModal, setShowFilterModal] = useState(false);
+	const [filterConfig, setFilterConfig] = useState(null);
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		const loadFilterData = async () => {
+			setLoading(true); // Bắt đầu load
+			try {
+				// 1. Gọi song song 4 API (thêm API lấy config từ DB)
+				const [rootCatRes] = await Promise.all([api.get(`/public/categories/tree`)]);
+
+				// 2. KIỂM TRA SLUG HỢP LỆ (Dùng rootCatRes như cũ)
+				const categoriesList = rootCatRes.data || [];
+				const isValidSlug = categoriesList.some((cat) => cat.slug?.toLowerCase() === slug?.toLowerCase());
+				if (!isValidSlug) {
+					return navigate('/404', {replace: true});
+				}
+
+				const [brandRes, catRes, configRes] = await Promise.all([
+					api.get(`/public/categories/${slug}/brands`),
+					api.get(`/public/categories/${slug}`),
+					api.get(`/public/categories/${slug}/filter-config`), // <--- API mới từ DB
+				]);
+
+				// 3. XỬ LÝ CONFIG TỪ DATABASE
+				// configRes.data chính là chuỗi JSON từ cột NVARCHAR(MAX)
+				let rawConfig = configRes.data;
+
+				// Đảm bảo dữ liệu là Object (nếu server trả về string thì parse)
+				let dbConfig = typeof rawConfig === 'string' ? JSON.parse(rawConfig) : rawConfig;
+
+				// Nếu DB chưa có config cho slug này, dùng DEFAULT_FILTER_CONFIG
+				if (!dbConfig) {
+					dbConfig = DEFAULT_FILTER_CONFIG;
+				}
+console.log("db config:",dbConfig);
+				// 4. CẬP NHẬT OPTIONS ĐỘNG (Brand & Sub-Category) VÀO CONFIG TỪ DB
+				const updatedConfig = {
+					...dbConfig,
+					brand: dbConfig.brand
+						? {
+								...dbConfig.brand,
+								options: brandRes.data.map((b) => ({id: b.id, name: b.name})),
+							}
+						: null,
+					category: dbConfig.categories
+						? {
+								// Lưu ý key trong JSON của bạn là 'categories'
+								...dbConfig.categories,
+								options: catRes.data.map((c) => ({id: c.id, name: c.name})),
+							}
+						: null,
+				};
+				console.log(updatedConfig);
+				// 5. Cập nhật các state
+				setBrands(brandRes.data || []);
+				setCategories(catRes.data || []);
+				setFilterConfig(updatedConfig);
+			} catch (e) {
+				console.error('Lỗi khi fetch dữ liệu:', e);
+				// Nếu lỗi API config (404), có thể dùng config mặc định tại đây
+				setFilterConfig(DEFAULT_FILTER_CONFIG);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		if (slug) {
+			loadFilterData();
+		}
+	}, [slug, navigate]);
 
 	const currentPage = parseInt(searchParams.get('page') || '0');
 	const currentSort = searchParams.get('sort') || SORT_OPTIONS[0].value;
 	const currentSearch = searchParams.get('q') || '';
 	const [searchInput, setSearchInput] = useState(currentSearch);
+	const [minPriceInput, setMinPriceInput] = useState(searchParams.get('minPrice') || '');
+	const [maxPriceInput, setMaxPriceInput] = useState(searchParams.get('maxPrice') || '');
 
-	const [applyFilter, setApplyFilter] = useState(false);
-
-	// Parse URL → attributes là { RAM: ['8GB','16GB'], Storage: ['256GB'] }
-	// URL format: attributes.RAM=8GB,16GB&attributes.Storage=256GB
+	// Parse URL → filters applied
 	const parseFilters = useCallback(() => {
 		const attributes = {};
+		const brandIds = [];
+		const categoryIds = [];
+
 		searchParams.forEach((value, key) => {
 			if (key.startsWith('attributes.')) {
 				const attrKey = key.replace('attributes.', '');
-				// split bằng "," để lấy mảng
 				attributes[attrKey] = value ? value.split(',') : [];
+			} else if (key === 'brandIds') {
+				brandIds.push(...(value ? value.split(',') : []));
+			} else if (key === 'categoryIds') {
+				categoryIds.push(...(value ? value.split(',') : []));
 			}
 		});
+
 		return {
 			attributes,
+			brandIds,
+			categoryIds,
 			minPrice: searchParams.get('minPrice') || '',
 			maxPrice: searchParams.get('maxPrice') || '',
 		};
 	}, [searchParams]);
 
-	const filters = parseFilters();
+	const filters = useMemo(() => parseFilters(), [parseFilters]);
 
-	// Build API params: attributes.RAM=8GB,16GB
+	// Local filter state - chỉ cập nhật khi user thay đổi, chưa apply
+	const [pendingFilters, setPendingFilters] = useState(filters);
+
+	// Reset pending filters khi slug (category) thay đổi
+	useEffect(() => {
+		setPendingFilters(filters);
+	}, [slug, filters]);
+
+	// Build API params
 	const buildApiParams = useCallback(() => {
-		const [sortField, sortDir] = currentSort.split(',');
+		const sortParts = currentSort.split(',');
 		const params = {
 			rootSlug: slug,
 			page: currentPage,
 			size: PAGE_SIZE,
-			sort: `${sortField},${sortDir}`,
-			...(currentSearch && {q: currentSearch}),
+			...(currentSearch && {keyword: currentSearch}),
+			...(filters.brandIds?.length > 0 && {brandIds: filters.brandIds.join(',')}),
+			...(filters.categoryIds?.length > 0 && {categoryIds: filters.categoryIds.join(',')}),
 			...(filters.minPrice && {minPrice: filters.minPrice}),
 			...(filters.maxPrice && {maxPrice: filters.maxPrice}),
 		};
+
+		// Handle multi-criteria sort (separated by ;)
+		if (currentSort.includes(';')) {
+			params.sort = currentSort.split(';');
+		} else {
+			const [sortField, sortDir] = sortParts;
+			params.sort = `${sortField},${sortDir}`;
+		}
+
 		Object.entries(filters.attributes).forEach(([k, arr]) => {
 			if (arr?.length) params[`attributes.${k}`] = arr.join(',');
 		});
 		return params;
-	}, [
-		slug,
-		currentPage,
-		currentSort,
-		currentSearch,
-		filters.minPrice,
-		filters.maxPrice,
-		JSON.stringify(filters.attributes),
-	]);
+	}, [slug, currentPage, currentSort, currentSearch, filters]);
 
+	// Fetch products
 	useEffect(() => {
 		const fetchProducts = async () => {
 			setLoading(true);
 			try {
-				const res = await api.get('/public/products', {params: buildApiParams()});
+				const params = buildApiParams();
+				const res = await api.get('/public/products', {
+					params,
+					paramsSerializer: (params) => {
+						// Manually serialize params to handle arrays properly
+						const searchParams = new URLSearchParams();
+						Object.entries(params).forEach(([key, value]) => {
+							if (Array.isArray(value)) {
+								value.forEach((v) => searchParams.append(key, v));
+							} else if (value !== undefined && value !== null && value !== '') {
+								searchParams.set(key, value);
+							}
+						});
+						return searchParams.toString();
+					},
+				});
 				setProducts(res.data?.content ?? []);
 				setPageData(res.data);
 			} catch (e) {
@@ -298,42 +215,170 @@ export default function CategoryPage() {
 			}
 		};
 		fetchProducts();
-		// }, [buildApiParams]);
-	}, [applyFilter]);
+	}, [slug, currentPage, currentSort, currentSearch, filters]);
 
+	// Reset pending filters when category changes
 	useEffect(() => {
 		setSearchParams((prev) => {
 			prev.set('page', '0');
 			return prev;
 		});
-	}, [slug, setSearchParams]);
+	}, [slug]);
 
-	// handleFilterChange: attributes[key] là string[]
+	// Handle filter change (local state)
 	const handleFilterChange = (changed) => {
-		setSearchParams((prev) => {
+		setPendingFilters((prev) => {
+			const updated = {...prev};
 			if (changed.attributes) {
-				[...prev.keys()].filter((k) => k.startsWith('attributes.')).forEach((k) => prev.delete(k));
-				Object.entries(changed.attributes).forEach(([k, arr]) => {
+				updated.attributes = {
+					...prev.attributes,
+					...changed.attributes,
+				};
+			}
+			if ('brandIds' in changed) updated.brandIds = changed.brandIds;
+			if ('categoryIds' in changed) updated.categoryIds = changed.categoryIds;
+			if ('minPrice' in changed) updated.minPrice = changed.minPrice;
+			if ('maxPrice' in changed) updated.maxPrice = changed.maxPrice;
+			return updated;
+		});
+	};
+
+	// Apply filter to URL
+	const handleApplyFilter = () => {
+		if (!pendingFilters) return;
+		setSearchParams((prev) => {
+			// Remove old filters
+			[...prev.keys()]
+				.filter((k) => k.startsWith('attributes.') || ['minPrice', 'maxPrice', 'brandIds', 'categoryIds'].includes(k))
+				.forEach((k) => prev.delete(k));
+
+			// Add new filters
+			if (pendingFilters.brandIds?.length > 0) {
+				prev.set('brandIds', pendingFilters.brandIds.join(','));
+			}
+			if (pendingFilters.categoryIds?.length > 0) {
+				prev.set('categoryIds', pendingFilters.categoryIds.join(','));
+			}
+			if (pendingFilters.attributes) {
+				Object.entries(pendingFilters.attributes).forEach(([k, arr]) => {
 					if (arr?.length) prev.set(`attributes.${k}`, arr.join(','));
-					else prev.delete(`attributes.${k}`);
 				});
 			}
-			if ('minPrice' in changed) changed.minPrice ? prev.set('minPrice', changed.minPrice) : prev.delete('minPrice');
-			if ('maxPrice' in changed) changed.maxPrice ? prev.set('maxPrice', changed.maxPrice) : prev.delete('maxPrice');
+			if (pendingFilters.minPrice) prev.set('minPrice', pendingFilters.minPrice);
+			if (pendingFilters.maxPrice) prev.set('maxPrice', pendingFilters.maxPrice);
+
 			prev.set('page', '0');
 			return prev;
 		});
 	};
 
 	const handleClearAll = () => {
+		setPendingFilters({attributes: {}, brandIds: [], categoryIds: [], minPrice: '', maxPrice: ''});
 		setSearchParams((prev) => {
 			[...prev.keys()]
-				.filter((k) => k.startsWith('attributes.') || ['minPrice', 'maxPrice', 'q'].includes(k))
+				.filter(
+					(k) => k.startsWith('attributes.') || ['minPrice', 'maxPrice', 'keyword', 'brandIds', 'categoryIds'].includes(k),
+				)
 				.forEach((k) => prev.delete(k));
 			prev.set('page', '0');
 			return prev;
 		});
 		setSearchInput('');
+	};
+
+	// Remove single filter and apply immediately (for tag removal)
+	const handleRemoveFilter = (type, value) => {
+		setSearchParams((prev) => {
+			if (type === 'brandIds') {
+				const current = prev.get('brandIds')?.split(',') || [];
+				const updated = current.filter((v) => v !== String(value));
+				if (updated.length > 0) {
+					prev.set('brandIds', updated.join(','));
+				} else {
+					prev.delete('brandIds');
+				}
+			} else if (type === 'categoryIds') {
+				const current = prev.get('categoryIds')?.split(',') || [];
+				const updated = current.filter((v) => v !== String(value));
+				if (updated.length > 0) {
+					prev.set('categoryIds', updated.join(','));
+				} else {
+					prev.delete('categoryIds');
+				}
+			} else if (type === 'price') {
+				prev.delete('minPrice');
+				prev.delete('maxPrice');
+			} else if (type === 'attribute') {
+				// value is {key, value}
+				const current = prev.get(`attributes.${value.key}`)?.split(',') || [];
+				const updated = current.filter((v) => v !== value.value);
+				if (updated.length > 0) {
+					prev.set(`attributes.${value.key}`, updated.join(','));
+				} else {
+					prev.delete(`attributes.${value.key}`);
+				}
+			}
+			prev.set('page', '0');
+			return prev;
+		});
+	};
+
+	// Cancel filter modal - reset pending filters to committed filters
+	const handleCancelFilter = () => {
+		setPendingFilters(filters);
+	};
+
+	// Handle brand selection - update URL immediately
+	const handleBrandSelect = (brandIds) => {
+		setSearchParams((prev) => {
+			if (brandIds.length > 0) {
+				prev.set('brandIds', brandIds.join(','));
+			} else {
+				prev.delete('brandIds');
+			}
+			prev.set('page', '0');
+			return prev;
+		});
+	};
+	const handleCategorySelect = (categoryIds) => {
+		setSearchParams((prev) => {
+			if (categoryIds.length > 0) {
+				prev.set('categoryIds', categoryIds.join(','));
+			} else {
+				prev.delete('categoryIds');
+			}
+			prev.set('page', '0');
+			return prev;
+		});
+	};
+
+	// Clear all brand filters
+	const handleClearBrands = () => {
+		handleBrandSelect([]);
+	};
+
+	// Clear all filters (brands + other filters)
+	const handleClearAllFilters = () => {
+		setSearchParams((prev) => {
+			// Remove all filter-related params
+			prev.delete('brandIds');
+			prev.delete('minPrice');
+			prev.delete('maxPrice');
+			prev.delete('categoryIds');
+			// Remove all attributes.* params
+			Array.from(prev.keys()).forEach((key) => {
+				if (key.startsWith('attributes.')) {
+					prev.delete(key);
+				}
+			});
+			// Remove search params
+			prev.delete('q');
+			prev.set('page', '0');
+			return prev;
+		});
+		setSearchInput('');
+		setMinPriceInput('');
+		setMaxPriceInput('');
 	};
 
 	const updateParam = (key, value) => {
@@ -346,195 +391,269 @@ export default function CategoryPage() {
 
 	const handleSearch = (e) => {
 		e.preventDefault();
-		updateParam('q', searchInput);
+		setSearchParams((prev) => {
+			if (searchInput.trim()) {
+				prev.set('q', searchInput);
+			} else {
+				prev.delete('q');
+			}
+			if (minPriceInput.trim()) {
+				prev.set('minPrice', minPriceInput);
+			} else {
+				prev.delete('minPrice');
+			}
+			if (maxPriceInput.trim()) {
+				prev.set('maxPrice', maxPriceInput);
+			} else {
+				prev.delete('maxPrice');
+			}
+			prev.set('page', '0');
+			return prev;
+		});
 	};
+
 	const handleClearSearch = () => {
 		setSearchInput('');
-		updateParam('q', '');
+		setSearchParams((prev) => {
+			prev.delete('q');
+			prev.delete('minPrice');
+			prev.delete('maxPrice');
+			prev.set('page', '0');
+			return prev;
+		});
 	};
 
-	// Active tags: mỗi value trong mảng là 1 tag riêng
-	const activeAttrTags = Object.entries(filters.attributes).flatMap(([k, arr]) =>
-		(arr ?? []).map((v) => ({key: k, value: v})),
-	);
-	const hasAnyFilter = activeAttrTags.length > 0 || filters.minPrice || filters.maxPrice;
-
 	return (
-		<div className="max-w-6xl mx-auto px-4 py-8">
-			{/* Header */}
-			<div className="flex items-center justify-between mb-6">
-				<div>
-					<h1 className="text-xl font-bold text-gray-800 capitalize">{slug?.replace(/-/g, ' ')}</h1>
+		<>
+			{/* Header with title */}
+			<div className="bg-white">
+				<div className="max-w-6xl mx-auto px-4 pt-4">
+					<h1 className="text-4xl font-bold text-gray-800 capitalize">{slug?.replace(/-/g, ' ')}</h1>
 					{!loading && (
-						<p className="text-sm text-gray-400 mt-0.5">{pageData?.totalElements?.toLocaleString()} products found</p>
+						<p className="text-sm text-gray-500 mt-1">Total: {pageData?.totalElements?.toLocaleString()} products</p>
 					)}
+					{/* Filter Bar */}
+					<FilterBar
+						config={filterConfig}
+						filters={pendingFilters}
+						onFilterChange={handleFilterChange}
+						onClearAll={handleClearAll}
+						onApply={handleApplyFilter}
+						onRemoveFilter={handleRemoveFilter}
+						onCancel={handleCancelFilter}
+						brands={brands}
+						categories={categories}
+						showFilterModal={showFilterModal}
+						setShowFilterModal={setShowFilterModal}
+					/>
 				</div>
-				<button
-					onClick={() => {
-						setApplyFilter(!applyFilter);
-					}}
-					className="flex-1 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-				>
-					Apply Filter
-				</button>
-				<button
-					onClick={() => setShowFilter((s) => !s)}
-					className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 rounded-xl lg:hidden"
-				>
-					<FontAwesomeIcon icon={faFilter} style={{fontSize: 12}} />
-					{showFilter ? 'Hide filters' : 'Filters'}
-					{hasAnyFilter && (
-						<span className="w-4 h-4 flex items-center justify-center bg-blue-600 text-white text-xs rounded-full">
-							{activeAttrTags.length + (filters.minPrice || filters.maxPrice ? 1 : 0)}
-						</span>
-					)}
-				</button>
 			</div>
 
-			<div className="flex gap-6">
-				<aside className={`w-52 flex-shrink-0 ${showFilter ? 'block' : 'hidden'} lg:block`}>
-					<FilterPanel config={filterConfig} filters={filters} onChange={handleFilterChange} onClear={handleClearAll} />
-				</aside>
+			<div className="max-w-6xl mx-auto px-4 pb-6">
+				{/* Toolbar */}
+				<div className="flex items-center gap-3 mb-3 flex-wrap">
+					{/* Filter Button */}
+					<button
+						onClick={() => setShowFilterModal(true)}
+						className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+					>
+						<FontAwesomeIcon icon={faFilter} style={{fontSize: 16}} />
+						Lọc
+					</button>
 
-				<div className="flex-1 min-w-0">
-					{/* Toolbar */}
-					<div className="flex items-center gap-3 mb-4">
-						<form
-							onSubmit={handleSearch}
-							className="flex items-center flex-1 border border-gray-200 rounded-xl overflow-hidden"
-						>
+					{/* Clear Filter Button */}
+					<button
+						onClick={handleClearAllFilters}
+						disabled={
+							filters.brandIds.length === 0 &&
+							filters.categoryIds.length === 0 &&
+							Object.keys(filters.attributes).length === 0 &&
+							!currentSearch &&
+							!filters.minPrice &&
+							!filters.maxPrice
+						}
+						className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors whitespace-nowrap ${
+							filters.brandIds.length > 0 ||
+							filters.categoryIds.length > 0 ||
+							Object.keys(filters.attributes).length > 0 ||
+							currentSearch ||
+							filters.minPrice ||
+							filters.maxPrice
+								? 'bg-red-100 border-red-300 text-red-600 hover:bg-red-200 cursor-pointer'
+								: 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
+						}`}
+					>
+						✕ Xóa lọc
+					</button>
+
+					{/* Search Form - Single Row */}
+					<form onSubmit={handleSearch} className="flex flex-wrap items-center gap-3 ml-auto">
+						{/* Name Search */}
+						<input
+							type="text"
+							value={searchInput}
+							onChange={(e) => setSearchInput(e.target.value)}
+							placeholder="Tìm kiếm theo tên..."
+							className="flex-1 min-w-[150px] px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500"
+						/>
+
+						{/* Price Range */}
+						<div className="flex flex-1 flex-nowrap items-center gap-2">
+							<span className="text-sm text-gray-600 whitespace-nowrap">Giá:</span>
 							<input
-								type="text"
-								value={searchInput}
-								onChange={(e) => setSearchInput(e.target.value)}
-								placeholder="Search in this category..."
-								className="flex-1 px-4 py-2.5 text-sm outline-none bg-white text-gray-700 placeholder-gray-400"
+								type="number"
+								value={minPriceInput}
+								onChange={(e) => setMinPriceInput(e.target.value)}
+								placeholder="Min"
+								min="0"
+								className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500"
 							/>
-							{searchInput && (
-								<button type="button" onClick={handleClearSearch} className="px-2 text-gray-400 hover:text-gray-600">
-									<FontAwesomeIcon icon={faXmark} style={{fontSize: 12}} />
-								</button>
-							)}
-							<button type="submit" className="px-4 py-2.5 bg-blue-600 text-white hover:bg-blue-700 transition-colors">
-								<FontAwesomeIcon icon={faMagnifyingGlass} style={{fontSize: 12}} />
-							</button>
-						</form>
-						<div className="relative flex-shrink-0">
-							<select
-								value={currentSort}
-								onChange={(e) => updateParam('sort', e.target.value)}
-								className="appearance-none pl-3 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl bg-white outline-none cursor-pointer hover:border-gray-300 transition-colors"
+							<span className="text-gray-400">-</span>
+							<input
+								type="number"
+								value={maxPriceInput}
+								onChange={(e) => setMaxPriceInput(e.target.value)}
+								placeholder="Max"
+								min="0"
+								className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-500"
+							/>
+						</div>
+
+						{/* Search Button */}
+						<button
+							type="submit"
+							className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors flex-shrink-0"
+						>
+							<FontAwesomeIcon icon={faMagnifyingGlass} style={{fontSize: 14}} />
+						</button>
+					</form>
+				</div>
+
+				{/* Brand Filter */}
+				{brands.length > 0 && (
+					<div className="mb-4">
+						<BrandFilter
+							brands={brands}
+							selectedBrandIds={filters.brandIds || []}
+							onBrandSelect={handleBrandSelect}
+							onClearAll={handleClearAllFilters}
+						/>
+					</div>
+				)}
+				{/* Category Filter */}
+				{categories.length > 0 && (
+					<div className="mb-4">
+						<CategoryFilter
+							categories={categories}
+							selectedCategoryIds={filters.categoryIds || []}
+							onCategorySelect={handleCategorySelect}
+							onClearAll={handleClearAllFilters}
+						/>
+					</div>
+				)}
+
+				{/* Sort Options */}
+				<div className="flex items-center gap-3 mb-6 flex-wrap">
+					<span className="text-sm text-gray-600 whitespace-nowrap">Sắp xếp theo:</span>
+					<div className="flex items-center gap-4">
+						{SORT_OPTIONS.map((opt) => (
+							<button
+								key={opt.value}
+								onClick={() => updateParam('sort', opt.value)}
+								className={`text-sm font-medium transition-colors whitespace-nowrap relative ${
+									currentSort === opt.value ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'
+								} ${currentSort === opt.value ? 'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600' : ''}`}
 							>
-								{SORT_OPTIONS.map((o) => (
-									<option key={o.value} value={o.value}>
-										{o.label}
-									</option>
-								))}
+								{opt.label}
+							</button>
+						))}
+
+						{/* Price Dropdown */}
+						<div className="relative inline-block">
+							<select
+								value={currentSort.startsWith('salePrice') ? currentSort : ''}
+								onChange={(e) => updateParam('sort', e.target.value)}
+								className={`px-0 text-sm font-medium outline-none appearance-none bg-transparent cursor-pointer whitespace-nowrap pr-4 ${
+									currentSort.startsWith('salePrice') ? 'text-blue-600' : 'text-gray-600 hover:text-blue-600'
+								}`}
+								style={{
+									backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23${currentSort.startsWith('salePrice') ? '2563eb' : '4b5563'}' d='M1 4l5 4 5-4'/%3E%3C/svg%3E")`,
+									backgroundRepeat: 'no-repeat',
+									backgroundPosition: 'right center',
+									paddingRight: '16px',
+								}}
+							>
+								<option value="salePrice,asc">Giá thấp - cao</option>
+								<option value="salePrice,desc">Giá cao - thấp</option>
 							</select>
-							<FontAwesomeIcon
-								icon={faChevronDown}
-								style={{fontSize: 10}}
-								className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-							/>
 						</div>
 					</div>
-
-					{/* Active filter tags — mỗi value là 1 tag */}
-					{hasAnyFilter && (
-						<div className="flex flex-wrap gap-2 mb-4">
-							{activeAttrTags.map(({key, value}) => (
-								<span
-									key={`${key}-${value}`}
-									className="flex items-center gap-1.5 text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full"
-								>
-									{key}: {value}
-									<button
-										onClick={() => {
-											const next = (filters.attributes[key] ?? []).filter((v) => v !== value);
-											handleFilterChange({attributes: {...filters.attributes, [key]: next}});
-										}}
-									>
-										<FontAwesomeIcon icon={faXmark} style={{fontSize: 9}} />
-									</button>
-								</span>
-							))}
-							{(filters.minPrice || filters.maxPrice) && (
-								<span className="flex items-center gap-1.5 text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
-									${filters.minPrice || '0'} — ${filters.maxPrice || '∞'}
-									<button onClick={() => handleFilterChange({minPrice: '', maxPrice: ''})}>
-										<FontAwesomeIcon icon={faXmark} style={{fontSize: 9}} />
-									</button>
-								</span>
-							)}
-							<button onClick={handleClearAll} className="text-xs text-red-500 hover:underline px-1">
-								Clear all
-							</button>
-						</div>
-					)}
-
-					{/* Grid */}
-					{loading ? (
-						<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-							{Array.from({length: PAGE_SIZE}).map((_, i) => (
-								<SkeletonCard key={i} />
-							))}
-						</div>
-					) : products.length === 0 ? (
-						<div className="flex flex-col items-center justify-center py-24 text-gray-400">
-							<FontAwesomeIcon icon={faMagnifyingGlass} style={{fontSize: 36, marginBottom: 12}} />
-							<p className="text-sm">No products found</p>
-							<button onClick={handleClearAll} className="mt-3 text-xs text-blue-500 hover:underline">
-								Clear all filters
-							</button>
-						</div>
-					) : (
-						<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-stretch">
-							{products.map((p) => (
-								<ProductCard key={p.id} item={p} />
-							))}
-						</div>
-					)}
-
-					{/* Pagination */}
-					{pageData?.totalPages > 1 && (
-						<div className="flex items-center justify-center gap-1.5 mt-10">
-							<button
-								onClick={() => updateParam('page', String(currentPage - 1))}
-								disabled={currentPage === 0}
-								className="px-3 py-2 text-sm border border-gray-200 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-							>
-								Prev
-							</button>
-							{Array.from({length: pageData.totalPages}, (_, i) => {
-								if (i === 0 || i === pageData.totalPages - 1 || (i >= currentPage - 1 && i <= currentPage + 1))
-									return (
-										<button
-											key={i}
-											onClick={() => updateParam('page', String(i))}
-											className={`w-9 h-9 text-sm rounded-lg border transition-colors ${currentPage === i ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-										>
-											{i + 1}
-										</button>
-									);
-								if (i === currentPage - 2 || i === currentPage + 2)
-									return (
-										<span key={i} className="text-gray-400 px-1">
-											...
-										</span>
-									);
-								return null;
-							})}
-							<button
-								onClick={() => updateParam('page', String(currentPage + 1))}
-								disabled={currentPage >= pageData.totalPages - 1}
-								className="px-3 py-2 text-sm border border-gray-200 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-							>
-								Next
-							</button>
-						</div>
-					)}
 				</div>
+
+				{/* Products Grid */}
+				{loading ? (
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+						{Array.from({length: PAGE_SIZE}).map((_, i) => (
+							<SkeletonCard key={i} />
+						))}
+					</div>
+				) : products.length > 0 ? (
+					<>
+						<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+							{products.map((product) => (
+								<ProductCard key={product.id} item={product} />
+							))}
+						</div>
+
+						{/* Pagination */}
+						{pageData?.totalPages > 1 && (
+							<div className="flex items-center justify-center gap-1.5">
+								<button
+									onClick={() => updateParam('page', String(currentPage - 1))}
+									disabled={currentPage === 0}
+									className="px-3 py-2 text-sm border border-gray-200 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+								>
+									Trước
+								</button>
+								{Array.from({length: pageData.totalPages}, (_, i) => {
+									if (i === 0 || i === pageData.totalPages - 1 || (i >= currentPage - 1 && i <= currentPage + 1))
+										return (
+											<button
+												key={i}
+												onClick={() => updateParam('page', String(i))}
+												className={`w-9 h-9 text-sm rounded-lg border transition-colors ${
+													currentPage === i
+														? 'bg-blue-600 text-white border-blue-600'
+														: 'border-gray-200 text-gray-600 hover:bg-gray-50'
+												}`}
+											>
+												{i + 1}
+											</button>
+										);
+									if (i === currentPage - 2 || i === currentPage + 2)
+										return (
+											<span key={`ellipsis-${i}`} className="px-2 text-gray-400">
+												...
+											</span>
+										);
+									return null;
+								})}
+								<button
+									onClick={() => updateParam('page', String(currentPage + 1))}
+									disabled={currentPage >= pageData.totalPages - 1}
+									className="px-3 py-2 text-sm border border-gray-200 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+								>
+									Sau
+								</button>
+							</div>
+						)}
+					</>
+				) : (
+					<div className="text-center py-12">
+						<p className="text-gray-500">Không tìm thấy sản phẩm</p>
+					</div>
+				)}
 			</div>
-		</div>
+		</>
 	);
 }
