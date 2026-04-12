@@ -20,6 +20,7 @@ import {faStar as faStarEmpty, faHeart} from '@fortawesome/free-regular-svg-icon
 import QuestionAnswerSection from '@/features/comment/QuestionAnswerSection';
 // import api from '../../../services/api';
 import api from '../../../services/api';
+import AddToCartButton from '@/components/user/cart/AddToCartButton';
 
 const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 
@@ -153,6 +154,7 @@ export default function ProductDetailPage() {
 	}
 
 	const {
+		id,
 		variantName,
 		averageRating,
 		basePrice,
@@ -462,18 +464,38 @@ export default function ProductDetailPage() {
 								>
 									<button
 										onClick={() => setQty((q) => Math.max(1, q - 1))}
-										disabled={unavailable}
-										className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-500 disabled:cursor-not-allowed"
+										disabled={unavailable || qty <= 1}
+										className={`w-9 h-9 flex items-center justify-center transition-colors
+				${unavailable || qty <= 1 ? 'text-gray-500 hover:bg-gray-100 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 cursor-pointer text-white'}`}
 									>
-										<FontAwesomeIcon icon={faMinus} style={{fontSize: 11}} />
+										<FontAwesomeIcon icon={faMinus} style={{fontSize: 14}} />
 									</button>
-									<span className="w-10 text-center text-sm font-medium text-gray-800">{qty}</span>
+									<input
+										type="text"
+										min="1"
+										max={stockQuantity}
+										value={qty}
+										onChange={(e) => {
+											if (!/^\d*$/.test(e.target.value)) return;
+											if (e.target.value > stockQuantity) {
+												setQty(stockQuantity);
+											} else if (e.target.value < 1) {
+												setQty(1);
+											} else {
+												setQty(parseInt(e.target.value));
+											}
+											console.log('value: ', e.target.value);
+										}}
+										className="w-10 text-center text-sm font-medium text-gray-800 border-none focus:ring-2 focus:ring-blue-500"
+										disabled={unavailable}
+									/>
 									<button
 										onClick={() => setQty((q) => Math.min(stockQuantity, q + 1))}
-										disabled={unavailable}
-										className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-500 disabled:cursor-not-allowed"
+										disabled={unavailable || qty >= stockQuantity}
+										className={`w-9 h-9 flex items-center justify-center transition-colors
+				${unavailable || qty >= stockQuantity ? 'text-gray-500 hover:bg-gray-100 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 cursor-pointer text-white'}`}
 									>
-										<FontAwesomeIcon icon={faPlus} style={{fontSize: 11}} />
+										<FontAwesomeIcon icon={faPlus} style={{fontSize: 14}} />
 									</button>
 								</div>
 							</div>
@@ -492,6 +514,20 @@ export default function ProductDetailPage() {
 									<FontAwesomeIcon icon={faCartPlus} />
 									Add to Cart
 								</button>
+								<AddToCartButton
+									productId={id}
+									quantity={qty}
+									showText={false}
+									disabled={unavailable}
+									stock={stockQuantity}
+									product={product}
+									className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white text-lg text-blue-600 border-2 border-blue-600 font-semibold transition-all
+            ${
+													unavailable
+														? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+														: 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
+												}`}
+								></AddToCartButton>
 								<button
 									disabled={unavailable}
 									className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all

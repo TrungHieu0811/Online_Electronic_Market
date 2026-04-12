@@ -1,10 +1,9 @@
 import { getMyProfile, updateMyProfile, uploadAvatar } from '@/services/profileApi';
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify'; // 👉 IMPORT TOAST
 
-const DEFAULT_AVATAR =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAsJtKzVastl37y1I4sAhhnMQ4bSZhhWlH1YsrhH5ZdkiSML8EV5NVrM-T5t0LOT6DKEMgVt_fk24-70yAZvLRPxOVJHygogu5xfrft9t7OJMmlE54D1niW7Gf61puoL5vCRrZQeh_wSfhjU6jOHarzc4rNpdIyUHh1hiQifF9hC-4FWPZ8Y0A8f6WudZO8px0_bvdYmH2zhZc-dmZop-83kKY0TY0i1sYNSDzkxcWBGmy9K2hc57VjHTrcirYx4ZXrhBNjqGwBuylv';
-
+const DEFAULT_AVATAR = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAsJtKzVastl37y1I4sAhhnMQ4bSZhhWlH1YsrhH5ZdkiSML8EV5NVrM-T5t0LOT6DKEMgVt_fk24-70yAZvLRPxOVJHygogu5xfrft9t7OJMmlE54D1niW7Gf61puoL5vCRrZQeh_wSfhjU6jOHarzc4rNpdIyUHh1hiQifF9hC-4FWPZ8Y0A8f6WudZO8px0_bvdYmH2zhZc-dmZop-83kKY0TY0i1sYNSDzkxcWBGmy9K2hc57VjHTrcirYx4ZXrhBNjqGwBuylv';
 const API_BASE_URL = 'http://localhost:8080';
 
 export default function EditProfileModal() {
@@ -55,7 +54,7 @@ export default function EditProfileModal() {
             hydrateForm(data);
         } catch (error) {
             console.error('Failed to load profile:', error);
-            alert('Failed to load profile.');
+            toast.error('Failed to load profile data.'); // 👉 ĐỔI THÀNH TOAST
         }
     };
 
@@ -81,7 +80,6 @@ export default function EditProfileModal() {
 
         try {
             setUploading(true);
-
             const result = await uploadAvatar(file);
 
             setFormData((prev) => ({
@@ -89,21 +87,14 @@ export default function EditProfileModal() {
                 avatarUrl: result.avatarUrl
             }));
 
-            alert(result.message || 'Avatar uploaded successfully!');
+            toast.success(result.message || 'Avatar uploaded successfully!'); // 👉 ĐỔI THÀNH TOAST
         } catch (error) {
             console.error('Avatar upload failed:', error);
-            alert(error?.response?.data || 'Avatar upload failed!');
+            toast.error(error?.response?.data || 'Avatar upload failed!'); // 👉 ĐỔI THÀNH TOAST
         } finally {
             setUploading(false);
             e.target.value = '';
         }
-    };
-
-    const handleRemovePhoto = () => {
-        setFormData((prev) => ({
-            ...prev,
-            avatarUrl: ''
-        }));
     };
 
     const handleSubmit = async (e) => {
@@ -126,11 +117,17 @@ export default function EditProfileModal() {
             );
 
             await updateMyProfile(cleanedPayload);
-            alert('Profile updated successfully!');
-            navigate('/profile', { replace: true });
+            
+            // 👉 1. HIỆN TOAST THÀNH CÔNG ĐẸP MẮT
+            toast.success('Profile updated successfully!');
+            
+            // 👉 2. TRUYỀN TÍN HIỆU (refresh: Date.now()) VỀ TRANG CHA KHI ĐÓNG MODAL
+            // Dùng Date.now() để đảm bảo mỗi lần update xong tín hiệu đều khác nhau -> Ép React render lại
+            navigate('/profile', { replace: true, state: { refresh: Date.now() } });
+            
         } catch (error) {
             console.error('Update failed:', error);
-            alert(error?.response?.data || 'Profile update failed!');
+            toast.error(error?.response?.data || 'Profile update failed!'); // 👉 ĐỔI THÀNH TOAST
         } finally {
             setLoading(false);
         }
@@ -152,6 +149,7 @@ export default function EditProfileModal() {
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className='max-h-[88vh] overflow-y-auto p-8'>
+                    {/* ... (Toàn bộ phần HTML giao diện của bạn giữ nguyên không đổi) ... */}
                     <div className='mb-8 flex items-start justify-between'>
                         <div>
                             <h2 className='font-headline text-[2rem] font-bold tracking-tight text-on-surface'>
@@ -161,7 +159,6 @@ export default function EditProfileModal() {
                                 Update your account identity and contact details.
                             </p>
                         </div>
-
                         <button
                             type='button'
                             onClick={handleClose}
@@ -193,14 +190,6 @@ export default function EditProfileModal() {
                                 >
                                     {uploading ? 'Uploading...' : 'Change Photo'}
                                 </button>
-
-                                {/* <button
-                                    type='button'
-                                    onClick={handleRemovePhoto}
-                                    className='rounded-full px-3 py-2.5 text-sm font-semibold text-on-surface-variant transition hover:text-on-surface'
-                                >
-                                    Remove
-                                </button> */}
                             </div>
 
                             <input
@@ -314,17 +303,10 @@ export default function EditProfileModal() {
     );
 }
 
-const inputClass =
-    'w-full rounded-[18px] border border-outline-variant/40 bg-surface-container-highest/70 px-4 py-3.5 text-on-surface outline-none shadow-sm transition-all duration-200 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/30 focus:shadow-md';
-
-const textareaClass =
-    'w-full resize-none rounded-[18px] border border-outline-variant/40 bg-surface-container-highest/70 px-4 py-3.5 text-on-surface outline-none shadow-sm transition-all duration-200 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/30 focus:shadow-md';
-
-const readOnlyInputClass =
-    'w-full rounded-[18px] border border-outline-variant/20 bg-surface-container-highest/40 px-4 py-3.5 text-on-surface/70 outline-none';
-
-const readOnlyTextareaClass =
-    'w-full resize-none rounded-[18px] border border-outline-variant/20 bg-surface-container-highest/40 px-4 py-3.5 text-on-surface/70 outline-none';
+const inputClass = 'w-full rounded-[18px] border border-outline-variant/40 bg-surface-container-highest/70 px-4 py-3.5 text-on-surface outline-none shadow-sm transition-all duration-200 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/30 focus:shadow-md';
+const textareaClass = 'w-full resize-none rounded-[18px] border border-outline-variant/40 bg-surface-container-highest/70 px-4 py-3.5 text-on-surface outline-none shadow-sm transition-all duration-200 hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/30 focus:shadow-md';
+const readOnlyInputClass = 'w-full rounded-[18px] border border-outline-variant/20 bg-surface-container-highest/40 px-4 py-3.5 text-on-surface/70 outline-none';
+const readOnlyTextareaClass = 'w-full resize-none rounded-[18px] border border-outline-variant/20 bg-surface-container-highest/40 px-4 py-3.5 text-on-surface/70 outline-none';
 
 function Field({ label, children }) {
     return (

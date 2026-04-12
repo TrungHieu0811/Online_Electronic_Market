@@ -247,7 +247,7 @@ export default function AdminProductGroupCreatePage() {
 				brandId: selectedBrand.id,
 				name: name.trim(),
 			});
-			navigate('/admin/product-groups', {
+			navigate('/admin/products/groups', {
 				state: {showNotification: true, message: `Product group "${name.trim()}" created successfully!`},
 			});
 		} catch (err) {

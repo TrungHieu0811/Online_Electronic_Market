@@ -101,9 +101,18 @@ const AddToCartButton = ({productId, quantity, stock, product, className, showTe
 	};
 
 	return (
-		<button onClick={handleAddToCart} disabled={disabled || (stock !== undefined && stock <= 0)} className={className}>
-			<FontAwesomeIcon icon={disabled || stock <= 0 ? faBan : faCartPlus} />
-			{showText && <span className="ml-2">Add to Cart</span>}
+		<button
+			onClick={handleAddToCart}
+			disabled={disabled || (stock !== undefined && stock <= 0)}
+			className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border-2 border-blue-600 transition-all
+            ${
+													disabled || stock <= 0
+														? 'opacity-40 cursor-not-allowed border-gray-200 text-gray-400'
+														: 'text-blue-600 hover:bg-blue-600 hover:text-white active:scale-95'
+												}`}
+		>
+			<FontAwesomeIcon icon={faCartPlus} />
+			Add to Cart
 		</button>
 	);
 };
