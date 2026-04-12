@@ -1,22 +1,148 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { FaApple } from "react-icons/fa";
-import { FcGoogle } from "react-icons/fc"; 
+import { FcGoogle } from "react-icons/fc";
+import { authApi } from '../../services/authApi';
+import { useState } from 'react'; // 👉 Đảm bảo import useState
+import { Link, useNavigate } from 'react-router-dom'; // 👉 Đảm bảo import useNavigate
+import { toast } from 'react-toastify';
 // 👉 Import toàn bộ icon từ react-icons/md (Material Design)
-import { 
-  MdBolt, 
-  MdShoppingCart, 
-  MdPersonAdd, 
-  MdBadge, 
-  MdOutlineMail, 
-  MdCall, 
-  MdLockOutline, 
-  MdVerifiedUser, 
+import {
+  MdBolt,
+  MdShoppingCart,
+  MdPersonAdd,
+  MdBadge,
+  MdOutlineMail,
+  MdCall,
+  MdLockOutline,
+  MdVerifiedUser,
   MdArrowForward,
-  MdStar
+  MdStar,
+  MdAccountCircle // 👉 Thêm icon này cho ô Username
 } from "react-icons/md";
 
 const Register = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(''); // State để lưu thông báo lỗi đỏ
+
+  // 👉 1. State mới để chứa lỗi của TỪNG ô input riêng biệt
+  const [formErrors, setFormErrors] = useState({});
+
+  // 👉 2. Hàm kiểm tra lỗi cục bộ trước khi gửi API
+  const validateForm = () => {
+    let errors = {};
+    
+    if (!formData.fullName.trim()) errors.fullName = "Please enter your full name.";
+    if (!formData.username.trim()) errors.username = "Please enter a username.";
+    
+    if (!formData.email.trim()) {
+      errors.email = "Please enter your email.";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = "Email is not in a valid format.";
+    }
+
+    if (!formData.phone.trim()) {
+      errors.phone = "Please enter your phone number.";
+    } else if (!/^[0-9]{10,11}$/.test(formData.phone)) {
+      errors.phone = "Phone number is not valid (10-11 digits).";
+    }
+
+    if (!formData.password) {
+      errors.password = "Please enter a password.";
+    } else if (formData.password.length < 6) {
+      errors.password = "Password must be at least 6 characters long.";
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = "Password confirmation does not match.";
+    }
+
+    return errors;
+  };
+
+  // 👉 1. Khai báo state cho tất cả các ô input
+  const [formData, setFormData] = useState({
+    fullName: '',
+    username: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  // Hàm xử lý khi gõ vào ô input
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    // 👉 Xóa lỗi của ô hiện tại khi người dùng bắt đầu gõ lại
+    setFormErrors({
+      ...formErrors,
+      [e.target.name]: ''
+    });
+    setErrorMsg(''); // Xóa lỗi đi khi người dùng bắt đầu sửa lại
+  };
+
+  // 👉 2. Hàm xử lý khi bấm nút Register
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // 👉 3. Chạy hàm kiểm tra lỗi trước
+    const validationErrors = validateForm();
+
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors);
+      return;
+    }
+
+    // Kiểm tra mật khẩu khớp nhau ở Frontend trước cho lẹ
+    if (formData.password !== formData.confirmPassword) {
+      setErrorMsg('Password confirmation does not match!');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMsg('');
+
+    try {
+      // Gọi API từ authApi.js
+      const successMessage = await authApi.register(formData);
+
+      // Nếu thành công -> Thông báo và chuyển trang
+
+      let finalMessage = "Registration successful! Please check your email to get the OTP.";
+      // Nếu Backend trả về dạng chuỗi thì lấy luôn
+      if (typeof successMessage === 'string') {
+        finalMessage = successMessage;
+      } 
+      // Nếu Backend trả về dạng Object thì moi cái 'message' ra
+      else if (typeof successMessage === 'object' && successMessage !== null) {
+        finalMessage = successMessage.message || successMessage.data || finalMessage;
+      }
+
+      // XÓA cái alert() cũ đi và thay bằng:
+      toast.success(finalMessage);
+
+      // Chuyển sang trang CheckOTP, truyền theo email để bên đó dùng
+      // Ghim thẳng chữ ?flow=register lên URL
+      navigate('/check-otp?flow=register', { state: { email: formData.email } });
+
+    } catch (errorMessage) {
+      // Nếu thất bại -> Hiển thị lỗi từ Backend lên (ví dụ: "Email đã tồn tại")
+      setErrorMsg(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  // 👉 Hàm hỗ trợ đổi màu viền input nếu có lỗi
+  const getInputClass = (fieldName) => {
+    const baseClass = "w-full h-12 px-4 rounded-xl border outline-none transition-all text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 ";
+    if (formErrors[fieldName]) {
+      return baseClass + "border-red-500 focus:ring-2 focus:ring-red-500/20 focus:border-red-500";
+    }
+    return baseClass + "border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary/20 focus:border-primary";
+  };
   return (
     <div className="bg-background-light dark:bg-background-dark font-display min-h-screen flex flex-col">
       {/* Navigation Header */}
@@ -40,7 +166,7 @@ const Register = () => {
       {/* Main Content: Registration Card */}
       <main className="flex-grow flex items-center justify-center p-4 md:p-8">
         <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-          
+
           {/* Card Header */}
           <div className="p-8 pb-0">
             <div className="flex items-center gap-2 text-accent-blue mb-2">
@@ -52,7 +178,15 @@ const Register = () => {
           </div>
 
           {/* Form */}
-          <form className="p-8 space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="p-8 space-y-5">
+
+            {/* 👉 Khung hiển thị thông báo lỗi (Màu đỏ) */}
+            {errorMsg && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm font-medium rounded-lg">
+                {errorMsg}
+              </div>
+            )}
+
             {/* Full Name Field */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
@@ -60,10 +194,34 @@ const Register = () => {
                 Full Name
               </label>
               <input 
+                name="fullName" // 👉 Thêm name
+                value={formData.fullName} // 👉 Liên kết value
+                onChange={handleChange} // 👉 Liên kết hàm thay đổi
+                required
                 className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" 
                 placeholder="John Doe" 
                 type="text" 
               />
+              {/* 👉 5. Hiển thị dòng text lỗi đỏ ở dưới ô input */}
+              {formErrors.fullName && <p className="text-xs text-red-500 mt-1">{formErrors.fullName}</p>}
+            </div>
+
+            {/* 👉 THÊM MỚI: Username Field (Bắt buộc cho backend) */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <MdAccountCircle className="text-lg text-slate-400" />
+                Username
+              </label>
+              <input 
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" 
+                placeholder="johndoe123" 
+                type="text" 
+              />
+              {formErrors.username && <p className="text-xs text-red-500 mt-1">{formErrors.username}</p>}
             </div>
 
             {/* Email Field */}
@@ -73,10 +231,15 @@ const Register = () => {
                 Email Address
               </label>
               <input 
+                name="email" // 👉 Thêm name
+                value={formData.email} // 👉 Liên kết value
+                onChange={handleChange} // 👉 Liên kết hàm thay đổi
+                required
                 className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" 
                 placeholder="john@example.com" 
                 type="email" 
               />
+              {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
             </div>
 
             {/* Phone Field */}
@@ -86,10 +249,15 @@ const Register = () => {
                 Phone Number
               </label>
               <input 
+                name="phone" // 👉 Thêm name
+                value={formData.phone} // 👉 Liên kết value
+                onChange={handleChange} // 👉 Liên kết hàm thay đổi
+                required
                 className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" 
-                placeholder="+1 (555) 000-0000" 
+                placeholder="0900123456" 
                 type="tel" 
               />
+              {formErrors.phone && <p className="text-xs text-red-500 mt-1">{formErrors.phone}</p>}
             </div>
 
             {/* Password Row */}
@@ -100,10 +268,15 @@ const Register = () => {
                   Password
                 </label>
                 <input 
+                  name="password" // 👉 Thêm name
+                  value={formData.password} // 👉 Liên kết value
+                  onChange={handleChange} // 👉 Liên kết hàm thay đổi
+                  required
                   className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" 
                   placeholder="••••••••" 
                   type="password" 
                 />
+                {formErrors.password && <p className="text-xs text-red-500 mt-1">{formErrors.password}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
@@ -111,17 +284,26 @@ const Register = () => {
                   Confirm
                 </label>
                 <input 
+                  name="confirmPassword" // 👉 Thêm name
+                  value={formData.confirmPassword} // 👉 Liên kết value
+                  onChange={handleChange} // 👉 Liên kết hàm thay đổi
+                  required
                   className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" 
                   placeholder="••••••••" 
                   type="password" 
                 />
+                {formErrors.confirmPassword && <p className="text-xs text-red-500 mt-1">{formErrors.confirmPassword}</p>}
               </div>
             </div>
 
             {/* Register Button */}
-            <button className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 mt-4 group" type="submit">
-              <span>Register Account</span>
-              <MdArrowForward className="text-xl group-hover:translate-x-1 transition-transform" />
+            <button 
+              disabled={isLoading} // 👉 Khóa nút khi đang load
+              className={`w-full h-14 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-4 group ${isLoading ? 'bg-slate-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/90 shadow-primary/20'}`} 
+              type="submit"
+            >
+              <span>{isLoading ? 'Processing...' : 'Register Account'}</span>
+              {!isLoading && <MdArrowForward className="text-xl group-hover:translate-x-1 transition-transform" />}
             </button>
 
             {/* Divider */}
@@ -152,7 +334,7 @@ const Register = () => {
           {/* Footer Link */}
           <div className="bg-slate-50 dark:bg-slate-800/50 p-6 text-center border-t border-slate-200 dark:border-slate-800">
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Already have an account? 
+              Already have an account?
               <Link to="/login" className="text-accent-blue font-bold hover:underline ml-1">Login</Link>
             </p>
           </div>
@@ -167,7 +349,7 @@ const Register = () => {
           </span>
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-[0.2em]">Trusted by 50k+ Customers</span>
           <span className="text-accent-yellow flex items-center">
-             <MdStar className="text-lg" />
+            <MdStar className="text-lg" />
           </span>
         </div>
         <p className="text-xs text-slate-400">© 2026 ElectroMart Inc. All rights reserved.</p>

@@ -17,7 +17,6 @@ import CheckoutPage from '@/pages/user/checkout/CheckoutPage';
 export default function AppRoutes() {
     return (
         <Routes>
-            {/* User layout */}
             <Route
                 path='/'
                 element={
@@ -36,14 +35,7 @@ export default function AppRoutes() {
                 }
             />
 
-            <Route
-                path='/profile/*'
-                element={
-                    <MainLayout>
-                        <UserRoutes />
-                    </MainLayout>
-                }
-            />
+            <Route path='/profile/*' element={<UserRoutes />} />
 
             <Route
                 path='/cart'
