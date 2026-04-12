@@ -17,6 +17,7 @@ import {
 import { faStar as faStarEmpty, faHeart } from '@fortawesome/free-regular-svg-icons';
 import api from '../../services/api';
 import QuestionAnswerSection from '@/features/comment/QuestionAnswerSection';
+import AddToCartButton from '../user/cart/AddToCartButton';
 
 const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 
@@ -337,7 +338,7 @@ export default function ProductDetailPage() {
 
                             {/* CTA buttons */}
                             <div className='flex gap-2'>
-                                <button
+                                <AddToCartButton productId={product.id} quantity={qty} stock={product.stockQuantity} product={product}
                                     disabled={unavailable}
                                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border-2 border-blue-600 transition-all
             ${
@@ -348,7 +349,7 @@ export default function ProductDetailPage() {
                                 >
                                     <FontAwesomeIcon icon={faCartPlus} />
                                     Add to Cart
-                                </button>
+                                </AddToCartButton>
                                 <button
                                     disabled={unavailable}
                                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all

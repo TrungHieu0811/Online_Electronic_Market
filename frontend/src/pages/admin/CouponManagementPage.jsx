@@ -31,8 +31,7 @@ export default function CouponManagementPage() {
 
     // LOGIC LỌC VÀ TÌM KIẾM
     const filteredCoupons = useMemo(() => {
-    // 1. Sắp xếp dữ liệu gốc: Mới nhất (ID cao nhất) lên đầu
-    // Chúng ta tạo một bản sao bằng [...coupons] để không làm ảnh hưởng đến mảng gốc
+    
     const sortedData = [...coupons].sort((a, b) => b.id - a.id);
 
     // 2. Thực hiện lọc dựa trên mảng đã được sắp xếp
