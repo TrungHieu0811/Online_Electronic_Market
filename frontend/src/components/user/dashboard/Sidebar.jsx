@@ -1,7 +1,24 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+// Import thêm icon Logout (tùy thư viện bạn dùng)
+import { MdLogout } from "react-icons/md";
 
 export default function Sidebar() {
+    const navigate = useNavigate();
+    const handleLogout = () => {
+        // 1. Xóa sạch két sắt
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+
+        // 2. Hiện thông báo
+        toast.info("You have logged out.");
+
+        // 3. Đẩy về trang chủ và load lại trang để reset state
+        navigate('/');
+        window.location.reload();
+    };
     const baseClass =
         'flex items-center gap-3 rounded-l-lg px-4 py-3 transition-transform hover:translate-x-1 active:opacity-80';
 
@@ -61,6 +78,14 @@ export default function Sidebar() {
                     <span className='material-symbols-outlined'>settings</span>
                     <span>Settings</span>
                 </NavLink>
+                {/* 👉 THÊM NÚT LOGOUT VÀO ĐÂY */}
+                <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors mt-2"
+                >
+                    <MdLogout className="h-5 w-5" />
+                    <span className="font-medium">Logout</span>
+                </button>
             </nav>
         </aside>
     );

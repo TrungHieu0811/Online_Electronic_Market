@@ -93,7 +93,7 @@ const CartPage = () => {
     }
 
     // Đảm bảo newQty là số nguyên hợp lệ trước khi xử lý tiếp
-    const parsedQty = parseInt(newQty);
+    let parsedQty = parseInt(newQty);
    if (isNaN(parsedQty) || parsedQty < 0) return;
 
     if (parsedQty === 0) {

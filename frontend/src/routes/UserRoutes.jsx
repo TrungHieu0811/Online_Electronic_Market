@@ -53,9 +53,6 @@ export default function UserRoutes() {
     const backgroundLocation = location.state?.backgroundLocation;
 
     return (
-        <Routes>
-            <Route path='orders/:orderId/review' element={<RateOrderPage />} />
-        </Routes>
         <>
             <Routes location={backgroundLocation || location}>
                 <Route index element={<UserDashboardPage />} />
