@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminDashboardPage from '@/components/admin/AdminDashboardPage';
 import UserManagementPage from '@/components/admin/UserManagement';
+import CouponManagementPage from '@/pages/admin/CouponManagementPage';
 
 export default function AdminRoutes() {
     return (
@@ -8,6 +9,7 @@ export default function AdminRoutes() {
             <Route index element={<Navigate to='dashboard' replace />} />
             <Route path='dashboard' element={<AdminDashboardPage />} />
             <Route path='users' element={<UserManagementPage />} />
+            <Route path='coupons' element={<CouponManagementPage />} />
         </Routes>
     );
 }
