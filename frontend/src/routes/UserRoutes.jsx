@@ -6,10 +6,6 @@ import RateOrderPage from '@/features/user/profile/pages/RateOrderPage';
 import OrdersPage from '@/features/user/profile/pages/user/OrderPage';
 import EditProfileModal from '@/components/user/dashboard/EditProfileModal';
 
-function OrderPage() {
-    return <OrderPage />;
-}
-
 function WishlistPage() {
     return <div>Wishlist page</div>;
 }
@@ -53,9 +49,6 @@ export default function UserRoutes() {
     const backgroundLocation = location.state?.backgroundLocation;
 
     return (
-        <Routes>
-            <Route path='orders/:orderId/review' element={<RateOrderPage />} />
-        </Routes>
         <>
             <Routes location={backgroundLocation || location}>
                 <Route index element={<UserDashboardPage />} />

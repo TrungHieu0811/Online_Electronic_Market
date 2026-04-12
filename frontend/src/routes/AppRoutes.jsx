@@ -12,7 +12,8 @@ import CheckOTP from '../pages/user/CheckOTP';
 import ResetPassword from '../pages/user/ResetPassword';
 import AdminRoutes from './AdminRoutes';
 import CheckoutPage from '@/pages/user/checkout/CheckoutPage';
-
+import ProtectedRoute from '@/components/ProtectedRoute';
+import AdminRoute from '@/components/AdminRoute';
 
 export default function AppRoutes() {
     return (
@@ -35,7 +36,14 @@ export default function AppRoutes() {
                 }
             />
 
-            <Route path='/profile/*' element={<UserRoutes />} />
+            <Route
+                path='/profile/*'
+                element={
+                    <ProtectedRoute>
+                        <UserRoutes />
+                    </ProtectedRoute>
+                }
+            />
 
             <Route
                 path='/cart'
@@ -46,11 +54,14 @@ export default function AppRoutes() {
                 }
             />
 
-             <Route path='/checkout' element={
-                <MainLayout>
-                    <CheckoutPage />
-                </MainLayout>
-                } />
+            <Route
+                path='/checkout'
+                element={
+                    <MainLayout>
+                        <CheckoutPage />
+                    </MainLayout>
+                }
+            />
 
             <Route path='/login' element={<Login />} />
             <Route path='/register' element={<Register />} />
@@ -58,10 +69,14 @@ export default function AppRoutes() {
             <Route path='/check-otp' element={<CheckOTP />} />
             <Route path='/reset-password' element={<ResetPassword />} />
 
-
-
-            {/* Admin riêng */}
-            <Route path='/admin/*' element={<AdminRoutes />} />
+            <Route
+                path='/admin/*'
+                element={
+                    <AdminRoute>
+                        <AdminRoutes />
+                    </AdminRoute>
+                }
+            />
         </Routes>
     );
 }
