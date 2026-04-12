@@ -5,6 +5,7 @@ export default function UserRoutes() {
     return (
         <Routes>
             <Route path='orders/:orderId/review' element={<RateOrderPage />} />
+           
         </Routes>
     );
 }
