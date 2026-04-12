@@ -162,6 +162,36 @@ public String register(UserRegistrationDto request) {
         refreshToken.setExpiryDate(LocalDateTime.now().plusDays(7));
         return refreshTokenRepository.save(refreshToken);
     }
+    
+    @Override
+    @Transactional
+    public String[] refreshAccessToken(String refreshTokenReq) {
+        // 1. Tìm Refresh Token trong DB
+        // (Lưu ý: Đảm bảo trong RefreshTokenRepository của bạn đã có hàm findByToken(String token) nhé)
+        RefreshToken refreshTokenOpt = refreshTokenRepository.findByToken(refreshTokenReq)
+                .orElseThrow(() -> new IllegalArgumentException("Refresh Token không tồn tại!"));
+
+        // 2. Kiểm tra xem Token đã bị thu hồi chưa (nếu lỡ user bị ban hoặc tự log out)
+        if (refreshTokenOpt.getIsRevoked()) {
+            throw new IllegalArgumentException("Refresh Token đã bị thu hồi!");
+        }
+
+        // 3. Kiểm tra hạn sử dụng
+        if (refreshTokenOpt.getExpiryDate().isBefore(LocalDateTime.now())) {
+            // Nếu đã hết hạn thì xóa luôn rác trong DB
+            refreshTokenRepository.delete(refreshTokenOpt);
+            throw new IllegalArgumentException("Refresh Token đã hết hạn! Vui lòng đăng nhập lại.");
+        }
+
+        // 4. Lấy User từ Token
+        User user = refreshTokenOpt.getUser();
+
+        // 5. Tạo Access Token MỚI
+        String newAccessToken = jwtService.generateToken(user);
+
+        // Trả về một mảng chứa: [AccessToken Mới, RefreshToken Cũ (vẫn còn hạn)]
+        return new String[]{newAccessToken, refreshTokenOpt.getToken()};
+    }
 
     @Override
     @Transactional

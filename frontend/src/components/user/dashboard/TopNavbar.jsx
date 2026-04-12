@@ -1,12 +1,18 @@
 import React from 'react';
-
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+// Import thêm icon Logout (tùy thư viện bạn dùng)
+import { MdLogout } from "react-icons/md";
 export default function TopNavbar() {
+    const navigate = useNavigate();
+
+    
     return (
         <nav className="fixed top-0 z-50 flex max-w-full w-full items-center justify-between bg-white/80 px-8 py-4 font-['Manrope'] tracking-tight shadow-[0_12px_32px_rgba(0,26,64,0.08)] backdrop-blur-md dark:bg-slate-900/80">
             <div className='flex items-center gap-12'>
-                <span className='text-2xl font-black tracking-tighter text-blue-900 dark:text-blue-100'>
+                <Link to="/" className="text-2xl font-extrabold text-[#045fae] hover:opacity-80 transition-opacity">
                     ElectroMart
-                </span>
+                </Link>
 
                 <div className='hidden items-center gap-8 md:flex'>
                     <a

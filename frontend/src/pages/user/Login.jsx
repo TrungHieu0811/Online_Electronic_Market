@@ -33,7 +33,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate cơ bản ở Frontend (Tiếng Anh)
+    // Validate cơ bản ở Frontend
     if (!formData.username.trim() || !formData.password) {
       toast.warning('Please enter both username/email and password!');
       return;
@@ -45,14 +45,26 @@ const Login = () => {
       const response = await authApi.login(formData);
       
       let token = null;
+      let refreshToken = null; // 👉 Bổ sung biến chứa Refresh Token
+
       if (typeof response === 'string') {
         token = response; 
       } else if (typeof response === 'object' && response !== null) {
+        // Lấy Access Token
         token = response.token || response.accessToken || response.access_token || response.jwt;
+        
+        // 👉 Lấy Refresh Token (Bắt các trường hợp tên biến Backend có thể trả về)
+        refreshToken = response.refreshToken || response.refresh_token; 
       }
 
       if (token) {
+        // Lưu Access Token
         localStorage.setItem('token', token); 
+        
+        // 👉 Lưu Refresh Token (Nếu Backend có trả về)
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
+        }
         
         toast.success("Login successful!");
         navigate('/'); 
