@@ -3,8 +3,6 @@ import {Link} from 'react-router-dom';
 import ProductCard from '@/components/productComponents/productCard';
 import api from '../../services/api';
 
-
-
 function ProductSection({label, rootSlug, href}) {
 	const [products, setProducts] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -73,7 +71,7 @@ export default function HeroSection() {
 	useEffect(() => {
 		const fetchSections = async () => {
 			try {
-				const res = await api.get('/public/categories/tree');
+				const res = await api.get('/public/categories/tree?orderBy=name,desc');
 				// Giả sử API trả về mảng các category lớn, ta map nó về định dạng ProductSection cần
 				const dynamicSections = res.data.map((cat) => ({
 					label: cat.name,
@@ -87,7 +85,6 @@ export default function HeroSection() {
 		};
 		fetchSections();
 	}, []);
-
 	return (
 		<>
 			{/* Hero banner */}

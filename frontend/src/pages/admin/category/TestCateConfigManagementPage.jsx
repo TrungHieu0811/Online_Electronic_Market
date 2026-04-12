@@ -1,49 +1,3 @@
-// // AdminFilterConfig.jsx
-// import React, {useState, useEffect} from 'react';
-// import api from '@/services/api';
-// import {useParams} from 'react-router-dom';
-
-// export default function TestCateConfigManagementPage() {
-// 	const {slug} = useParams();
-// 	const [jsonText, setJsonText] = useState('');
-// 	const [status, setStatus] = useState('');
-
-// 	// 1. Lấy dữ liệu hiện tại lên để xem
-// 	useEffect(() => {
-// 		api.get(`/public/categories/${slug}/filter-config`).then((res) => setJsonText(JSON.stringify(res.data, null, 4))); // Format JSON cho đẹp
-// 	}, [slug]);
-
-// 	// 2. Hàm Lưu (Update)
-// 	const handleSave = async () => {
-// 		try {
-// 			// Kiểm tra xem JSON có hợp lệ không trước khi gửi
-// 			JSON.parse(jsonText);
-
-// 			await api.put(`/admin/filter-configs/${slug}`, jsonText, {
-// 				headers: {'Content-Type': 'application/json'},
-// 			});
-// 			setStatus('Cập nhật thành công!');
-// 		} catch (e) {
-// 			setStatus('Lỗi: JSON không đúng định dạng!');
-// 		}
-// 	};
-
-// 	return (
-// 		<div className="p-6 bg-white rounded-lg shadow">
-// 			<h2 className="text-xl font-bold mb-4">Cấu hình Filter: {slug}</h2>
-// 			<textarea
-// 				className="w-full h-96 p-4 font-mono text-sm border rounded mb-4"
-// 				value={jsonText}
-// 				onChange={(e) => setJsonText(e.target.value)}
-// 			/>
-// 			<button onClick={handleSave} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-// 				Lưu thay đổi
-// 			</button>
-// 			{status && <p className="mt-2 text-sm text-blue-600">{status}</p>}
-// 		</div>
-// 	);
-// }
-
 import React, {useState, useEffect} from 'react';
 import api from '@/services/api';
 import {useParams} from 'react-router-dom';
@@ -84,7 +38,6 @@ export default function TestCateConfigManagementPage() {
 
 	const handleSave = async () => {
 		try {
-			console.log('aaa');
 			var res = await api.put(`/admin/filter-configs/${slug}`, JSON.stringify(config), {
 				headers: {'Content-Type': 'application/json'},
 			});

@@ -16,7 +16,7 @@ export default function Header() {
 	const [loading, setLoading] = useState(false);
 	const [categories, setCategories] = useState([]);
 	const debounceTimer = useRef(null);
-
+	const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 	useEffect(() => {
 		const keywordFromUrl = searchParams.get('keyword'); // Lấy giá trị của tham số ?keyword=
 		if (keywordFromUrl) {
@@ -219,13 +219,13 @@ export default function Header() {
 							<span className="hidden text-sm font-medium md:block">Account</span>
 						</a>
 
-						<a href="#" className="relative flex items-center gap-2 hover:text-[#045fae]">
+						<Link to="/cart" className="relative flex items-center gap-2 hover:text-[#045fae]">
 							<ShoppingCart className="h-6 w-6" />
 							<span className="absolute -right-2 -top-2 rounded-full bg-[#FFD700] px-1.5 text-[10px] font-bold text-[#045fae]">
 								0
 							</span>
 							<span className="hidden text-sm font-medium md:block">Cart</span>
-						</a>
+						</Link>
 					</div>
 				</nav>
 

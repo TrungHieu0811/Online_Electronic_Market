@@ -16,7 +16,10 @@ import {
 	faChevronLeft,
 } from '@fortawesome/free-solid-svg-icons';
 import {faStar as faStarEmpty, faHeart} from '@fortawesome/free-regular-svg-icons';
-import api from '../../services/api';
+// import api from '../../services/api';
+import QuestionAnswerSection from '@/features/comment/QuestionAnswerSection';
+// import api from '../../../services/api';
+import api from '../../../services/api';
 
 const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 
@@ -555,6 +558,9 @@ export default function ProductDetailPage() {
 						</div>
 					</div>
 				</div>
+
+				{/* Q&A Section */}
+				<QuestionAnswerSection productId={product?.id} />
 			</div>
 		</div>
 	);

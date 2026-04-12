@@ -142,9 +142,11 @@ export default function ProductCard({item, onAddToCart}) {
 						overflow: 'hidden',
 						minHeight: '2.5rem',
 					}}
-					title={productGroup?.name + ' ' + variantName}
+					// title={productGroup?.name + ' ' + variantName}
+					title={variantName}
 				>
-					{productGroup?.name + ' ' + variantName}
+					{/* {productGroup?.name + ' ' + variantName} */}
+					{variantName}
 				</p>
 
 				{/* Stars */}

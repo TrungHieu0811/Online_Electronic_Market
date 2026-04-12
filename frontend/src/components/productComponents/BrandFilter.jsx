@@ -1,6 +1,6 @@
 import React from 'react';
 
-const IMAGE_BASE_URL = 'http://localhost:8081';
+const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 
 export default function BrandFilter({brands, selectedBrandIds, onBrandSelect, onClearAll}) {
 	if (!brands || brands.length === 0) return null;
@@ -15,19 +15,6 @@ export default function BrandFilter({brands, selectedBrandIds, onBrandSelect, on
 
 	return (
 		<div className="flex items-center gap-3 flex-wrap mb-4">
-			{/* Clear Button - Always rendered to prevent layout shift */}
-			{/* <button
-				onClick={onClearAll}
-				disabled={selectedBrandIds.length === 0}
-				className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors whitespace-nowrap ${
-					selectedBrandIds.length > 0
-						? 'bg-red-100 border-red-300 text-red-600 hover:bg-red-200 cursor-pointer'
-						: 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
-				}`}
-			>
-				✕ Xóa lọc
-			</button> */}
-
 			{/* Brand Buttons */}
 			{brands.map((brand) => {
 				const isSelected = selectedBrandIds.includes(String(brand.id));

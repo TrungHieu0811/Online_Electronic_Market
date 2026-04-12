@@ -2,12 +2,13 @@ import React, {useEffect, useState, useCallback, useMemo} from 'react';
 import {useNavigate, useParams, useSearchParams} from 'react-router-dom';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faMagnifyingGlass, faChevronDown, faFilter} from '@fortawesome/free-solid-svg-icons';
-import api from '../../../services/api';
+// import api from '../../../services/api';
 import ProductCard from '@/components/productComponents/productCard';
 import FilterBar from '@/components/productComponents/FilterBar';
 import BrandFilter from '@/components/productComponents/BrandFilter';
 import CategoryFilter from '@/components/productComponents/CategoryFilter';
 import {DEFAULT_FILTER_CONFIG} from '@/config/filterConfigs';
+import api from '@/services/api';
 
 const SORT_OPTIONS = [
 	{label: 'Mới', value: 'createdAt,desc'},
@@ -45,80 +46,25 @@ export default function CategoryPage() {
 	const [filterConfig, setFilterConfig] = useState(null);
 	const navigate = useNavigate();
 
-	// useEffect(() => {
-	// 	const loadFilterData = async () => {
-	// 		// 1. Lấy khung mẫu
-	// 		let config = getFilterConfig(slug);
-	// 		if (!config) return;
-
-	// 		try {
-	// 			// 2. Gọi song song cả 2 API để tiết kiệm thời gian (Promise.all)
-	// 			const [brandRes, catRes, rootCatRes] = await Promise.all([
-	// 				api.get('/public/brands'),
-	// 				api.get(`/public/categories/${slug}`),
-	// 				api.get(`/public/categories/tree`),
-	// 			]);
-
-	// 			setBrands(brandRes.data || []);
-	// 			setCategories(catRes.data || []);
-	// 			const categoriesList = rootCatRes.data || [];
-	// 			console.log('slug: ', slug);
-	// 			console.log('cate Root: ', categoriesList);
-
-	// 			// Kiểm tra xem slug trên URL có tồn tại trong danh sách API trả về không
-	// 			const isValidSlug = categoriesList.some((cat) => cat.slug?.toLowerCase() === slug?.toLowerCase());
-	// 			console.log('valid slug: ', isValidSlug);
-
-	// 			if (!isValidSlug) {
-	// 				navigate('/404', {replace: true});
-	// 				return;
-	// 			} else {
-	// 				// 3. Clone và cập nhật options trực tiếp vào config
-	// 				const updatedConfig = {
-	// 					...config,
-	// 					brand: config.brand
-	// 						? {
-	// 								...config.brand,
-	// 								options: brandRes.data.map((b) => ({id: b.id, name: b.name})),
-	// 							}
-	// 						: null,
-	// 					category: config.category
-	// 						? {
-	// 								...config.category,
-	// 								options: catRes.data.map((c) => ({id: c.id, name: c.name})),
-	// 							}
-	// 						: null,
-	// 				};
-
-	// 				setFilterConfig(updatedConfig);
-	// 				setLoading(false);
-	// 			}
-	// 		} catch (e) {
-	// 			console.error('Lỗi khi fetch dữ liệu filter:', e);
-	// 		}
-	// 	};
-
-	// 	loadFilterData();
-	// }, [slug]); // Chỉ chạy lại khi slug thay đổi
 	useEffect(() => {
 		const loadFilterData = async () => {
 			setLoading(true); // Bắt đầu load
 			try {
 				// 1. Gọi song song 4 API (thêm API lấy config từ DB)
-				const [brandRes, catRes, rootCatRes, configRes] = await Promise.all([
-					api.get('/public/brands'),
-					api.get(`/public/categories/${slug}`),
-					api.get(`/public/categories/tree`),
-					api.get(`/public/categories/${slug}/filter-config`), // <--- API mới từ DB
-				]);
+				const [rootCatRes] = await Promise.all([api.get(`/public/categories/tree`)]);
 
 				// 2. KIỂM TRA SLUG HỢP LỆ (Dùng rootCatRes như cũ)
 				const categoriesList = rootCatRes.data || [];
 				const isValidSlug = categoriesList.some((cat) => cat.slug?.toLowerCase() === slug?.toLowerCase());
-
 				if (!isValidSlug) {
 					return navigate('/404', {replace: true});
 				}
+
+				const [brandRes, catRes, configRes] = await Promise.all([
+					api.get(`/public/categories/${slug}/brands`),
+					api.get(`/public/categories/${slug}`),
+					api.get(`/public/categories/${slug}/filter-config`), // <--- API mới từ DB
+				]);
 
 				// 3. XỬ LÝ CONFIG TỪ DATABASE
 				// configRes.data chính là chuỗi JSON từ cột NVARCHAR(MAX)
@@ -131,7 +77,7 @@ export default function CategoryPage() {
 				if (!dbConfig) {
 					dbConfig = DEFAULT_FILTER_CONFIG;
 				}
-
+console.log("db config:",dbConfig);
 				// 4. CẬP NHẬT OPTIONS ĐỘNG (Brand & Sub-Category) VÀO CONFIG TỪ DB
 				const updatedConfig = {
 					...dbConfig,
@@ -149,7 +95,7 @@ export default function CategoryPage() {
 							}
 						: null,
 				};
-
+				console.log(updatedConfig);
 				// 5. Cập nhật các state
 				setBrands(brandRes.data || []);
 				setCategories(catRes.data || []);
@@ -653,7 +599,7 @@ export default function CategoryPage() {
 					</div>
 				) : products.length > 0 ? (
 					<>
-						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+						<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
 							{products.map((product) => (
 								<ProductCard key={product.id} item={product} />
 							))}
