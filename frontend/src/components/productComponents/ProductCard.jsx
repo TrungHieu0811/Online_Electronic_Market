@@ -3,6 +3,8 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEye, faShield, faCartPlus, faBan, faStar, faStarHalfStroke, faImage} from '@fortawesome/free-solid-svg-icons';
 import {faStar as faStarEmpty, faHeart} from '@fortawesome/free-regular-svg-icons';
 import {useNavigate} from 'react-router-dom';
+import AddToCartButton from '../user/cart/AddToCartButton';
+
 function StarRating({rating}) {
 	const snapped = Math.round(rating * 2) / 2;
 	return (
@@ -33,11 +35,10 @@ function discountPct(basePrice, salePrice) {
 	if (basePrice <= salePrice) return 0;
 	return Math.round(((basePrice - salePrice) / basePrice) * 100);
 }
-
 function fmtPrice(v) {
 	return new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(v);
 }
-export default function ProductCard({item, onAddToCart}) {
+export default function ProductCard({item, onAddToCart, onWishlist}) {
 	const navigate = useNavigate();
 	const {
 		id,
@@ -178,7 +179,7 @@ export default function ProductCard({item, onAddToCart}) {
 
 				{/* Buttons */}
 				<div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-					<button
+					{/* <button
 						onClick={() => isActive && !outOfStock && onAddToCart?.(id)}
 						disabled={unavailable}
 						className={`flex-1 py-1.5 flex items-center justify-center border rounded-lg transition-colors
@@ -189,7 +190,17 @@ export default function ProductCard({item, onAddToCart}) {
 							icon={unavailable ? faBan : faCartPlus}
 							style={{fontSize: 14, color: unavailable ? '#9CA3AF' : '#374151'}}
 						/>
-					</button>
+					</button> */}
+					<AddToCartButton
+						productId={id}
+						quantity={1}
+						showText={false}
+						disabled={unavailable}
+						stock={stockQuantity}
+						product={item}
+						className={`flex-1 py-1.5 flex items-center justify-center border rounded-lg transition-colors
+							${unavailable ? 'opacity-40 cursor-not-allowed border-gray-200' : 'border-gray-300 hover:bg-gray-50 active:scale-95'}`}
+					></AddToCartButton>
 				</div>
 			</div>
 		</div>

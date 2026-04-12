@@ -1,21 +1,11 @@
+import {Routes, Route, Navigate, Outlet} from 'react-router-dom';
 import AdminDashboardPage from '@/components/admin/AdminDashboardPage';
 import CategoryCreatePage from '@/pages/admin/category/AdminCategoryCreatePage';
 import CategoryPage from '@/pages/admin/category/AdminCategoryPage';
 import TestCateConfigManagementPage from '@/pages/admin/category/TestCateConfigManagementPage';
-import {Routes, Route} from 'react-router-dom';
+import UserManagementPage from '@/components/admin/UserManagement';
+import CouponManagementPage from '@/pages/admin/CouponManagementPage';
 
-// export default function AdminRoutes() {
-// 	return (
-// 		<Routes>
-// 			<Route path="dashboard" element={<AdminDashboardPage />} />
-
-// 			<Route path="category" element={<CategoryPage />} />
-// 			<Route path="category/create" element={<CategoryCreatePage />} />
-// 			<Route path="category/manageConfig/:slug" element={<TestCateConfigManagementPage />} />
-// 		</Routes>
-// 	);
-// }
-import {Navigate, Outlet} from 'react-router-dom';
 import {jwtDecode} from 'jwt-decode';
 export default function AdminRoutes() {
 	const token = localStorage.getItem('token');
@@ -50,4 +40,13 @@ export default function AdminRoutes() {
 		localStorage.clear();
 		return <Navigate to="/" replace />;
 	}
+
+	// return (
+	// 	<Routes>
+	// 		<Route index element={<Navigate to="dashboard" replace />} />
+	// 		<Route path="dashboard" element={<AdminDashboardPage />} />
+	// 		<Route path="users" element={<UserManagementPage />} />
+	// 		<Route path="coupons" element={<CouponManagementPage />} />
+	// 	</Routes>
+	// );
 }

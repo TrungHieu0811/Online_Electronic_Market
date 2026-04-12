@@ -14,6 +14,8 @@ import AdminProductGroupDetailsPage from '@/pages/admin/product/AdminProductGrou
 import AdminProductEditPage from '@/pages/admin/product/AdminProductEditPage';
 import AdminProductGroupCreatePage from '@/pages/admin/product/AdminProductGroupCreatePage';
 import AdminProductGroupEditPage from '@/pages/admin/product/AdminProductGroupEditPage';
+import UserManagementPage from '@/components/admin/UserManagement';
+import CouponManagementPage from '@/pages/admin/CouponManagementPage';
 
 export default function AdminSubRoutes() {
 	return (
@@ -37,6 +39,12 @@ export default function AdminSubRoutes() {
 			<Route path="brands/" element={<AdminBrandPage />} />
 			<Route path="brands/create" element={<CreateBrandPage />} />
 			<Route path="brands/edit/:id" element={<AdminBrandEditPage />} />
+			{/* Dashboard group */}
+			<Route path="dashboard" element={<AdminDashboardPage />} />
+			{/* User management group */}
+			<Route path="users" element={<UserManagementPage />} />
+			{/* coupons management group */}
+			<Route path="coupons" element={<CouponManagementPage />} />
 		</Routes>
 	);
 }

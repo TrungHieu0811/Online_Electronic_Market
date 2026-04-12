@@ -14,7 +14,9 @@ import CategoryRoutes from './CategoryRoutes';
 import NotFound from '@/components/layout/NotFound';
 import AdminRoutes from './AdminRoutes';
 import AdminSubRoutes from './AdminSubRoutes';
-
+import CheckoutPage from '@/pages/user/checkout/CheckoutPage';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import AdminRoute from '@/components/AdminRoute';
 export default function AppRoutes() {
 	return (
 		<Routes>
@@ -43,12 +45,20 @@ export default function AppRoutes() {
 					</MainLayout>
 				}
 			/>
-			<Route
+			{/* <Route
 				path="/profile/*"
 				element={
 					<MainLayout>
 						<UserRoutes />
 					</MainLayout>
+				}
+			/> */}
+			<Route
+				path="/profile/*"
+				element={
+					<ProtectedRoute>
+						<UserRoutes />
+					</ProtectedRoute>
 				}
 			/>
 
@@ -60,9 +70,27 @@ export default function AppRoutes() {
 					</MainLayout>
 				}
 			/>
+
+			<Route
+				path="/checkout"
+				element={
+					<MainLayout>
+						<CheckoutPage />
+					</MainLayout>
+				}
+			/>
+
 			<Route path="/admin/*" element={<AdminRoutes />}>
 				<Route path="*" element={<AdminSubRoutes />} />
 			</Route>
+			{/* <Route
+				path="/admin/*"
+				element={
+					<AdminRoute>
+						<AdminRoutes />
+					</AdminRoute>
+				}
+			/> */}
 
 			<Route path="/login" element={<Login />} />
 			<Route path="/register" element={<Register />} />

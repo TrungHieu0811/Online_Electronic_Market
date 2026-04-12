@@ -4,6 +4,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {Search, User, ShoppingCart, Home} from 'lucide-react';
 import {useEffect, useState, useRef, useCallback} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
+import CartBadge from '../user/cart/CartBadge';
 
 // const categories = ['Mobiles', 'Laptops', 'TV & Audio', 'Appliances', 'Accessories'];
 
@@ -225,6 +226,9 @@ export default function Header() {
 								0
 							</span>
 							<span className="hidden text-sm font-medium md:block">Cart</span>
+						</Link>
+						<Link to="/cart">
+							<CartBadge />
 						</Link>
 					</div>
 				</nav>
