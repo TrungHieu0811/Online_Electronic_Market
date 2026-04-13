@@ -48,17 +48,17 @@ export default function UserRoutes() {
 	const location = useLocation();
 	const backgroundLocation = location.state?.backgroundLocation;
 
-    return (
-        <>
-            <Routes location={backgroundLocation || location}>
-                <Route index element={<UserDashboardPage />} />
-                <Route path='edit' element={<UserDashboardPage />} />
-                <Route path='orders' element={<OrdersPage />} />
-                <Route path='orders/:orderId/review' element={<RateOrderPage />} />
-                <Route path='wishlist' element={<WishlistPage />} />
-                <Route path='settings' element={<SettingsPage />} />
-                <Route path='*' element={<Navigate to='/profile' replace />} />
-            </Routes>
+	return (
+		<>
+			<Routes location={backgroundLocation || location}>
+				<Route index element={<UserDashboardPage />} />
+				<Route path="edit" element={<UserDashboardPage />} />
+				<Route path="orders" element={<OrdersPage />} />
+				<Route path="orders/:orderId/review" element={<RateOrderPage />} />
+				<Route path="wishlist" element={<WishlistPage />} />
+				<Route path="settings" element={<SettingsPage />} />
+				<Route path="*" element={<Navigate to="/profile" replace />} />
+			</Routes>
 
 			{backgroundLocation && (
 				<Routes>
