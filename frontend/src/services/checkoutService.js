@@ -29,5 +29,15 @@ export const checkoutService = {
     placeOrder: async (orderRequest) => {
         const response = await api.post('/checkout', orderRequest);
         return response.data;
+    },
+
+    buyNow: async (productId, quantity, orderRequest) => {
+        const response = await api.post('/buy-now', orderRequest, {
+            params: { 
+                productId: productId, 
+                quantity: quantity 
+            }
+        });
+        return response.data;
     }
 };

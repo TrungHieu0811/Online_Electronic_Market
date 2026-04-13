@@ -11,6 +11,8 @@ const CartPage = () => {
   const [loading, setLoading] = useState(true);
   // const [selectedIds, setSelectedIds] = usedState([]);
   const navigate = useNavigate();
+  const { fetchCartCount } = useCart();
+
 
   const Toast = Swal.mixin({
     toast: true,
@@ -19,10 +21,6 @@ const CartPage = () => {
     timer: 2000,
     timerProgressBar: true,
   });
-
-  useEffect(() => {
-    fetchCart();
-  }, []);
 
   const fetchCart = async () => {
     const token = localStorage.getItem('token');
@@ -50,6 +48,11 @@ const CartPage = () => {
     setLoading(false);
   };
 
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+
   const handleToggle = async (id) => {
     const token = localStorage.getItem('token');
 
@@ -58,10 +61,11 @@ const CartPage = () => {
         let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
         
         // Vì ở CartPage bạn map id là `guest-${productId}`, nên ta cần lấy lại productId xịn
-        const productId = typeof id === 'string' ? parseInt(id.replace('guest-', '')) : id;
+        // const productId = typeof id === 'string' ? parseInt(id.replace('guest-', '')) : id;
+        const productId = String(id).replace('guest-', '');
 
         const updatedCart = guestCart.map(item => {
-            if (item.productId === productId) {
+            if (String(item.productId) === productId) {
                 // Đảo ngược trạng thái isSelected (nếu localStorage chưa có thì mặc định là true)
                 return { ...item, isSelected: !(item.isSelected ?? true) };
             }
@@ -142,7 +146,50 @@ const CartPage = () => {
     }
   };
 
-  const { fetchCartCount } = useCart();
+  const handleRemove = async (id) => {
+		const result = await Swal.fire({
+			title: 'Are you sure?',
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#ef4444', // Màu đỏ cho nút xóa
+			cancelButtonColor: '#64748b',
+			confirmButtonText: 'Yes, delete it!',
+		});
+
+		if (result.isConfirmed) {
+			const token = localStorage.getItem('token');
+
+			if (!token) {
+				// CHẾ ĐỘ KHÁCH
+				let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+				const productId = typeof id === 'string' ? parseInt(id.replace('guest-', '')) : id;
+
+				const updatedCart = guestCart.filter((i) => i.productId !== productId);
+				localStorage.setItem('guestCart', JSON.stringify(updatedCart));
+
+				fetchCart();
+				fetchCartCount();
+				Swal.fire('Deleted!', 'Item removed from temporary cart.', 'success');
+				return;
+			}
+
+			try {
+				await cartService.removeItem(id);
+				fetchCart();
+				Swal.fire({
+					title: 'Deleted!',
+					text: 'Your item has been removed.',
+					icon: 'success',
+					timer: 1500,
+					showConfirmButton: false,
+				});
+			} catch (error) {
+				Swal.fire('Error!', 'Could not remove the item.', 'error');
+			}
+		}
+		await fetchCartCount();
+	};
+
 
   // Kiểm tra xem tất cả các món hiện tại đã được chọn chưa
   const isAllSelected = cartItems.length > 0 && cartItems.every(item => item.isSelected);
@@ -187,13 +234,12 @@ const CartPage = () => {
 
     if (result.isConfirmed) {
       const token = localStorage.getItem('token');
-
         if (!token) {
             // CHẾ ĐỘ KHÁCH
             let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
             // Lọc ra những item KHÔNG được chọn (giữ lại những item isSelected: false)
             const updatedCart = guestCart.filter(item => !item.isSelected);
-            
+
             localStorage.setItem('guestCart', JSON.stringify(updatedCart));
             fetchCart();
             fetchCartCount();
@@ -203,61 +249,19 @@ const CartPage = () => {
 
         try {
             await cartService.removeMultipleItems(selectedIds);
-            
             // Cập nhật lại giao diện và số lượng trên Header
-            fetchCart(); 
-            fetchCartCount(); 
-            
+            fetchCart();
+            fetchCartCount();
+           
             Swal.fire('Deleted!', 'All selected items have been removed.', 'success');
         } catch (error) {
             Swal.fire('Error', 'Could not remove selected items', 'error');
         }
     }
+
 };
 
-const handleRemove = async (id) => {
-		const result = await Swal.fire({
-			title: 'Are you sure?',
-			icon: 'warning',
-			showCancelButton: true,
-			confirmButtonColor: '#ef4444', // Màu đỏ cho nút xóa
-			cancelButtonColor: '#64748b',
-			confirmButtonText: 'Yes, delete it!',
-		});
 
-		if (result.isConfirmed) {
-			const token = localStorage.getItem('token');
-
-			if (!token) {
-				// CHẾ ĐỘ KHÁCH
-				let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
-				const productId = typeof id === 'string' ? parseInt(id.replace('guest-', '')) : id;
-
-				const updatedCart = guestCart.filter((i) => i.productId !== productId);
-				localStorage.setItem('guestCart', JSON.stringify(updatedCart));
-
-				fetchCart();
-				fetchCartCount();
-				Swal.fire('Deleted!', 'Item removed from temporary cart.', 'success');
-				return;
-			}
-
-			try {
-				await cartService.removeItem(id);
-				fetchCart();
-				Swal.fire({
-					title: 'Deleted!',
-					text: 'Your item has been removed.',
-					icon: 'success',
-					timer: 1500,
-					showConfirmButton: false,
-				});
-			} catch (error) {
-				Swal.fire('Error!', 'Could not remove the item.', 'error');
-			}
-		}
-		await fetchCartCount();
-	};
 
 	const handleCheckout = () => {
 		const token = localStorage.getItem('token');
