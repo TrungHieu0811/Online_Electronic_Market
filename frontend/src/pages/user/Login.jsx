@@ -13,10 +13,14 @@ import {
   MdStar,
   MdLogin
 } from "react-icons/md";
+import { cartService } from "../../services/cartService";
+import { useCart } from '../../context/CartContext';
 
 const Login = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+
+  const { fetchCartCount } = useCart();
   
   const [formData, setFormData] = useState({
     username: '', 
@@ -53,6 +57,25 @@ const Login = () => {
 
       if (token) {
         localStorage.setItem('token', token); 
+
+        try {
+          // 1. Lấy dữ liệu giỏ hàng tạm thời từ localStorage
+          const localCart = JSON.parse(localStorage.getItem("guestCart")) || [];
+          
+          // 2. Nếu có hàng trong giỏ tạm, tiến hành gọi API merge
+          if (localCart.length > 0) {
+            await cartService.mergeCart(localCart);
+            console.log("Cart merged successfully!");
+            // 3. Xóa giỏ hàng tạm sau khi đã gộp thành công vào Database
+            localStorage.removeItem("guestCart");
+            await fetchCartCount();
+          }else{
+            await fetchCartCount();
+          } 
+        } catch (mergeError) {
+          // Chỉ log lỗi merge để không làm gián đoạn quá trình login chính
+          console.error("Failed to merge cart:", mergeError);
+        }
         
         toast.success("Login successful!");
         navigate('/'); 

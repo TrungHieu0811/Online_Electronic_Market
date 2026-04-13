@@ -151,8 +151,11 @@ const CheckoutPage = () => {
                 wCode,
                 currentSubtotal
             );
-            setShippingFee(fee);
+            console.log("Phí ship nhận được:", fee);
+            setShippingFee(typeof fee === 'number' ? fee : 0);
+            // setShippingFee(fee);
         } catch (err) {
+            console.error("Lỗi tính phí ship:", err);
             setShippingFee(0);
         } finally {
             setLoadingFee(false);
@@ -188,7 +191,6 @@ const CheckoutPage = () => {
                 text: 'Your order has been recorded successfully.',
                 timer: 2000
             });
-            navigate;
         } catch (err) {
             console.error("Oops, something went wrong!", err);
             Swal.fire('Error', err.response?.data || 'Failed to place order. Please try again.', 'error');
@@ -197,7 +199,10 @@ const CheckoutPage = () => {
 
     const subtotal = checkoutItems.reduce((sum, item) => sum + (item.product.salePrice * item.quantity), 0);
     const tax = subtotal * 0.1;
-    const finalTotal = subtotal + tax + shippingFee - discountAmount;
+
+    // Đảm bảo shippingFee luôn là số, nếu lỗi thì mặc định là 0
+    const safeShippingFee = Number(shippingFee) || 0; 
+    const finalTotal = subtotal + tax + safeShippingFee - discountAmount;
 
     return (
 
@@ -351,7 +356,7 @@ const CheckoutPage = () => {
                                         {loadingFee ? (
                                             <span className="animate-pulse">Calculating...</span>
                                         ) : (
-                                            shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`
+                                           shippingFee === 0 ? 'FREE' : `$${Number(shippingFee).toFixed(2)}`
                                         )}
                                     </span>
                                 </div>

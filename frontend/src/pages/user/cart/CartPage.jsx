@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 const CartPage = () => {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  // const [selectedIds, setSelectedIds] = usedState([]);
   const navigate = useNavigate();
 
   const Toast = Swal.mixin({
@@ -170,9 +171,9 @@ const CartPage = () => {
   };
 
   const handleDeleteSelected = async () => {
-    // const selectedIds = cartItems.filter(item => item.isSelected).map(i => i.id);
-    const selectedItems = cartItems.filter(item => item.isSelected);
-    if (selectedIds.length === 0) return;
+    const selectedIds = cartItems.filter(item => item.isSelected).map(i => i.id);
+    // const selectedItems = cartItems.filter(item => item.isSelected);
+    // if (selectedIds.length === 0) return;
 
     const result = await Swal.fire({
         title: 'Confirm Delete',
