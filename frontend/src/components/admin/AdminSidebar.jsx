@@ -1,63 +1,70 @@
 import React from 'react';
-import { LayoutDashboard, Package, ShoppingCart, Users, Settings, Bolt } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+import {
+    LayoutDashboard,
+    Package,
+    ShoppingCart,
+    Users,
+    BarChart3,
+    Settings,
+    Bolt
+} from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const menuItems = [
-    { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
-    { label: 'Categories', icon: Package, path: '/admin/categories' },
-    { label: 'Products', icon: Package, path: '/admin/products' },
-    { label: 'Orders', icon: ShoppingCart, path: '/admin/orders' },
-    { label: 'Users', icon: Users, path: '/admin/users' },
-    { label: 'Coupons', icon: Package, path: '/admin/coupons' },
-    { label: 'Settings', icon: Settings, path: '/admin/settings' }
+    { label: 'Dashboard', icon: LayoutDashboard, href: 'dashboard', active: true },
+    { label: 'Categories', icon: Package, href: 'categories' },
+    { label: 'Brands', icon: Package, href: 'brands' },
+    { label: 'ProductGroups', icon: Package, href: 'products/groups' },
+    { label: 'Products', icon: Package, href: 'products' },
+    { label: 'Orders', icon: ShoppingCart, href: 'orders' },
+    { label: 'Users', icon: Users, href: 'users' },
+    { label: 'Reviews & Comments', icon: Users, href: 'reviews-comments' },
+    { label: 'Coupons', icon: Package, href: 'coupons' },
+    // { label: 'Analytics', icon: BarChart3 },
+    { label: 'Settings', icon: Settings, href: 'settings' }
 ];
 
 export default function AdminSidebar() {
-    const location = useLocation();
-
+    const currentPath = (window.location.href.split('/admin/')[1] || '/').split('?')[0];
     return (
         <aside className='w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col justify-between'>
             <div className='flex flex-col p-6 gap-8'>
-                <div className='flex items-center gap-3'>
-                    <div className='bg-sky-500 rounded-xl p-2 text-white'>
-                        <Bolt size={22} />
-                    </div>
+                <Link to={`/admin`}>
+                    <div className='flex items-center gap-3'>
+                        <div className='bg-sky-500 rounded-xl p-2 text-white'>
+                            <Bolt size={22} />
+                        </div>
 
-                    <div className='flex flex-col'>
-                        <h1 className='text-slate-900 text-lg font-bold leading-none'>
-                            ElectroMart
-                        </h1>
-                        <p className='text-slate-500 text-xs font-medium'>Admin Console</p>
+                        <div className='flex flex-col'>
+                            <h1 className='text-slate-900 text-lg font-bold leading-none'>
+                                ElectroMart
+                            </h1>
+                            <p className='text-slate-500 text-xs font-medium'>Admin Console</p>
+                        </div>
                     </div>
-                </div>
+                </Link>
 
                 <nav className='flex flex-col gap-1'>
                     {menuItems.map((item) => {
                         const Icon = item.icon;
 
                         return (
-                            <NavLink
+                            <Link
                                 key={item.label}
-                                to={item.path}
-                                className={({ isActive }) => {
-                                    // 🔥 fix dashboard luôn active khi vào /admin
-                                    const isDashboard =
-                                        item.path === '/admin/dashboard' &&
-                                        (location.pathname === '/admin' ||
-                                            location.pathname === '/admin/dashboard');
-
-                                    const active = isActive || isDashboard;
-
-                                    return `flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${
-                                        active
-                                            ? 'bg-sky-100 text-sky-600'
-                                            : 'text-slate-600 hover:bg-slate-100'
-                                    }`;
-                                }}
+                                to={`/admin/${item.href}`}
+                                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors ${
+                                    currentPath === item.href
+                                        ? 'bg-sky-100 text-sky-600'
+                                        : 'text-slate-600 hover:bg-slate-100'
+                                }`}
                             >
                                 <Icon size={20} />
-                                <span className='text-sm font-medium'>{item.label}</span>
-                            </NavLink>
+                                <span
+                                    className={`text-sm ${item.active ? 'font-semibold' : 'font-medium'}`}
+                                >
+                                    {item.label}
+                                </span>
+                            </Link>
                         );
                     })}
                 </nav>

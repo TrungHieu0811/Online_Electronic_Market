@@ -10,8 +10,10 @@ export default function QuickStats() {
             try {
                 const [orders, profile] = await Promise.all([getMyOrders(), getMyProfile()]);
 
-                // Total orders
-                setTotalOrders(Array.isArray(orders) ? orders.length : 0);
+                // Backend trả về Page<Order>, nên lấy totalElements
+                setTotalOrders(
+                    typeof orders?.totalElements === 'number' ? orders.totalElements : 0
+                );
 
                 // Member since
                 if (profile?.createdAt) {

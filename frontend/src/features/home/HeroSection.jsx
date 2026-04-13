@@ -3,12 +3,6 @@ import {Link} from 'react-router-dom';
 import ProductCard from '@/components/productComponents/productCard';
 import api from '../../services/api';
 
-const SECTIONS = [
-	{label: 'Mobile', rootSlug: 'mobile', href: '/products/category/mobile'},
-	{label: 'Laptops', rootSlug: 'laptop', href: '/products/category/laptop'},
-	{label: 'Accessories', rootSlug: 'accessories', href: '/products/category/accessories'},
-];
-
 function ProductSection({label, rootSlug, href}) {
 	const [products, setProducts] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -72,6 +66,25 @@ function ProductSection({label, rootSlug, href}) {
 }
 
 export default function HeroSection() {
+	const [sections, setSections] = useState([]); // Chuyển state lên cha
+
+	useEffect(() => {
+		const fetchSections = async () => {
+			try {
+				const res = await api.get('/public/categories/tree?orderBy=name,desc');
+				// Giả sử API trả về mảng các category lớn, ta map nó về định dạng ProductSection cần
+				const dynamicSections = res.data.map((cat) => ({
+					label: cat.name,
+					rootSlug: cat.slug,
+					href: `/category/${cat.slug}`,
+				}));
+				setSections(dynamicSections);
+			} catch (e) {
+				console.error('Lỗi lấy danh mục:', e);
+			}
+		};
+		fetchSections();
+	}, []);
 	return (
 		<>
 			{/* Hero banner */}
@@ -114,7 +127,7 @@ export default function HeroSection() {
 
 			{/* Product sections */}
 			<div className="mx-auto max-w-7xl px-4 py-10">
-				{SECTIONS.map((s) => (
+				{sections.map((s) => (
 					<ProductSection key={s.rootSlug} {...s} />
 				))}
 			</div>

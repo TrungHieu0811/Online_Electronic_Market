@@ -8,11 +8,13 @@ import ShippingCard from '@/components/user/dashboard/ShippingCard';
 import PaymentCard from '@/components/user/dashboard/PaymentCard';
 import Footer from '@/components/user/dashboard/Footer';
 import { getMyProfile } from '@/services/profileApi';
+import { useLocation } from 'react-router-dom';
 
 export default function UserDashboardPage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const location = useLocation();
 
     const fetchProfile = async () => {
         try {
@@ -21,8 +23,8 @@ export default function UserDashboardPage() {
             setUser(data);
             setError('');
         } catch (err) {
-            console.error('Lỗi lấy profile:', err);
-            setError('Không lấy được thông tin người dùng');
+            console.error('Error fetching profile:', err);
+            setError('Cannot load profile. Please try again later.');
         } finally {
             setLoading(false);
         }
@@ -30,7 +32,7 @@ export default function UserDashboardPage() {
 
     useEffect(() => {
         fetchProfile();
-    }, []);
+    }, [location.state?.refresh]);
 
     return (
         <div className='bg-surface text-on-surface min-h-screen'>
