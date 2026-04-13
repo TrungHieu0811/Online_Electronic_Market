@@ -1,13 +1,12 @@
-import { Routes, Route } from 'react-router-dom';
-import RateOrderPage from '@/features/user/profile/pages/RateOrderPage';
-import ProductDetailPage from '@/components/productComponents/ProductDetailPage';
-import CategoryPage from '@/pages/user/products/CategoryPage';
+import {Routes, Route} from 'react-router-dom';
+import ProductSearchPage from '@/pages/user/products/ProductSearchPage';
+import ProductDetailPage from '@/pages/user/products/ProductDetailPage';
 
 export default function ProductRoutes() {
-    return (
-        <Routes>
-            <Route path="/:slug" element={<ProductDetailPage />} />
-            <Route path="/category/:slug" element={<CategoryPage />} />
-        </Routes>
-    );
+	return (
+		<Routes>
+			<Route path="/:slug" element={<ProductDetailPage />} />
+			<Route path="/search" element={<ProductSearchPage />} />
+		</Routes>
+	);
 }

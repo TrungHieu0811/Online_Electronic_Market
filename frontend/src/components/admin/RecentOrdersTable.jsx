@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye } from 'lucide-react';
+import {Eye} from 'lucide-react';
 
 export default function RecentOrdersTable({ data = [], loading }) {
     const formatCurrency = (value) => {

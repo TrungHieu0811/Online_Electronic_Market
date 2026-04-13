@@ -20,16 +20,16 @@ export default function OrdersPage() {
                 setLoading(true);
                 const data = await getMyOrders();
 
-                if (Array.isArray(data)) {
-                    const sortedOrders = [...data].sort((a, b) => {
-                        const dateA = new Date(a.createdAt || a.created_at || 0);
-                        const dateB = new Date(b.createdAt || b.created_at || 0);
-                        return dateB - dateA;
-                    });
-                    setOrders(sortedOrders);
-                } else {
-                    setOrders([]);
-                }
+                // Backend trả về Page<Order>, nên lấy data.content
+                const orderList = Array.isArray(data?.content) ? data.content : [];
+
+                const sortedOrders = [...orderList].sort((a, b) => {
+                    const dateA = new Date(a.createdAt || a.created_at || 0);
+                    const dateB = new Date(b.createdAt || b.created_at || 0);
+                    return dateB - dateA;
+                });
+
+                setOrders(sortedOrders);
             } catch (error) {
                 console.error('Failed to load orders:', error);
                 setOrders([]);
@@ -77,6 +77,8 @@ export default function OrdersPage() {
 
         if (orders.length > 0) {
             checkReviewableOrders();
+        } else {
+            setReviewableMap({});
         }
     }, [orders]);
 
@@ -198,18 +200,20 @@ export default function OrdersPage() {
         return orders.filter((o) => o.orderStatus === 'DELIVERED').length;
     }, [orders]);
 
-    const handleOpenReview = (orderId) => {
-        navigate(`/profile/orders/${orderId}/review`, {
+    const handleOpenReview = (order) => {
+        navigate(`/profile/orders/${order.id}/review`, {
             state: {
-                backgroundLocation: location
+                backgroundLocation: location,
+                order
             }
         });
     };
 
-    const handleOpenReviewedDetails = (orderId) => {
-        navigate(`/profile/orders/${orderId}/review`, {
+    const handleOpenReviewedDetails = (order) => {
+        navigate(`/profile/orders/${order.id}/review`, {
             state: {
-                backgroundLocation: location
+                backgroundLocation: location,
+                order
             }
         });
     };
@@ -423,7 +427,7 @@ export default function OrdersPage() {
                                                 {showReviewButton ? (
                                                     <button
                                                         type='button'
-                                                        onClick={() => handleOpenReview(order.id)}
+                                                        onClick={() => handleOpenReview(order)}
                                                         className='flex items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 py-2 text-sm font-bold text-white shadow-md transition-all hover:bg-amber-600'
                                                     >
                                                         <span className='material-symbols-outlined text-[18px]'>
@@ -435,7 +439,7 @@ export default function OrdersPage() {
                                                     <button
                                                         type='button'
                                                         onClick={() =>
-                                                            handleOpenReviewedDetails(order.id)
+                                                            handleOpenReviewedDetails(order)
                                                         }
                                                         className='flex items-center justify-center gap-1.5 rounded-lg border border-primary/20 px-4 py-2 text-sm font-bold text-primary transition-all hover:bg-primary/5'
                                                     >
@@ -465,7 +469,7 @@ export default function OrdersPage() {
                                                 ) : (
                                                     <button
                                                         type='button'
-                                                        onClick={() => handleOpenReview(order.id)}
+                                                        onClick={() => handleOpenReview(order)}
                                                         className='flex items-center justify-center gap-1.5 rounded-lg border border-primary/20 px-4 py-2 text-sm font-bold text-primary transition-all hover:bg-primary/5'
                                                     >
                                                         <span className='material-symbols-outlined text-[18px]'>

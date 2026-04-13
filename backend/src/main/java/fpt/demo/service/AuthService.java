@@ -17,4 +17,6 @@ public interface AuthService {
     String resetPassword(String email, String otpCode, String newPassword);
     String resendOtp(String email);
     String checkOtp(String email, String otpCode);
+    // Hàm cấp lại Access Token mới dựa vào Refresh Token
+    String[] refreshAccessToken(String refreshToken);
 }
