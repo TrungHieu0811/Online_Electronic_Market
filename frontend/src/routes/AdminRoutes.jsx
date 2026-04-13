@@ -11,7 +11,7 @@ export default function AdminRoutes() {
 	const token = localStorage.getItem('token');
 
 	// Nếu không có token, đá về trang chủ ngay
-	if (!token) return <Navigate to="/" replace />;
+	if (!token) return <Navigate to="/login" replace />;
 
 	try {
 		// Giải mã Token lấy dữ liệu từ Backend gửi qua
@@ -29,7 +29,7 @@ export default function AdminRoutes() {
 			// Nếu hết hạn hoặc sai quyền, dọn dẹp và đẩy ra ngoài
 			localStorage.removeItem('token');
 			localStorage.removeItem('user');
-			return <Navigate to="/" replace />;
+			return <Navigate to="/login" replace />;
 		}
 
 		// Hợp lệ thì cho vào trang Admin
@@ -38,7 +38,7 @@ export default function AdminRoutes() {
 		// Token lỗi định dạng (không phải JWT hợp lệ)
 		console.error('JWT Decode Error:', error);
 		localStorage.clear();
-		return <Navigate to="/" replace />;
+		return <Navigate to="/login" replace />;
 	}
 
 	// return (

@@ -16,6 +16,7 @@ import AdminProductGroupCreatePage from '@/pages/admin/product/AdminProductGroup
 import AdminProductGroupEditPage from '@/pages/admin/product/AdminProductGroupEditPage';
 import UserManagementPage from '@/components/admin/UserManagement';
 import CouponManagementPage from '@/pages/admin/CouponManagementPage';
+import AdminProductCreatePage from '@/pages/admin/product/AdminProductCreatePage';
 
 export default function AdminSubRoutes() {
 	return (
@@ -29,6 +30,7 @@ export default function AdminSubRoutes() {
 			<Route path="products/groups/create" element={<AdminProductGroupCreatePage />} />
 			<Route path="products/groups/:groupId" element={<AdminProductGroupDetailsPage />} />
 			<Route path="products/groups/edit/:groupId" element={<AdminProductGroupEditPage />} />
+			<Route path="products/groups/addVariant/:groupId" element={<AdminProductCreatePage />} />
 			{/* Categories group */}
 			<Route path="categories/" element={<AdminCategoryPage />} />
 			<Route path="categories/edit/:id" element={<AdminCategoryEditPage />} />

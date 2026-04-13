@@ -64,7 +64,7 @@ export default function AdminProductsPage() {
 	const [brands, setBrands] = useState([]);
 	const [categories, setCategories] = useState([]);
 	const [showFilters, setShowFilters] = useState(false);
-
+	const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 	// Use the custom hook for filter logic
 	const {
 		searchInput,
@@ -386,7 +386,7 @@ export default function AdminProductsPage() {
 																<div className="flex items-center gap-2 min-w-0">
 																	{primaryImage ? (
 																		<img
-																			src={primaryImage}
+																			src={primaryImage.startsWith('http') ? primaryImage : `${IMAGE_BASE_URL + primaryImage}`}
 																			alt={product.variantName || product.name}
 																			className="w-15 h-15 object-cover rounded flex-shrink-0"
 																		/>

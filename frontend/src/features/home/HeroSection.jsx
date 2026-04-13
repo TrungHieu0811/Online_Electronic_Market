@@ -11,7 +11,7 @@ function ProductSection({label, rootSlug, href}) {
 		const fetch = async () => {
 			try {
 				const res = await api.get('/public/products', {
-					params: {rootSlug, page: 0, size: 12},
+					params: {rootSlug, page: 0, size: 12, sort: 'createdAt,desc'},
 				});
 				setProducts(res.data?.content ?? []);
 			} catch (e) {

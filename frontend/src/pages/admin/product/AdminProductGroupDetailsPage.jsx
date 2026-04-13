@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useMemo, useCallback} from 'react';
 import {useParams, useNavigate} from 'react-router-dom';
-import {ChevronLeft, ChevronRight, Search, AlertCircle, Edit, Trash2} from 'lucide-react';
+import {ChevronLeft, ChevronRight, Search, AlertCircle, Edit, Trash2, Plus} from 'lucide-react';
 import api from '@/services/api';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
@@ -60,6 +60,7 @@ export default function AdminProductGroupDetailsPage() {
 	const [totalElements, setTotalElements] = useState(0);
 	const [currentPage, setCurrentPage] = useState(0);
 	const [currentSort, setCurrentSort] = useState('createdAt,desc');
+	const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 
 	const brandMap = useMemo(() => {
 		const map = {};
@@ -241,6 +242,13 @@ export default function AdminProductGroupDetailsPage() {
 								</p>
 							)}
 						</div>
+						<button
+							onClick={() => navigate(`/admin/products/groups/addVariant/${groupId}`)}
+							className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-all shadow-sm w-fit"
+						>
+							<Plus size={18} />
+							Add New Variant
+						</button>
 					</div>
 
 					{/* Toolbar */}
@@ -387,7 +395,11 @@ export default function AdminProductGroupDetailsPage() {
 															<td className="px-4 py-2.5">
 																<div className="flex items-center gap-2 min-w-0">
 																	<div className="relative flex-shrink-0">
-																		<img src={imageUrl} alt={product.variantName} className="w-12 h-12 object-cover rounded" />
+																		<img
+																			src={imageUrl.startsWith('http') ? imageUrl : `${IMAGE_BASE_URL + imageUrl}`}
+																			alt={product.variantName}
+																			className="w-12 h-12 object-cover rounded"
+																		/>
 																		{product.isFeatured && (
 																			<span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1 rounded font-semibold">
 																				Featured
