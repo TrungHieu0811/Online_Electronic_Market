@@ -11,8 +11,6 @@ const CartPage = () => {
   const [loading, setLoading] = useState(true);
   // const [selectedIds, setSelectedIds] = usedState([]);
   const navigate = useNavigate();
-  const { fetchCartCount } = useCart();
-
 
   const Toast = Swal.mixin({
     toast: true,
@@ -21,6 +19,10 @@ const CartPage = () => {
     timer: 2000,
     timerProgressBar: true,
   });
+
+  useEffect(() => {
+    fetchCart();
+  }, []);
 
   const fetchCart = async () => {
     const token = localStorage.getItem('token');
@@ -48,11 +50,6 @@ const CartPage = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchCart();
-  }, []);
-
-
   const handleToggle = async (id) => {
     const token = localStorage.getItem('token');
 
@@ -61,11 +58,10 @@ const CartPage = () => {
         let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
         
         // Vì ở CartPage bạn map id là `guest-${productId}`, nên ta cần lấy lại productId xịn
-        // const productId = typeof id === 'string' ? parseInt(id.replace('guest-', '')) : id;
-        const productId = String(id).replace('guest-', '');
+        const productId = typeof id === 'string' ? parseInt(id.replace('guest-', '')) : id;
 
         const updatedCart = guestCart.map(item => {
-            if (String(item.productId) === productId) {
+            if (item.productId === productId) {
                 // Đảo ngược trạng thái isSelected (nếu localStorage chưa có thì mặc định là true)
                 return { ...item, isSelected: !(item.isSelected ?? true) };
             }
@@ -101,6 +97,10 @@ const CartPage = () => {
     const parsedQty = parseInt(newQty);
    if (isNaN(parsedQty) || parsedQty < 0) return;
 
+    if (parsedQty === 0) {
+        handleRemove(id);
+        return;
+    }
     if (parsedQty === 0) {
         handleRemove(id);
         return;
@@ -146,7 +146,78 @@ const CartPage = () => {
     }
   };
 
-  const handleRemove = async (id) => {
+  const { fetchCartCount } = useCart();
+
+  // Kiểm tra xem tất cả các món hiện tại đã được chọn chưa
+  const isAllSelected = cartItems.length > 0 && cartItems.every(item => item.isSelected);
+
+  const handleSelectAll = async () => {
+        const targetState = !isAllSelected; // Đảo trạng thái hiện tại
+        const token = localStorage.getItem('token');
+
+    if (!token) {
+        // CHẾ ĐỘ KHÁCH
+        let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+        const updatedCart = guestCart.map(item => ({ ...item, isSelected: targetState }));
+        
+        localStorage.setItem('guestCart', JSON.stringify(updatedCart));
+        fetchCart();
+        return;
+    }
+        try {
+            // Gọi API toggle-all mới viết ở trên
+            await cartService.toggleAll(targetState);
+            // Load lại giỏ hàng để cập nhật UI
+            fetchCart(); 
+        } catch (error) {
+            Swal.fire('Error', 'Could not toggle all items', 'error');
+        }
+  };
+
+   const handleDeleteSelected = async () => {
+        const selectedIds = cartItems.filter(item => item.isSelected).map(i => i.id);
+        // const selectedItems = cartItems.filter(item => item.isSelected);
+        // if (selectedIds.length === 0) return;
+
+        const result = await Swal.fire({
+            title: 'Confirm Delete',
+            text: `Are you sure you want to remove  ${selectedItems.length} the selected items? `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete!'
+        });
+
+        if (result.isConfirmed) {
+        const token = localStorage.getItem('token');
+            if (!token) {
+                // CHẾ ĐỘ KHÁCH
+                let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+                // Lọc ra những item KHÔNG được chọn (giữ lại những item isSelected: false)
+                const updatedCart = guestCart.filter(item => !item.isSelected);
+
+                localStorage.setItem('guestCart', JSON.stringify(updatedCart));
+                fetchCart();
+                fetchCartCount();
+                Swal.fire('Deleted!', 'Selected items removed.', 'success');
+                return;
+            }
+
+            try {
+                await cartService.removeMultipleItems(selectedIds);
+                // Cập nhật lại giao diện và số lượng trên Header
+                fetchCart();
+                fetchCartCount();
+            
+                Swal.fire('Deleted!', 'All selected items have been removed.', 'success');
+            } catch (error) {
+                Swal.fire('Error', 'Could not remove selected items', 'error');
+            }
+        }
+    };
+
+const handleRemove = async (id) => {
 		const result = await Swal.fire({
 			title: 'Are you sure?',
 			icon: 'warning',
@@ -191,75 +262,75 @@ const CartPage = () => {
 	};
 
 
-  // Kiểm tra xem tất cả các món hiện tại đã được chọn chưa
-  const isAllSelected = cartItems.length > 0 && cartItems.every(item => item.isSelected);
+//   // Kiểm tra xem tất cả các món hiện tại đã được chọn chưa
+//   const isAllSelected = cartItems.length > 0 && cartItems.every(item => item.isSelected);
 
-  const handleSelectAll = async () => {
-        const targetState = !isAllSelected; // Đảo trạng thái hiện tại
-        const token = localStorage.getItem('token');
+//   const handleSelectAll = async () => {
+//         const targetState = !isAllSelected; // Đảo trạng thái hiện tại
+//         const token = localStorage.getItem('token');
 
-    if (!token) {
-        // CHẾ ĐỘ KHÁCH
-        let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
-        const updatedCart = guestCart.map(item => ({ ...item, isSelected: targetState }));
+//     if (!token) {
+//         // CHẾ ĐỘ KHÁCH
+//         let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+//         const updatedCart = guestCart.map(item => ({ ...item, isSelected: targetState }));
         
-        localStorage.setItem('guestCart', JSON.stringify(updatedCart));
-        fetchCart();
-        return;
-    }
-        try {
-            // Gọi API toggle-all mới viết ở trên
-            await cartService.toggleAll(targetState);
-            // Load lại giỏ hàng để cập nhật UI
-            fetchCart(); 
-        } catch (error) {
-            Swal.fire('Error', 'Could not toggle all items', 'error');
-        }
-  };
+//         localStorage.setItem('guestCart', JSON.stringify(updatedCart));
+//         fetchCart();
+//         return;
+//     }
+//         try {
+//             // Gọi API toggle-all mới viết ở trên
+//             await cartService.toggleAll(targetState);
+//             // Load lại giỏ hàng để cập nhật UI
+//             fetchCart(); 
+//         } catch (error) {
+//             Swal.fire('Error', 'Could not toggle all items', 'error');
+//         }
+//   };
 
-  const handleDeleteSelected = async () => {
-    const selectedIds = cartItems.filter(item => item.isSelected).map(i => i.id);
-    // const selectedItems = cartItems.filter(item => item.isSelected);
-    // if (selectedIds.length === 0) return;
+//   const handleDeleteSelected = async () => {
+//     const selectedIds = cartItems.filter(item => item.isSelected).map(i => i.id);
+//     // const selectedItems = cartItems.filter(item => item.isSelected);
+//     // if (selectedIds.length === 0) return;
 
-    const result = await Swal.fire({
-        title: 'Confirm Delete',
-        text: `Are you sure you want to remove  ${selectedItems.length} the selected items? `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete!'
-    });
+//     const result = await Swal.fire({
+//         title: 'Confirm Delete',
+//         text: `Are you sure you want to remove  ${selectedItems.length} the selected items? `,
+//         icon: 'warning',
+//         showCancelButton: true,
+//         confirmButtonColor: '#d33',
+//         cancelButtonColor: '#3085d6',
+//         confirmButtonText: 'Yes, delete!'
+//     });
 
-    if (result.isConfirmed) {
-      const token = localStorage.getItem('token');
-        if (!token) {
-            // CHẾ ĐỘ KHÁCH
-            let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
-            // Lọc ra những item KHÔNG được chọn (giữ lại những item isSelected: false)
-            const updatedCart = guestCart.filter(item => !item.isSelected);
+//     if (result.isConfirmed) {
+//       const token = localStorage.getItem('token');
+//         if (!token) {
+//             // CHẾ ĐỘ KHÁCH
+//             let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+//             // Lọc ra những item KHÔNG được chọn (giữ lại những item isSelected: false)
+//             const updatedCart = guestCart.filter(item => !item.isSelected);
 
-            localStorage.setItem('guestCart', JSON.stringify(updatedCart));
-            fetchCart();
-            fetchCartCount();
-            Swal.fire('Deleted!', 'Selected items removed.', 'success');
-            return;
-        }
+//             localStorage.setItem('guestCart', JSON.stringify(updatedCart));
+//             fetchCart();
+//             fetchCartCount();
+//             Swal.fire('Deleted!', 'Selected items removed.', 'success');
+//             return;
+//         }
 
-        try {
-            await cartService.removeMultipleItems(selectedIds);
-            // Cập nhật lại giao diện và số lượng trên Header
-            fetchCart();
-            fetchCartCount();
+//         try {
+//             await cartService.removeMultipleItems(selectedIds);
+//             // Cập nhật lại giao diện và số lượng trên Header
+//             fetchCart();
+//             fetchCartCount();
            
-            Swal.fire('Deleted!', 'All selected items have been removed.', 'success');
-        } catch (error) {
-            Swal.fire('Error', 'Could not remove selected items', 'error');
-        }
-    }
+//             Swal.fire('Deleted!', 'All selected items have been removed.', 'success');
+//         } catch (error) {
+//             Swal.fire('Error', 'Could not remove selected items', 'error');
+//         }
+//     }
 
-};
+// };
 
 
 
