@@ -1,14 +1,17 @@
-import React, {useState} from 'react';
-import {Link, useNavigate} from 'react-router-dom';
-import {FaApple} from 'react-icons/fa';
-import {FcGoogle} from 'react-icons/fc';
-import {toast} from 'react-toastify';
-import {authApi} from '../../services/authApi';
-import {MdBolt, MdShoppingCart, MdOutlineMail, MdLockOutline, MdArrowForward, MdStar, MdLogin} from 'react-icons/md';
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { FaApple } from 'react-icons/fa';
+import { FcGoogle } from 'react-icons/fc';
+import { toast } from 'react-toastify';
+import { authApi } from '../../services/authApi';
+import { MdBolt, MdShoppingCart, MdOutlineMail, MdLockOutline, MdArrowForward, MdStar, MdLogin } from 'react-icons/md';
+import Header from '@/components/layout/Header';
+import { jwtDecode } from "jwt-decode";
 
 const Login = () => {
 	const navigate = useNavigate();
 	const [isLoading, setIsLoading] = useState(false);
+	const location = useLocation();
 
 	const [formData, setFormData] = useState({
 		username: '',
@@ -23,6 +26,7 @@ const Login = () => {
 	};
 
 	const handleSubmit = async (e) => {
+		const originPath = location.state?.from || '/';
 		e.preventDefault();
 
 		// Validate cơ bản ở Frontend
@@ -59,7 +63,52 @@ const Login = () => {
 				}
 
 				toast.success('Login successful!');
-				navigate('/');
+
+
+
+				// =========================================================
+				// 👉 2. GIẢI MÃ TOKEN ĐỂ KIỂM TRA ROLE VÀ CHUYỂN TRANG
+				// =========================================================
+				try {
+					const decodedToken = jwtDecode(token);
+
+					// In ra console để bạn xem Spring Boot đang giấu Role ở biến nào
+					console.log("Thông tin Token:", decodedToken);
+
+					// Lấy mảng Role ra (Spring Boot thường lưu trong 'roles', 'role', hoặc 'authorities')
+					// Nếu backend của bạn lưu kiểu khác, hãy nhìn vào màn hình Console (F12) để đổi tên biến cho đúng nhé!
+					let userRoles = decodedToken.roles || decodedToken.role || decodedToken.authorities || [];
+
+					// Ép kiểu về mảng nếu Backend trả về chuỗi đơn (VD: "ADMIN")
+					if (typeof userRoles === 'string') {
+						userRoles = [userRoles];
+					}
+
+					// Chuẩn hóa tên Role (Viết hoa hết) để so sánh cho dễ
+					// Xử lý luôn trường hợp Spring Boot trả về dạng object [{authority: "ROLE_ADMIN"}]
+					const roleStrings = userRoles.map(r =>
+						typeof r === 'string' ? r.toUpperCase() : (r.authority || '').toUpperCase()
+					);
+
+					// Kiểm tra xem có quyền Admin/Superadmin không
+					const isAdmin = roleStrings.includes('ADMIN') ||
+						roleStrings.includes('ROLE_ADMIN') ||
+						roleStrings.includes('SUPERADMIN') ||
+						roleStrings.includes('ROLE_SUPERADMIN');
+
+					if (isAdmin) {
+						navigate('/admin'); // Trả về trang Admin
+					} else {
+						navigate(originPath, { replace: true });     // Trả về trang User (Trang chủ)
+					}
+
+				} catch (decodeError) {
+					console.error("Lỗi giải mã token:", decodeError);
+					navigate('/'); // Fallback an toàn nếu lỗi
+				}
+
+
+
 			} else {
 				toast.warning('Login successful, but failed to retrieve token!');
 				console.log('Server Response:', response);
@@ -73,7 +122,7 @@ const Login = () => {
 
 	return (
 		<div className="bg-background-light dark:bg-background-dark font-display min-h-screen flex flex-col">
-			{/* Navigation Header */}
+			{/* Navigation Header
 			<header className="w-full border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-50">
 				<div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
 					<div className="flex items-center gap-2">
@@ -88,7 +137,8 @@ const Login = () => {
 						</button>
 					</div>
 				</div>
-			</header>
+			</header> */}
+			<Header></Header>
 
 			{/* Main Content: Login Card */}
 			<main className="flex-grow flex items-center justify-center p-4 md:p-8">

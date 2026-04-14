@@ -268,12 +268,12 @@ export default function Header() {
 				{/* Categories */}
 				<div className="mx-auto max-w-6xl px-4">
 					<ul className="flex overflow-x-auto whitespace-nowrap py-3 text-sm font-semibold uppercase tracking-wider text-gray-700">
-						<li className="mr-8">
+						{/* <li className="mr-8">
 							<a href="/" className="flex items-center gap-2 hover:text-[#045fae]">
 								<Home className="h-5 w-5" />
 								HOME
 							</a>
-						</li>
+						</li> */}
 
 						{categories.map((item) => (
 							<li key={item.id} className="mr-8">
