@@ -23,7 +23,6 @@ import api from '../../../services/api';
 import AddToCartButton from '@/components/user/cart/AddToCartButton';
 import BuyNowButton from '@/components/user/cart/BuyNowButton';
 
-
 const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 
 // CSS for hiding scrollbar
@@ -354,7 +353,9 @@ export default function ProductDetailPage() {
 						</div>
 
 						{/* Title */}
-						<h1 className="text-2xl font-bold text-gray-900 leading-snug">{product.productGroup?.name + ' ' + variantName}</h1>
+						<h1 className="text-2xl font-bold text-gray-900 leading-snug">
+							{product.productGroup?.name + ' ' + variantName}
+						</h1>
 						{/* Rating + views */}
 						<div className="flex items-center gap-4 flex-wrap">
 							<StarRating rating={averageRating} />
@@ -504,18 +505,6 @@ export default function ProductDetailPage() {
 
 							{/* CTA buttons */}
 							<div className="flex gap-2">
-								{/* <button
-									disabled={unavailable}
-									className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border-2 border-blue-600 transition-all
-            ${
-													unavailable
-														? 'opacity-40 cursor-not-allowed border-gray-200 text-gray-400'
-														: 'text-blue-600 hover:bg-blue-600 hover:text-white active:scale-95'
-												}`}
-								>
-									<FontAwesomeIcon icon={faCartPlus} />
-									Add to Cart
-								</button> */}
 								<AddToCartButton
 									productId={id}
 									quantity={qty}
@@ -531,10 +520,10 @@ export default function ProductDetailPage() {
 												}`}
 								></AddToCartButton>
 								<BuyNowButton
-								product={product}
-								quantity={qty}
-								unavailable={unavailable}
-								// disabled={product.stockQuantity <= 0}
+									product={product}
+									quantity={qty}
+									unavailable={unavailable}
+									// disabled={product.stockQuantity <= 0}
 									className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all
             ${
 													unavailable

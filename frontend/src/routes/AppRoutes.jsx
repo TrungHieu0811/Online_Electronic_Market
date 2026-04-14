@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import {Routes, Route} from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 
 import HomePage from '@/pages/HomePage';
@@ -82,7 +82,14 @@ export default function AppRoutes() {
 				}
 			/>
 
-			<Route path="/checkout/success" element={<MainLayout><PaymentSuccessPage /></MainLayout>} />
+			<Route
+				path="/checkout/success"
+				element={
+					<MainLayout>
+						<PaymentSuccessPage />
+					</MainLayout>
+				}
+			/>
 			{/* <Route path="/checkout/failure" element={<MainLayout><PaymentFailurePage /></MainLayout>} /> */}
 
 			<Route path="/admin/*" element={<AdminRoutes />}>

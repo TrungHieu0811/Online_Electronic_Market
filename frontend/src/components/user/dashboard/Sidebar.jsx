@@ -45,7 +45,7 @@ export default function Sidebar() {
 					<span>Orders</span>
 				</NavLink>
 
-				<NavLink
+				{/* <NavLink
 					to="/profile/wishlist"
 					className={({isActive}) => `${baseClass} ${isActive ? activeClass : inactiveClass}`}
 				>
@@ -59,7 +59,7 @@ export default function Sidebar() {
 				>
 					<span className="material-symbols-outlined">settings</span>
 					<span>Settings</span>
-				</NavLink>
+				</NavLink> */}
 				{/* 👉 THÊM NÚT LOGOUT VÀO ĐÂY */}
 				<button
 					onClick={handleLogout}

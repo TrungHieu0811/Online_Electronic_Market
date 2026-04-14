@@ -1,28 +1,28 @@
 package fpt.demo.service;
 
-import fpt.demo.jwt.JwtService;
-import fpt.demo.dto.LoginRequestDto;
-import fpt.demo.dto.UserRegistrationDto;
-import fpt.demo.entity.RefreshToken;
-import fpt.demo.entity.User;
-import fpt.demo.repository.RefreshTokenRepository;
-import fpt.demo.repository.UserRepository;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.Random;
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import java.time.LocalDateTime;
-import java.util.Random;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.UUID;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+
+import fpt.demo.dto.LoginRequestDto;
+import fpt.demo.dto.UserRegistrationDto;
+import fpt.demo.entity.RefreshToken;
+import fpt.demo.entity.User;
+import fpt.demo.jwt.JwtService;
+import fpt.demo.repository.RefreshTokenRepository;
+import fpt.demo.repository.UserRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -36,76 +36,78 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
 
     @Override
-@Transactional
-public String register(UserRegistrationDto request) {
-    // 1. Kiểm tra mật khẩu khớp nhau
-    if (!request.getPassword().equals(request.getConfirmPassword())) {
-        throw new IllegalArgumentException("The verification password doesn't match!");
+    @Transactional
+    public String register(UserRegistrationDto request) {
+        // 1. Kiểm tra mật khẩu khớp nhau
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("The verification password doesn't match!");
+        }
+
+        // 2. Tìm xem Email này đã tồn tại trong DB chưa
+        Optional<User> existingUserOpt = userRepository.findByEmail(request.getEmail());
+        User userToSave;
+
+        if (existingUserOpt.isPresent()) {
+            userToSave = existingUserOpt.get();
+
+            // TRƯỜNG HỢP 1: Đã xác thực (Bị chốt sổ) -> Chặn luôn
+            // if (userToSave.isEmailConfirmed()|| userToSave.isStatus()) {
+            if (userToSave.getEmailConfirmed()) {
+                throw new IllegalArgumentException("Email already exists in the system!");
+            }
+
+            // TRƯỜNG HỢP 2: Chưa xác thực -> Cho phép Tái Chế
+            // Nhưng phải cẩn thận: Lỡ họ đổi Username/Phone sang một số đang được người
+            // khác dùng thì sao?
+            // -> Kiểm tra xem Username/Phone mới có bị trùng với người khác không
+            if (!userToSave.getUsername().equals(request.getUsername())
+                    && userRepository.existsByUsername(request.getUsername())) {
+                throw new IllegalArgumentException("The username already exists in the system!");
+            }
+            if (!userToSave.getPhone().equals(request.getPhone()) && userRepository.existsByPhone(request.getPhone())) {
+                throw new IllegalArgumentException("Phone number is already in use!");
+            }
+
+            // Bắt đầu ghi đè thông tin mới lên cái xác cũ
+            userToSave.setUsername(request.getUsername());
+            userToSave.setFullName(request.getFullName());
+            userToSave.setPhone(request.getPhone());
+            userToSave.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        } else {
+            // TRƯỜNG HỢP 3: Email mới hoàn toàn -> Kiểm tra Username/Phone như bình thường
+            if (userRepository.existsByUsername(request.getUsername())) {
+                throw new IllegalArgumentException("The username already exists in the system!");
+            }
+            if (userRepository.existsByPhone(request.getPhone())) {
+                throw new IllegalArgumentException("Phone number is already in use!");
+            }
+
+            // Tạo một User mới tinh bằng Builder của bạn
+            userToSave = User.builder()
+                    .username(request.getUsername())
+                    .email(request.getEmail())
+                    .fullName(request.getFullName())
+                    .phone(request.getPhone())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .status(false)
+                    .emailConfirmed(false)
+                    .build();
+        }
+
+        // 3. TẠO MÃ OTP VÀ HẠN SỬ DỤNG (Dùng chung cho cả tạo mới lẫn tái chế)
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+        userToSave.setOtpCode(otp);
+        userToSave.setOtpExpiration(java.time.LocalDateTime.now().plusMinutes(5));
+
+        // 4. LƯU XUỐNG DATABASE
+        userRepository.save(userToSave);
+
+        // 5. GỌI BÁC ĐƯA THƯ
+        emailService.sendOtpEmail(userToSave.getEmail(), otp);
+
+        return "Registration successful! Please check your email for the verification code.";
     }
-
-    // 2. Tìm xem Email này đã tồn tại trong DB chưa
-    Optional<User> existingUserOpt = userRepository.findByEmail(request.getEmail());
-    User userToSave;
-
-    if (existingUserOpt.isPresent()) {
-        userToSave = existingUserOpt.get();
-
-        // TRƯỜNG HỢP 1: Đã xác thực (Bị chốt sổ) -> Chặn luôn
-//        if (userToSave.isEmailConfirmed()|| userToSave.isStatus()) {
-        if (userToSave.getEmailConfirmed()) {
-            throw new IllegalArgumentException("Email already exists in the system!");
-        }
-
-        // TRƯỜNG HỢP 2: Chưa xác thực -> Cho phép Tái Chế
-        // Nhưng phải cẩn thận: Lỡ họ đổi Username/Phone sang một số đang được người khác dùng thì sao?
-        // -> Kiểm tra xem Username/Phone mới có bị trùng với người khác không
-        if (!userToSave.getUsername().equals(request.getUsername()) && userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("The username already exists in the system!");
-        }
-        if (!userToSave.getPhone().equals(request.getPhone()) && userRepository.existsByPhone(request.getPhone())) {
-            throw new IllegalArgumentException("Phone number is already in use!");
-        }
-
-        // Bắt đầu ghi đè thông tin mới lên cái xác cũ
-        userToSave.setUsername(request.getUsername());
-        userToSave.setFullName(request.getFullName());
-        userToSave.setPhone(request.getPhone());
-        userToSave.setPassword(passwordEncoder.encode(request.getPassword()));
-        
-    } else {
-        // TRƯỜNG HỢP 3: Email mới hoàn toàn -> Kiểm tra Username/Phone như bình thường
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("The username already exists in the system!");
-        }
-        if (userRepository.existsByPhone(request.getPhone())) {
-            throw new IllegalArgumentException("Phone number is already in use!");
-        }
-
-        // Tạo một User mới tinh bằng Builder của bạn
-        userToSave = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
-                .fullName(request.getFullName())
-                .phone(request.getPhone())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .status(false)
-                .emailConfirmed(false)
-                .build();
-    }
-
-    // 3. TẠO MÃ OTP VÀ HẠN SỬ DỤNG (Dùng chung cho cả tạo mới lẫn tái chế)
-    String otp = String.format("%06d", new java.util.Random().nextInt(999999));
-    userToSave.setOtpCode(otp);
-    userToSave.setOtpExpiration(java.time.LocalDateTime.now().plusMinutes(5));
-
-    // 4. LƯU XUỐNG DATABASE
-    userRepository.save(userToSave);
-
-    // 5. GỌI BÁC ĐƯA THƯ
-    emailService.sendOtpEmail(userToSave.getEmail(), otp);
-
-    return "Registration successful! Please check your email for the verification code.";
-}
 
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@RequestParam String email) {
@@ -137,9 +139,7 @@ public String register(UserRegistrationDto request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
-                        request.getPassword()
-                )
-        );
+                        request.getPassword()));
 
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new IllegalArgumentException("No account found with this username!"));
@@ -151,7 +151,7 @@ public String register(UserRegistrationDto request) {
         String jwtAccessToken = jwtService.generateToken(user);
         RefreshToken refreshToken = createRefreshToken(user);
 
-        return new String[]{jwtAccessToken, refreshToken.getToken()};
+        return new String[] { jwtAccessToken, refreshToken.getToken() };
     }
 
     // Hàm private giữ nguyên, không cần @Override vì không có trong Interface
@@ -162,12 +162,13 @@ public String register(UserRegistrationDto request) {
         refreshToken.setExpiryDate(LocalDateTime.now().plusDays(7));
         return refreshTokenRepository.save(refreshToken);
     }
-    
+
     @Override
     @Transactional
     public String[] refreshAccessToken(String refreshTokenReq) {
         // 1. Tìm Refresh Token trong DB
-        // (Lưu ý: Đảm bảo trong RefreshTokenRepository của bạn đã có hàm findByToken(String token) nhé)
+        // (Lưu ý: Đảm bảo trong RefreshTokenRepository của bạn đã có hàm
+        // findByToken(String token) nhé)
         RefreshToken refreshTokenOpt = refreshTokenRepository.findByToken(refreshTokenReq)
                 .orElseThrow(() -> new IllegalArgumentException("Refresh Token không tồn tại!"));
 
@@ -190,7 +191,7 @@ public String register(UserRegistrationDto request) {
         String newAccessToken = jwtService.generateToken(user);
 
         // Trả về một mảng chứa: [AccessToken Mới, RefreshToken Cũ (vẫn còn hạn)]
-        return new String[]{newAccessToken, refreshTokenOpt.getToken()};
+        return new String[] { newAccessToken, refreshTokenOpt.getToken() };
     }
 
     @Override
@@ -255,7 +256,7 @@ public String register(UserRegistrationDto request) {
         if (!user.getOtpCode().equals(otpCode)) {
             throw new IllegalArgumentException("OTP is incorrect!");
         }
-        
+
         // 👉 2. THÊM ĐOẠN KIỂM TRA MẬT KHẨU TRÙNG NHAU TẠI ĐÂY
         // Nếu mật khẩu mới khớp với mật khẩu đang lưu trong DB thì báo lỗi ngay
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
@@ -272,6 +273,7 @@ public String register(UserRegistrationDto request) {
         userRepository.save(user);
         return "Password changed successfully! You can now log in with your new password.";
     }
+
     @Override
     @Transactional
     public String resendOtp(String email) {
@@ -290,9 +292,10 @@ public String register(UserRegistrationDto request) {
 
         // Gửi mail lại
         emailService.sendOtpEmail(user.getEmail(), otp);
-        
+
         return "OTP has been resent to your email!";
     }
+
     @Override
     public String checkOtp(String email, String otpCode) {
         User user = userRepository.findByEmail(email)

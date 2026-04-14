@@ -6,6 +6,7 @@ import {useEffect, useState, useRef, useCallback} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {toast} from 'react-toastify';
 import CartBadge from '../user/cart/CartBadge';
+import {getMyProfile} from '@/services/profileApi';
 
 // const categories = ['Mobiles', 'Laptops', 'TV & Audio', 'Appliances', 'Accessories'];
 
@@ -19,6 +20,29 @@ export default function Header() {
 	const [categories, setCategories] = useState([]);
 	const debounceTimer = useRef(null);
 	const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
+
+	const [user, setUser] = useState([]);
+	const token = localStorage.getItem('token');
+
+	const fetchProfile = async () => {
+		try {
+			setLoading(true);
+			const data = await getMyProfile();
+			setUser(data);
+			console.log('data: ', data);
+		} catch (err) {
+			console.error('Error fetching profile:', err);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		if (token) {
+			fetchProfile();
+		}
+	}, [location.state?.refresh]);
+
 	useEffect(() => {
 		const keywordFromUrl = searchParams.get('keyword'); // Lấy giá trị của tham số ?keyword=
 		if (keywordFromUrl) {
@@ -234,8 +258,11 @@ export default function Header() {
 							// ĐÃ LOGIN: Hiện Profile, Orders, Logout
 							<div className="flex items-center gap-4 border-r pr-4 border-gray-200">
 								<Link to="/profile" className="flex items-center gap-1 text-gray-700 hover:text-[#045fae]">
-									<User className="h-5 w-5" />
-									<span className="hidden text-sm font-medium md:block">Profile</span>
+									<div className="h-10 w-10 overflow-hidden rounded-full border-2 border-primary/15 bg-surface-container-high">
+										<img src={IMAGE_BASE_URL + user?.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+									</div>
+									<span>{user?.username}</span>
+									{/* <span className="hidden text-sm font-medium md:block">Profile</span> */}
 								</Link>
 
 								{/* <Link to='/profile/orders' className='flex items-center gap-1 text-gray-700 hover:text-[#045fae]'>

@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, {useState, useEffect} from 'react';
+import {useNavigate, useLocation} from 'react-router-dom';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { checkoutService } from '@/services/checkoutService';
-import { PiShippingContainerFill } from "react-icons/pi";
-import { RiPaypalFill } from "react-icons/ri";
+import {checkoutService} from '@/services/checkoutService';
+import {PiShippingContainerFill} from 'react-icons/pi';
+import {RiPaypalFill} from 'react-icons/ri';
 import { paymentService } from '@/services/paymentService';
 
 const CheckoutPage = () => {
-    const navigate = useNavigate();
+	const navigate = useNavigate();
     const location = useLocation();
 
     // 1. Quản lý danh sách sản phẩm được chọn từ Cart
@@ -22,21 +22,23 @@ const CheckoutPage = () => {
         address: ''
     });
 
-    // 3. State địa chỉ GHN và phí ship
-    const [provinces, setProvinces] = useState([]);
-    const [districts, setDistricts] = useState([]);
-    const [wards, setWards] = useState([]);
-    const [selectedAddress, setSelectedAddress] = useState({
-        provinceId: '', districtId: '', wardCode: ''
-    });
+	// 3. State địa chỉ GHN và phí ship
+	const [provinces, setProvinces] = useState([]);
+	const [districts, setDistricts] = useState([]);
+	const [wards, setWards] = useState([]);
+	const [selectedAddress, setSelectedAddress] = useState({
+		provinceId: '',
+		districtId: '',
+		wardCode: '',
+	});
 
     //Payment mặc định COD
     const [paymentMethod, setPaymentMethod] = useState('COD');
 
-    const [shippingFee, setShippingFee] = useState(0);
-    const [loadingFee, setLoadingFee] = useState(false);
+	const [shippingFee, setShippingFee] = useState(0);
+	const [loadingFee, setLoadingFee] = useState(false);
 
-    const GHN_TOKEN = '7929ef18-3653-11f1-a973-aee5264794df'.replace(/[\\"]/g, '').trim();
+	const GHN_TOKEN = '7929ef18-3653-11f1-a973-aee5264794df'.replace(/[\\"]/g, '').trim();
 
     // Khởi tạo: Lấy sản phẩm được chọn từ localStorage
     useEffect(() => {
@@ -58,14 +60,14 @@ const CheckoutPage = () => {
         }
     }, [location.state, navigate]);
 
-    // Tự động điền thông tin User từ localStorage
-    useEffect(() => {
-        const fetchUserProfile = async () => {
-            // Chỉ gọi API nếu người dùng chọn "Use my profile information"
-            if (useProfileInfo) {
-                try {
-                    const userToken = localStorage.getItem('token');
-                    if (!userToken) return;
+	// Tự động điền thông tin User từ localStorage
+	useEffect(() => {
+		const fetchUserProfile = async () => {
+			// Chỉ gọi API nếu người dùng chọn "Use my profile information"
+			if (useProfileInfo) {
+				try {
+					const userToken = localStorage.getItem('token');
+					if (!userToken) return;
 
                     // Gọi đến endpoint /me
                     const response = await axios.get("http://localhost:8080/api/users/me", {
@@ -76,23 +78,23 @@ const CheckoutPage = () => {
 
                     const profile = response.data;
 
-                    // Điền dữ liệu vào form
-                    setFormData({
-                        fullName: profile.fullName || '',
-                        phone: profile.phone || '',
-                        address: profile.address || ''
-                    });
-                } catch (error) {
-                    Swal.fire('Error', 'Could not load your profile information. Please enter manually.', 'error');
-                }
-            } else {
-                setFormData({ fullName: '', phone: '', address: '' });
-            }
-        };
-        fetchUserProfile();
-    }, [useProfileInfo]);
+					// Điền dữ liệu vào form
+					setFormData({
+						fullName: profile.fullName || '',
+						phone: profile.phone || '',
+						address: profile.address || '',
+					});
+				} catch (error) {
+					Swal.fire('Error', 'Could not load your profile information. Please enter manually.', 'error');
+				}
+			} else {
+				setFormData({fullName: '', phone: '', address: ''});
+			}
+		};
+		fetchUserProfile();
+	}, [useProfileInfo]);
 
-    // Lấy danh sách Tỉnh/Thành từ GHN API
+	// Lấy danh sách Tỉnh/Thành từ GHN API
 
     //COUPON
     const [couponCode, setCouponCode] = useState('');
@@ -400,33 +402,56 @@ const CheckoutPage = () => {
                             </div>
                         </div>
 
-                        {/* Shipping Area */}
-                        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <span className="w-1.5 h-5 bg-blue-500 rounded-full"></span>
-                                Shipping Area
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <select onChange={handleProvinceChange} value={selectedAddress.provinceId} className="...">
-                                    <option value="">Select Province</option>
-                                    {/* Thêm kiểm tra provinces tồn tại và là mảng */}
-                                    {Array.isArray(provinces) && provinces.map(p => (
-                                        <option key={p.ProvinceID} value={p.ProvinceID}>{p.ProvinceName}</option>
-                                    ))}
-                                </select>
-                                <select onChange={handleDistrictChange} value={selectedAddress.districtId} disabled={!selectedAddress.provinceId} className="p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" required>
-                                    <option value="">Select District</option>
-                                    {districts.map(d => <option key={d.DistrictID} value={d.DistrictID}>{d.DistrictName}</option>)}
-                                </select>
-                                <select onChange={handleWardChange} value={selectedAddress.wardCode} disabled={!selectedAddress.districtId} className="p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" required>
-                                    <option value="">Select Ward</option>
-                                    {wards.map(w => <option key={w.WardCode} value={w.WardCode}>{w.WardName}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+						{/* Shipping Area */}
+						<div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+							<h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+								<span className="w-1.5 h-5 bg-blue-500 rounded-full"></span>
+								Shipping Area
+							</h3>
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+								<select onChange={handleProvinceChange} value={selectedAddress.provinceId} className="...">
+									<option value="">Select Province</option>
+									{/* Thêm kiểm tra provinces tồn tại và là mảng */}
+									{Array.isArray(provinces) &&
+										provinces.map((p) => (
+											<option key={p.ProvinceID} value={p.ProvinceID}>
+												{p.ProvinceName}
+											</option>
+										))}
+								</select>
+								<select
+									onChange={handleDistrictChange}
+									value={selectedAddress.districtId}
+									disabled={!selectedAddress.provinceId}
+									className="p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+									required
+								>
+									<option value="">Select District</option>
+									{districts.map((d) => (
+										<option key={d.DistrictID} value={d.DistrictID}>
+											{d.DistrictName}
+										</option>
+									))}
+								</select>
+								<select
+									onChange={handleWardChange}
+									value={selectedAddress.wardCode}
+									disabled={!selectedAddress.districtId}
+									className="p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+									required
+								>
+									<option value="">Select Ward</option>
+									{wards.map((w) => (
+										<option key={w.WardCode} value={w.WardCode}>
+											{w.WardName}
+										</option>
+									))}
+								</select>
+							</div>
+						</div>
+					</div>
 
-                    {/* CỘT PHẢI: ORDER SUMMARY (STICKY) */}
+					{/* CỘT PHẢI: ORDER SUMMARY (STICKY) */}
 
                     <div className="w-full lg:w-[400px] lg:sticky lg:top-12">
                         <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-2xl border border-slate-800">
@@ -489,37 +514,39 @@ const CheckoutPage = () => {
                                 )}
                             </div>
 
-                            {/* Totals */}
-                            <div className="space-y-4 text-sm pt-4">
-                                <div className="flex justify-between text-slate-400">
-                                    <span>Subtotal</span>
-                                    <span className="text-white font-bold">${subtotal.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between text-slate-400">
-                                    <span>Shipping</span>
-                                    <span className="text-blue-400 font-bold">
-                                        {loadingFee ? (
-                                            <span className="animate-pulse">Calculating...</span>
-                                        ) : (
-                                            shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`
-                                        )}
-                                    </span>
-                                </div>
-                                {discountAmount > 0 && (
-                                    <div className="flex justify-between text-green-400">
-                                        <span>Coupon Discount</span>
-                                        <span>-${discountAmount.toFixed(2)}</span>
-                                    </div>
-                                )}
-                                <div className="flex justify-between border-b border-slate-800 pb-6 text-slate-400">
-                                    <span>Tax (10%)</span>
-                                    <span className="text-white font-bold">${tax.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between items-end pt-3">
-                                    <span className="text-slate-200 font-bold uppercase tracking-wider text-xs">Total Amount</span>
-                                    <span className="text-4xl font-black text-orange-500">${finalTotal.toFixed(2)}</span>
-                                </div>
-                            </div>
+							{/* Totals */}
+							<div className="space-y-4 text-sm pt-4">
+								<div className="flex justify-between text-slate-400">
+									<span>Subtotal</span>
+									<span className="text-white font-bold">${subtotal.toFixed(2)}</span>
+								</div>
+								<div className="flex justify-between text-slate-400">
+									<span>Shipping</span>
+									<span className="text-blue-400 font-bold">
+										{loadingFee ? (
+											<span className="animate-pulse">Calculating...</span>
+										) : (
+											<span>${shippingFee === 0 ? 'FREE' : `${shippingFee.toFixed(2)}`}</span>
+											// <span>${shippingFee === 0 ? 'FREE' : console.log(shippingFee)}</span>
+                                            // <span>$777</span>
+										)}
+									</span>
+								</div>
+								{discountAmount > 0 && (
+									<div className="flex justify-between text-green-400">
+										<span>Coupon Discount</span>
+										<span>-${discountAmount.toFixed(2)}</span>
+									</div>
+								)}
+								<div className="flex justify-between border-b border-slate-800 pb-6 text-slate-400">
+									<span>Tax (10%)</span>
+									<span className="text-white font-bold">${tax.toFixed(2)}</span>
+								</div>
+								<div className="flex justify-between items-end pt-3">
+									<span className="text-slate-200 font-bold uppercase tracking-wider text-xs">Total Amount</span>
+									<span className="text-4xl font-black text-orange-500">${finalTotal.toFixed(2)}</span>
+								</div>
+							</div>
 
                             {/* Payment Methods Badges */}
                             <div className="mt-4 border-t border-slate-800 pt-4">
