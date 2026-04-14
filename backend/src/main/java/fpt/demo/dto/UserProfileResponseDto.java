@@ -1,6 +1,7 @@
 package fpt.demo.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,4 +25,5 @@ public class UserProfileResponseDto {
     private Double ratingScore;
     private String userRole;
     private Boolean emailConfirmed;
+    private LocalDateTime createdAt;
 }

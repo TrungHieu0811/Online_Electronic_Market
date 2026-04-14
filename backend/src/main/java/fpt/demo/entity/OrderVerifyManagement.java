@@ -5,6 +5,8 @@
 package fpt.demo.entity;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -38,7 +40,14 @@ public class OrderVerifyManagement {
 
     private String verifyMethod = "PHONE_CALL";
 
-    private String status;
+    public enum Status {
+        SUCCESS,
+        NO_ANSWER,
+        WRONG_NUMBER,
+        REJECTED
+    }
+    @Enumerated(EnumType.STRING)
+    private Status status;
 
     private String note;
 

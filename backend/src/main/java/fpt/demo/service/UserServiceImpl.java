@@ -6,7 +6,6 @@ import fpt.demo.entity.UserManagement;
 import fpt.demo.repository.RefreshTokenRepository;
 import fpt.demo.repository.UserManagementRepository;
 import fpt.demo.repository.UserRepository;
-import fpt.demo.service.UserService; // Nhớ import Interface
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,11 +17,12 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserManagementRepository userManagementRepository;
+    private final EmailService emailService;
 
     @Override
     public UserProfileResponseDto getUserProfile(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found!"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
         return UserProfileResponseDto.builder()
                 .id(user.getId())
@@ -45,7 +45,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserProfileResponseDto updateProfile(String username, UserProfileResponseDto updateRequest) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found!"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
         if (updateRequest.getFullName() != null) user.setFullName(updateRequest.getFullName());
         if (updateRequest.getPhone() != null) user.setPhone(updateRequest.getPhone());
@@ -62,22 +62,30 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void disableUser(Integer targetUserId, Integer adminId, String reasonText) {
         User targetUser = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new IllegalArgumentException("No user to be locked found.!"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng cần khóa!"));
 
         User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new IllegalArgumentException("Admin information not found!"));
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin Admin!"));
 
         targetUser.setStatus(false);
         userRepository.save(targetUser);
+
         refreshTokenRepository.deleteAllByUser(targetUser);
 
         UserManagement log = new UserManagement();
         log.setAdmin(admin);
         log.setUser(targetUser);
         log.setActionType("BLOCK");
-        log.setDetails("Status changed to locked, all login sessions revoked.");
+        log.setDetails("Trạng thái chuyển thành khóa, thu hồi toàn bộ phiên đăng nhập.");
         log.setReason(reasonText);
-        
         userManagementRepository.save(log);
+
+        if (targetUser.getEmail() != null && !targetUser.getEmail().isBlank()) {
+            emailService.sendUserBlockedEmail(
+                    targetUser.getEmail(),
+                    targetUser.getFullName(),
+                    reasonText
+            );
+        }
     }
 }

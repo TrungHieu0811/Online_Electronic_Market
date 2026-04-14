@@ -4,30 +4,34 @@
  */
 package fpt.demo.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+
 
 /**
  *
  * @author ngo42
  */
 @Entity
+@Data
 @Table(name = "orders")
-@Getter
-@Setter
 public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @JsonIgnore
     @ManyToOne
     private User user;
 
@@ -38,6 +42,8 @@ public class Order {
     private String shippingPhone;
     private String shippingAddress;
     private String shippingNote;
+    @Column(name = "shipping_fee")
+    private Double shippingFee = 0.0;
 
     private Double totalImportPrice;
     private Double totalBasePrice;
@@ -47,10 +53,35 @@ public class Order {
 
     private Double totalPayPrice;
 
-    private String paymentMethod;
+    public enum PaymentMethod {
+        COD,
+        VNPAY,
+        PAYPAL,
+        MOMO
+    }
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod paymentMethod;
     private String paymentStatus = "PENDING";
 
-    private String orderStatus = "PENDING";
+    public enum OrderStatus {
+        PENDING(null), // Chờ xử lý, chưa có action từ admin
+        CONFIRMED(OrderManagement.ActionType.CONFIRMED),
+        SHIPPING(OrderManagement.ActionType.SHIPPING),
+        DELIVERED(OrderManagement.ActionType.DELIVERED),
+        CANCELLED(OrderManagement.ActionType.CANCELLED);
+
+        private final OrderManagement.ActionType relatedAction;
+
+        OrderStatus(OrderManagement.ActionType action) {
+            this.relatedAction = action;
+        }
+
+        public OrderManagement.ActionType getRelatedAction() {
+            return relatedAction;
+        }
+    }
+    @Enumerated(EnumType.STRING)
+    private OrderStatus orderStatus;
     private String verifyStatus = "UNVERIFIED";
 
     private LocalDateTime createdAt;

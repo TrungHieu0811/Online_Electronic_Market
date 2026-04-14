@@ -1,27 +1,31 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package fpt.demo.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- *
- * @author ngo42
- */
 @Entity
-@Table(name = "products")
+@Table(name = "products", indexes = {
+    @Index(name = "idx_product_price", columnList = "importPrice"),
+    @Index(name = "idx_product_group", columnList = "group_id"),
+    @Index(name = "idx_product_view_count", columnList = "view_count"),
+    @Index(name = "idx_product_created_at", columnList = "createdAt"),
+    @Index(name = "idx_product_featured_status", columnList = "isFeatured, status"),
+    @Index(name = "idx_product_sale_price", columnList = "salePrice")})
 @Getter
 @Setter
 public class Product {
@@ -34,21 +38,23 @@ public class Product {
     @JoinColumn(name = "group_id")
     private ProductGroup group;
 
+    @Column(unique = true, nullable = false)
     private String variantName;
+    @Column(unique = true, nullable = false)
     private String slug;
 
-    private String summary;
+    private String summary = "";
 
     @Column(columnDefinition = "NVARCHAR(MAX)")
-    private String description;
+    private String description = "";
 
-    private Double importPrice;
-    private Double basePrice;
-    private Double salePrice;
+    private Double importPrice = 0.0;
+    private Double basePrice = 0.0;
+    private Double salePrice = 0.0;
 
     private Integer stockQuantity = 0;
 
-    private Integer warrantyMonths;
+    private Integer warrantyMonths = 0;
 
     private Boolean isFeatured = false;
 
@@ -60,4 +66,19 @@ public class Product {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    @OneToMany(mappedBy = "product")
+    @JsonManagedReference
+    private List<ProductAttribute> attributes;
 }

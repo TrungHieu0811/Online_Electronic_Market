@@ -2,7 +2,7 @@ package fpt.demo.controller;
 
 import fpt.demo.dto.LoginRequestDto;
 import fpt.demo.dto.UserRegistrationDto;
-import fpt.demo.service.AuthService; // 👉 Sửa import thành Interface
+import fpt.demo.service.AuthServiceImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,8 +17,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthController {
 
-    // 👉 Đổi thành AuthService (Interface)
-    private final AuthService authService;
+    private final AuthServiceImpl authService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody UserRegistrationDto request) {
@@ -33,8 +32,10 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDto request) {
         try {
+            // Lấy mảng 2 token từ AuthServiceImpl
             String[] tokens = authService.login(request);
             
+            // Đóng gói thành dạng JSON chuẩn xác để Flutter/Web dễ đọc
             Map<String, String> response = new HashMap<>();
             response.put("accessToken", tokens[0]);
             response.put("refreshToken", tokens[1]);
@@ -73,7 +74,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
+    // API 2: Bấm nút "Quên mật khẩu"
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
         try {
@@ -84,6 +85,7 @@ public class AuthController {
         }
     }
 
+    // API 3: Nhập mã OTP và Mật khẩu mới
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestParam String email, 
                                            @RequestParam String otp, 
@@ -95,7 +97,6 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
     @PostMapping("/resend-otp")
     public ResponseEntity<?> resendOtp(@RequestParam String email) {
         try {
@@ -105,7 +106,6 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
     @PostMapping("/check-otp")
     public ResponseEntity<?> checkOtp(@RequestParam String email, @RequestParam String otp) {
         try {
