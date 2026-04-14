@@ -502,18 +502,6 @@ export default function ProductDetailPage() {
 
 							{/* CTA buttons */}
 							<div className="flex gap-2">
-								<button
-									disabled={unavailable}
-									className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border-2 border-blue-600 transition-all
-            ${
-													unavailable
-														? 'opacity-40 cursor-not-allowed border-gray-200 text-gray-400'
-														: 'text-blue-600 hover:bg-blue-600 hover:text-white active:scale-95'
-												}`}
-								>
-									<FontAwesomeIcon icon={faCartPlus} />
-									Add to Cart
-								</button>
 								<AddToCartButton
 									productId={id}
 									quantity={qty}

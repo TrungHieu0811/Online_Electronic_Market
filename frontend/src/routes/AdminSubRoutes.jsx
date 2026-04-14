@@ -17,6 +17,7 @@ import AdminProductGroupEditPage from '@/pages/admin/product/AdminProductGroupEd
 import UserManagementPage from '@/components/admin/UserManagement';
 import CouponManagementPage from '@/pages/admin/CouponManagementPage';
 import AdminProductCreatePage from '@/pages/admin/product/AdminProductCreatePage';
+import AdminReviewsCommentsPage from '@/components/admin/AdminReviewsCommentsPage';
 
 export default function AdminSubRoutes() {
 	return (
@@ -44,7 +45,8 @@ export default function AdminSubRoutes() {
 			{/* Dashboard group */}
 			<Route path="dashboard" element={<AdminDashboardPage />} />
 			{/* User management group */}
-			<Route path="users" element={<UserManagementPage />} />
+			<Route path="users" element={<UserManagementPage />} />Ơ{/* Reviews & Comments management group */}
+			<Route path="reviews-comments" element={<AdminReviewsCommentsPage />} />
 			{/* coupons management group */}
 			<Route path="coupons" element={<CouponManagementPage />} />
 		</Routes>

@@ -431,13 +431,6 @@ export default function AdminProductsPage() {
 																	>
 																		<Edit size={16} />
 																	</button>
-																	<button
-																		onClick={() => setDeleteModal({isOpen: true, productId: product.id})}
-																		className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-all"
-																		title="Delete"
-																	>
-																		<Trash2 size={16} />
-																	</button>
 																</div>
 															</td>
 														</tr>
