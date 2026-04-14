@@ -23,7 +23,6 @@ import api from '../../../services/api';
 import AddToCartButton from '@/components/user/cart/AddToCartButton';
 import BuyNowButton from '@/components/user/cart/BuyNowButton';
 
-
 const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 
 // CSS for hiding scrollbar
@@ -354,7 +353,9 @@ export default function ProductDetailPage() {
 						</div>
 
 						{/* Title */}
-						<h1 className="text-2xl font-bold text-gray-900 leading-snug">{product.productGroup?.name + ' ' + variantName}</h1>
+						<h1 className="text-2xl font-bold text-gray-900 leading-snug">
+							{product.productGroup?.name + ' ' + variantName}
+						</h1>
 						{/* Rating + views */}
 						<div className="flex items-center gap-4 flex-wrap">
 							<StarRating rating={averageRating} />
@@ -519,10 +520,10 @@ export default function ProductDetailPage() {
 												}`}
 								></AddToCartButton>
 								<BuyNowButton
-								product={product}
-								quantity={qty}
-								unavailable={unavailable}
-								// disabled={product.stockQuantity <= 0}
+									product={product}
+									quantity={qty}
+									unavailable={unavailable}
+									// disabled={product.stockQuantity <= 0}
 									className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all
             ${
 													unavailable

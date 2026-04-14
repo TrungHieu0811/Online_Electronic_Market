@@ -51,10 +51,9 @@ export default function AdminSubRoutes() {
 			<Route path="reviews-comments" element={<AdminReviewsCommentsPage />} />
 			{/* coupons management group */}
 			<Route path="coupons" element={<CouponManagementPage />} />
-
-            {/* Order management */}
-            <Route path="/orders" element={<OrderManagementPage />} />
-            <Route path="/orders/:orderId" element={<OrderDetailPage />} />
+			{/* Order management */}
+			<Route path="/orders" element={<OrderManagementPage />} />
+			<Route path="/orders/:orderId" element={<OrderDetailPage />} />
 		</Routes>
 	);
 }
