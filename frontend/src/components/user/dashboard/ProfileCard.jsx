@@ -62,9 +62,9 @@ export default function ProfileCard({ user }) {
                         Edit Profile
                     </button>
 
-                    <button className='rounded-lg bg-surface-container-high px-6 py-2.5 text-sm font-semibold text-on-primary-fixed-variant transition-colors hover:bg-surface-variant'>
+                    {/* <button className='rounded-lg bg-surface-container-high px-6 py-2.5 text-sm font-semibold text-on-primary-fixed-variant transition-colors hover:bg-surface-variant'>
                         Download Data
-                    </button>
+                    </button> */}
                 </div>
             </div>
 

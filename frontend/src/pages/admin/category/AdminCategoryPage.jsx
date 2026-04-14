@@ -243,12 +243,12 @@ export default function AdminCategoryPage() {
 														>
 															<Edit2 size={16} />
 														</button>
-														<button
+														{/* <button
 															className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
 															title="Delete"
 														>
 															<Trash2 size={16} />
-														</button>
+														</button> */}
 													</div>
 												</div>
 											</div>
@@ -291,12 +291,12 @@ export default function AdminCategoryPage() {
 																>
 																	<Edit2 size={14} />
 																</button>
-																<button
+																{/* <button
 																	className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
 																	title="Delete"
 																>
 																	<Trash2 size={14} />
-																</button>
+																</button> */}
 															</div>
 														</div>
 													))}

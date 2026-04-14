@@ -17,6 +17,8 @@ import AdminSubRoutes from './AdminSubRoutes';
 import CheckoutPage from '@/pages/user/checkout/CheckoutPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AdminRoute from '@/components/AdminRoute';
+import PaymentSuccessPage from '@/pages/user/payment/PaymentSuccessPage';
+
 export default function AppRoutes() {
 	return (
 		<Routes>
@@ -79,6 +81,16 @@ export default function AppRoutes() {
 					</MainLayout>
 				}
 			/>
+
+			<Route
+				path="/checkout/success"
+				element={
+					<MainLayout>
+						<PaymentSuccessPage />
+					</MainLayout>
+				}
+			/>
+			{/* <Route path="/checkout/failure" element={<MainLayout><PaymentFailurePage /></MainLayout>} /> */}
 
 			<Route path="/admin/*" element={<AdminRoutes />}>
 				<Route path="*" element={<AdminSubRoutes />} />
