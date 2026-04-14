@@ -101,6 +101,10 @@ const CartPage = () => {
         handleRemove(id);
         return;
     }
+    if (parsedQty === 0) {
+        handleRemove(id);
+        return;
+    }
 
     const stock = item.product?.stockQuantity || 0;
     if (parsedQty > stock) {
@@ -170,50 +174,48 @@ const CartPage = () => {
         }
   };
 
-  const handleDeleteSelected = async () => {
-    const selectedIds = cartItems.filter(item => item.isSelected).map(i => i.id);
-    // const selectedItems = cartItems.filter(item => item.isSelected);
-    // if (selectedIds.length === 0) return;
+   const handleDeleteSelected = async () => {
+        const selectedIds = cartItems.filter(item => item.isSelected).map(i => i.id);
+        // const selectedItems = cartItems.filter(item => item.isSelected);
+        // if (selectedIds.length === 0) return;
 
-    const result = await Swal.fire({
-        title: 'Confirm Delete',
-        text: `Are you sure you want to remove  ${selectedItems.length} the selected items? `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete!'
-    });
+        const result = await Swal.fire({
+            title: 'Confirm Delete',
+            text: `Are you sure you want to remove  ${selectedItems.length} the selected items? `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete!'
+        });
 
-    if (result.isConfirmed) {
-      const token = localStorage.getItem('token');
+        if (result.isConfirmed) {
+        const token = localStorage.getItem('token');
+            if (!token) {
+                // CHẾ ĐỘ KHÁCH
+                let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+                // Lọc ra những item KHÔNG được chọn (giữ lại những item isSelected: false)
+                const updatedCart = guestCart.filter(item => !item.isSelected);
 
-        if (!token) {
-            // CHẾ ĐỘ KHÁCH
-            let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
-            // Lọc ra những item KHÔNG được chọn (giữ lại những item isSelected: false)
-            const updatedCart = guestCart.filter(item => !item.isSelected);
+                localStorage.setItem('guestCart', JSON.stringify(updatedCart));
+                fetchCart();
+                fetchCartCount();
+                Swal.fire('Deleted!', 'Selected items removed.', 'success');
+                return;
+            }
+
+            try {
+                await cartService.removeMultipleItems(selectedIds);
+                // Cập nhật lại giao diện và số lượng trên Header
+                fetchCart();
+                fetchCartCount();
             
-            localStorage.setItem('guestCart', JSON.stringify(updatedCart));
-            fetchCart();
-            fetchCartCount();
-            Swal.fire('Deleted!', 'Selected items removed.', 'success');
-            return;
+                Swal.fire('Deleted!', 'All selected items have been removed.', 'success');
+            } catch (error) {
+                Swal.fire('Error', 'Could not remove selected items', 'error');
+            }
         }
-
-        try {
-            await cartService.removeMultipleItems(selectedIds);
-            
-            // Cập nhật lại giao diện và số lượng trên Header
-            fetchCart(); 
-            fetchCartCount(); 
-            
-            Swal.fire('Deleted!', 'All selected items have been removed.', 'success');
-        } catch (error) {
-            Swal.fire('Error', 'Could not remove selected items', 'error');
-        }
-    }
-};
+    };
 
 const handleRemove = async (id) => {
 		const result = await Swal.fire({
@@ -258,6 +260,79 @@ const handleRemove = async (id) => {
 		}
 		await fetchCartCount();
 	};
+
+
+//   // Kiểm tra xem tất cả các món hiện tại đã được chọn chưa
+//   const isAllSelected = cartItems.length > 0 && cartItems.every(item => item.isSelected);
+
+//   const handleSelectAll = async () => {
+//         const targetState = !isAllSelected; // Đảo trạng thái hiện tại
+//         const token = localStorage.getItem('token');
+
+//     if (!token) {
+//         // CHẾ ĐỘ KHÁCH
+//         let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+//         const updatedCart = guestCart.map(item => ({ ...item, isSelected: targetState }));
+        
+//         localStorage.setItem('guestCart', JSON.stringify(updatedCart));
+//         fetchCart();
+//         return;
+//     }
+//         try {
+//             // Gọi API toggle-all mới viết ở trên
+//             await cartService.toggleAll(targetState);
+//             // Load lại giỏ hàng để cập nhật UI
+//             fetchCart(); 
+//         } catch (error) {
+//             Swal.fire('Error', 'Could not toggle all items', 'error');
+//         }
+//   };
+
+//   const handleDeleteSelected = async () => {
+//     const selectedIds = cartItems.filter(item => item.isSelected).map(i => i.id);
+//     // const selectedItems = cartItems.filter(item => item.isSelected);
+//     // if (selectedIds.length === 0) return;
+
+//     const result = await Swal.fire({
+//         title: 'Confirm Delete',
+//         text: `Are you sure you want to remove  ${selectedItems.length} the selected items? `,
+//         icon: 'warning',
+//         showCancelButton: true,
+//         confirmButtonColor: '#d33',
+//         cancelButtonColor: '#3085d6',
+//         confirmButtonText: 'Yes, delete!'
+//     });
+
+//     if (result.isConfirmed) {
+//       const token = localStorage.getItem('token');
+//         if (!token) {
+//             // CHẾ ĐỘ KHÁCH
+//             let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+//             // Lọc ra những item KHÔNG được chọn (giữ lại những item isSelected: false)
+//             const updatedCart = guestCart.filter(item => !item.isSelected);
+
+//             localStorage.setItem('guestCart', JSON.stringify(updatedCart));
+//             fetchCart();
+//             fetchCartCount();
+//             Swal.fire('Deleted!', 'Selected items removed.', 'success');
+//             return;
+//         }
+
+//         try {
+//             await cartService.removeMultipleItems(selectedIds);
+//             // Cập nhật lại giao diện và số lượng trên Header
+//             fetchCart();
+//             fetchCartCount();
+           
+//             Swal.fire('Deleted!', 'All selected items have been removed.', 'success');
+//         } catch (error) {
+//             Swal.fire('Error', 'Could not remove selected items', 'error');
+//         }
+//     }
+
+// };
+
+
 
 	const handleCheckout = () => {
 		const token = localStorage.getItem('token');

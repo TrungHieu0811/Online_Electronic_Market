@@ -17,6 +17,8 @@ import AdminProductGroupEditPage from '@/pages/admin/product/AdminProductGroupEd
 import UserManagementPage from '@/components/admin/UserManagement';
 import CouponManagementPage from '@/pages/admin/CouponManagementPage';
 import AdminReviewsCommentsPage from '@/components/admin/AdminReviewsCommentsPage';
+import OrderManagementPage from '@/pages/admin/order/OrderManagementPage';
+import OrderDetailPage from '@/pages/admin/order/OrderDetailPage';
 
 export default function AdminSubRoutes() {
     return (
@@ -51,6 +53,10 @@ export default function AdminSubRoutes() {
             <Route path='reviews-comments' element={<AdminReviewsCommentsPage />} />
             {/* coupons management group */}
             <Route path='coupons' element={<CouponManagementPage />} />
+
+            {/* Order management */}
+            <Route path="/orders" element={<OrderManagementPage />} />
+            <Route path="/orders/:orderId" element={<OrderDetailPage />} />
         </Routes>
     );
 }

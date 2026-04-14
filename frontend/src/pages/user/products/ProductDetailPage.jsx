@@ -21,6 +21,8 @@ import QuestionAnswerSection from '@/features/comment/QuestionAnswerSection';
 // import api from '../../../services/api';
 import api from '../../../services/api';
 import AddToCartButton from '@/components/user/cart/AddToCartButton';
+import BuyNowButton from '@/components/user/cart/BuyNowButton';
+
 
 const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 
@@ -352,7 +354,7 @@ export default function ProductDetailPage() {
 						</div>
 
 						{/* Title */}
-						<h1 className="text-2xl font-bold text-gray-900 leading-snug">{product.productGroup.name + ' ' + variantName}</h1>
+						<h1 className="text-2xl font-bold text-gray-900 leading-snug">{product.productGroup?.name + ' ' + variantName}</h1>
 						{/* Rating + views */}
 						<div className="flex items-center gap-4 flex-wrap">
 							<StarRating rating={averageRating} />
@@ -502,7 +504,7 @@ export default function ProductDetailPage() {
 
 							{/* CTA buttons */}
 							<div className="flex gap-2">
-								<button
+								{/* <button
 									disabled={unavailable}
 									className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border-2 border-blue-600 transition-all
             ${
@@ -513,7 +515,7 @@ export default function ProductDetailPage() {
 								>
 									<FontAwesomeIcon icon={faCartPlus} />
 									Add to Cart
-								</button>
+								</button> */}
 								<AddToCartButton
 									productId={id}
 									quantity={qty}
@@ -528,8 +530,11 @@ export default function ProductDetailPage() {
 														: 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
 												}`}
 								></AddToCartButton>
-								<button
-									disabled={unavailable}
+								<BuyNowButton
+								product={product}
+								quantity={qty}
+								unavailable={unavailable}
+								// disabled={product.stockQuantity <= 0}
 									className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all
             ${
 													unavailable
@@ -539,7 +544,7 @@ export default function ProductDetailPage() {
 								>
 									<FontAwesomeIcon icon={faBolt} />
 									Buy Now
-								</button>
+								</BuyNowButton>
 							</div>
 						</div>
 

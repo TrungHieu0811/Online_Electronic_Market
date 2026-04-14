@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { checkoutService } from '@/services/checkoutService';
@@ -9,6 +9,7 @@ import { paymentService } from '@/services/paymentService';
 
 const CheckoutPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
 
     // 1. Quản lý danh sách sản phẩm được chọn từ Cart
     const [checkoutItems, setCheckoutItems] = useState([]);
@@ -39,13 +40,23 @@ const CheckoutPage = () => {
 
     // Khởi tạo: Lấy sản phẩm được chọn từ localStorage
     useEffect(() => {
-        const savedItems = JSON.parse(localStorage.getItem('checkoutItems') || '[]');
-        if (savedItems.length === 0) {
-            navigate('/cart');
-            return;
+       const buyNowData = location.state;
+
+        if (buyNowData && buyNowData.isBuyNow) {
+            // Nếu là Buy Now, dùng dữ liệu từ state
+            setCheckoutItems(buyNowData.items || []);
+        } else {
+            // 2. Nếu không phải Buy Now, mới kiểm tra localStorage (đơn hàng từ Cart)
+            const savedItems = JSON.parse(localStorage.getItem('checkoutItems') || '[]');
+            
+            if (savedItems.length === 0) {
+                // Chỉ quay về Cart nếu cả 2 nguồn đều không có dữ liệu
+                navigate('/cart');
+                return;
+            }
+            setCheckoutItems(savedItems);
         }
-        setCheckoutItems(savedItems);
-    }, [navigate]);
+    }, [location.state, navigate]);
 
     // Tự động điền thông tin User từ localStorage
     useEffect(() => {
@@ -90,7 +101,13 @@ const CheckoutPage = () => {
     const [showCouponList, setShowCouponList] = useState(false);
     const [selectedCoupon, setSelectedCoupon] = useState(null);
 
-    const subtotal = checkoutItems.reduce((sum, item) => sum + (item.product.salePrice * item.quantity), 0);
+    // const subtotal = checkoutItems.reduce((sum, item) => sum + (item.product.salePrice * item.quantity), 0);
+    const subtotal = checkoutItems.reduce((sum, item) => {
+        // Lấy giá: Ưu tiên item.product.salePrice (Giỏ hàng), 
+        // nếu không có thì lấy item.price (Buy Now)
+        const price = item.product?.salePrice ?? item.price ?? 0;
+        return sum + (price * item.quantity);
+    }, 0);
 
     // Effect: Lấy danh sách coupon khả dụng (Backend đã lọc UserLimit và Sort từ nhiều đến ít)
     useEffect(() => {
@@ -243,9 +260,26 @@ const CheckoutPage = () => {
         };
 
         try {
-            // BƯỚC 1: Gọi API tạo đơn hàng
-            const orderResponse = await checkoutService.placeOrder(orderRequest);
+            // SỬ DỤNG SERVICE ĐỂ GỌI API ĐẶT HÀNG
+            // await checkoutService.placeOrder(orderRequest);
+            
+            // localStorage.removeItem('checkoutItems');
+            let orderResponse;
 
+        // 2. KIỂM TRA NGUỒN GỐC ĐƠN HÀNG
+        // Logic Buy Now chỉ chạy nếu location.state có cờ isBuyNow từ ProductDetail truyền sang
+                if (location.state?.isBuyNow && location.state?.items?.length > 0) {
+                    const item = location.state.items[0]; 
+                    
+                    // Gọi API buyNow: Truyền productId, quantity vào Params và orderRequest vào Body
+                    response = await checkoutService.buyNow(item.productId, item.quantity, orderRequest);
+                } else {
+                    // Trường hợp mặc định: Đặt hàng từ danh sách sản phẩm trong giỏ hàng
+                    orderResponse = await checkoutService.placeOrder(orderRequest);
+                }
+                
+                // 3. Xử lý sau thành công
+                
             // Thử lấy ID từ nhiều vị trí khác nhau để đảm bảo không bị undefined
             const orderId = orderResponse.data?.id || orderResponse.id || (typeof orderResponse.data === 'number' ? orderResponse.data : null);
 
@@ -269,16 +303,17 @@ const CheckoutPage = () => {
                 // Trường hợp COD (Giao hàng trả tiền mặt)
                 await paymentService.createPayment(orderId, 'COD');
 
-                localStorage.removeItem('checkoutItems'); // Xóa giỏ hàng tạm
-                await Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: 'Your order has been placed successfully (COD).',
-                    timer: 2000
-                });
-                navigate('/profile/orders');
-            }
-
+                if (!location.state?.isBuyNow) {
+                    localStorage.removeItem('checkoutItems'); // Chỉ xóa cache giỏ hàng nếu không phải Buy Now
+                }
+            await Swal.fire({
+                icon: 'success',
+                title: 'Order Placed!',
+                text: 'Your order has been recorded successfully.',
+                timer: 2000
+            });
+            navigate('/profile/orders');
+        }
         } catch (err) {
             console.error("Order Error:", err);
             const errorMsg = err.response?.data?.message || err.response?.data || err.message;
@@ -290,11 +325,12 @@ const CheckoutPage = () => {
             }
         }
     };
-    //const subtotal = checkoutItems.reduce((sum, item) => sum + (item.product.salePrice * item.quantity), 0);
+
+    // const subtotal = checkoutItems.reduce((sum, item) => sum + (item.product.salePrice * item.quantity), 0);
     const tax = subtotal * 0.1;
 
     // Đảm bảo shippingFee luôn là số, nếu lỗi thì mặc định là 0
-    const safeShippingFee = Number(shippingFee) || 0;
+    const safeShippingFee = Number(shippingFee) || 0; 
     const finalTotal = subtotal + tax + safeShippingFee - discountAmount;
 
     return (
@@ -399,15 +435,15 @@ const CheckoutPage = () => {
                             {/* Product List */}
                             <div className="max-h-64 overflow-y-auto mb-6 space-y-3 pr-2 custom-scrollbar">
                                 {checkoutItems.map((item) => (
-                                    <div key={item.id} className="flex items-center gap-4 group">
+                                    <div key={item.id || item.productId} className="flex items-center gap-4 group">
                                         <div className="w-16 h-16 bg-white rounded-xl flex-shrink-0 p-1 group-hover:scale-105 transition-transform">
-                                            <img src={item.product.image} alt={item.product.variantName} className="w-full h-full object-contain" />
+                                            <img src={item.product?.image} alt={item.product?.variantName} className="w-full h-full object-contain" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-bold truncate text-slate-100 uppercase tracking-tight">{item.product.variantName}</p>
+                                            <p className="text-xs font-bold truncate text-slate-100 uppercase tracking-tight">{item.product?.variantName}</p>
                                             <p className="text-[10px] text-slate-400 mt-0.5 font-medium">Quantity: {item.quantity}</p>
                                         </div>
-                                        <p className="text-sm font-black text-slate-100">${(item.product.salePrice * item.quantity).toFixed(2)}</p>
+                                        <p className="text-sm font-black text-slate-100">${(item.product?.salePrice * item.quantity).toFixed(2)}</p>
                                     </div>
                                 ))}
                             </div>
@@ -465,7 +501,7 @@ const CheckoutPage = () => {
                                         {loadingFee ? (
                                             <span className="animate-pulse">Calculating...</span>
                                         ) : (
-                                            shippingFee === 0 ? 'FREE' : `$${Number(shippingFee).toFixed(2)}`
+                                            shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`
                                         )}
                                     </span>
                                 </div>
