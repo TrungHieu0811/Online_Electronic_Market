@@ -42,7 +42,7 @@ const CartPage = () => {
         const mappedItems = guestCart.map(item => ({
             ...item,
             id: `guest-${item.productId}`,
-            isSelected: true
+            isSelected: item.isSelected ?? true
         }));
         
         setCartItems(mappedItems);
@@ -58,10 +58,11 @@ const CartPage = () => {
         let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
         
         // Vì ở CartPage bạn map id là `guest-${productId}`, nên ta cần lấy lại productId xịn
-        const productId = typeof id === 'string' ? parseInt(id.replace('guest-', '')) : id;
+        // const productId = typeof id === 'string' ? parseInt(id.replace('guest-', '')) : id;
+        const targetId = String(id).replace('guest-', '');
 
         const updatedCart = guestCart.map(item => {
-            if (item.productId === productId) {
+            if (String(item.productId) === targetId) {
                 // Đảo ngược trạng thái isSelected (nếu localStorage chưa có thì mặc định là true)
                 return { ...item, isSelected: !(item.isSelected ?? true) };
             }
@@ -69,7 +70,7 @@ const CartPage = () => {
         });
 
         localStorage.setItem('guestCart', JSON.stringify(updatedCart));
-        fetchCart(); // Cập nhật lại giao diện ngay lập tức
+        await fetchCart(); // Cập nhật lại giao diện ngay lập tức
         return;
     }
     try {
@@ -158,6 +159,7 @@ const CartPage = () => {
     if (!token) {
         // CHẾ ĐỘ KHÁCH
         let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+
         const updatedCart = guestCart.map(item => ({ ...item, isSelected: targetState }));
         
         localStorage.setItem('guestCart', JSON.stringify(updatedCart));
@@ -195,7 +197,11 @@ const CartPage = () => {
                 // CHẾ ĐỘ KHÁCH
                 let guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
                 // Lọc ra những item KHÔNG được chọn (giữ lại những item isSelected: false)
-                const updatedCart = guestCart.filter(item => !item.isSelected);
+                // const updatedCart = guestCart.filter(item => !item.isSelected);
+                const updatedCart = guestCart.filter(item => {
+                const guestIdOnUI = `guest-${item.productId}`;
+                return !selectedIds.includes(guestIdOnUI);
+            });
 
                 localStorage.setItem('guestCart', JSON.stringify(updatedCart));
                 fetchCart();
