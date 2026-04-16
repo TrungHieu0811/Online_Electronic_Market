@@ -1,10 +1,9 @@
 import React, {useState, useEffect, useMemo} from 'react';
-import {Plus, Tag, Calendar, Edit3, Search, Filter, ChevronLeft, ChevronRight} from 'lucide-react';
+import {Plus, Tag, Edit3, Search, ChevronLeft, ChevronRight} from 'lucide-react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import StatCard from '@/components/admin/StatCard';
 import CouponFormModal from '@/components/admin/CouponFormModal';
-import {couponService} from '@/services/couponService';
 import api from '@/services/api';
 
 export default function CouponManagementPage() {
@@ -12,16 +11,24 @@ export default function CouponManagementPage() {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [selectedCoupon, setSelectedCoupon] = useState(null);
 
-	// States cho Filter, Search và Phân trang
+	// States cho Tìm kiếm, Tab Trạng thái và Phân trang
 	const [searchTerm, setSearchTerm] = useState('');
-	const [filterStatus, setFilterStatus] = useState('ALL');
+	const [activeTab, setActiveTab] = useState('ALL'); // Thay thế filterStatus cũ
 	const [filterType, setFilterType] = useState('ALL');
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 8;
 
+	// Danh sách các Tab trạng thái dựa trên CouponStatus Enum
+	const tabs = [
+		{ key: 'ALL', label: 'All Coupons' },
+		{ key: 'ACTIVE', label: 'Active' },
+		{ key: 'SCHEDULED', label: 'Scheduled' },
+		{ key: 'EXPIRED', label: 'Expired' },
+		{ key: 'DISABLED', label: 'Disabled' }
+	];
+
 	const fetchCoupons = async () => {
 		try {
-			// const res = await couponService.getCoupons();
 			const res = await api.get('/admin/coupons');
 			setCoupons(res.data);
 		} catch (error) {
@@ -37,24 +44,20 @@ export default function CouponManagementPage() {
 	const filteredCoupons = useMemo(() => {
 		const sortedData = [...coupons].sort((a, b) => b.id - a.id);
 
-		// 2. Thực hiện lọc dựa trên mảng đã được sắp xếp
 		return sortedData.filter((coupon) => {
-			// Tìm kiếm theo code hoặc description
 			const matchesSearch =
 				coupon.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				(coupon.description && coupon.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
-			// Lọc theo trạng thái
-			const matchesStatus = filterStatus === 'ALL' || coupon.status === filterStatus;
+			// Lọc theo Tab trạng thái
+			const matchesStatus = activeTab === 'ALL' || coupon.status === activeTab;
 
-			// Lọc theo loại giảm giá
 			const matchesType = filterType === 'ALL' || coupon.discountType === filterType;
 
 			return matchesSearch && matchesStatus && matchesType;
 		});
-	}, [coupons, searchTerm, filterStatus, filterType]);
+	}, [coupons, searchTerm, activeTab, filterType]);
 
-	// LOGIC PHÂN TRANG
 	const totalPages = Math.ceil(filteredCoupons.length / itemsPerPage);
 	const currentData = filteredCoupons.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -64,51 +67,38 @@ export default function CouponManagementPage() {
 	};
 
 	return (
-		<div className="flex min-h-screen bg-slate-50">
+		<div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans">
 			<AdminSidebar />
 			<main className="flex-1 flex flex-col min-w-0">
 				<AdminHeader />
 				<div className="p-8 space-y-6">
 					{/* Header Section */}
 					<div className="flex justify-between items-center">
-						<h1 className="text-2xl font-bold text-slate-900">Coupon Management</h1>
+						<div>
+							<h1 className="text-2xl font-bold text-slate-900">Coupon Management</h1>
+							<p className="text-sm text-slate-500 mt-1">Create and manage discount codes for your store.</p>
+						</div>
 						<button
 							onClick={() => {
 								setSelectedCoupon(null);
 								setIsModalOpen(true);
 							}}
-							className="bg-orange-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 shadow-lg shadow-orange-200 transition-all"
+							className="bg-orange-500 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-orange-600 shadow-lg shadow-orange-200 transition-all active:scale-95"
 						>
 							<Plus size={18} /> Add Coupon
 						</button>
 					</div>
 
+
+
 					{/* Stats */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-						<StatCard
-							title="Total Coupons"
-							value={coupons.length}
-							icon={<Tag />}
-							iconBg="bg-blue-100"
-							iconColor="text-blue-600"
-						/>
-						<StatCard
-							title="Active Now"
-							value={coupons.filter((c) => c.status === 'ACTIVE').length}
-							icon={<Tag />}
-							iconBg="bg-emerald-100"
-							iconColor="text-emerald-600"
-						/>
-						<StatCard
-							title="Total Redemptions"
-							value={coupons.reduce((sum, c) => sum + (c.usedCount || 0), 0)}
-							icon={<Tag />}
-							iconBg="bg-orange-100"
-							iconColor="text-orange-600"
-						/>
+						<StatCard title="Total Coupons" value={coupons.length} icon={<Tag />} iconBg="bg-blue-100" iconColor="text-blue-600" />
+						<StatCard title="Active Now" value={coupons.filter(c => c.status === 'ACTIVE').length} icon={<Tag />} iconBg="bg-emerald-100" iconColor="text-emerald-600" />
+						<StatCard title="Total Redemptions" value={coupons.reduce((sum, c) => sum + (c.usedCount || 0), 0)} icon={<Tag />} iconBg="bg-orange-100" iconColor="text-orange-600" />
 					</div>
 
-					{/* Toolbar: Search & Filter */}
+										{/* Toolbar: Search & Type Filter */}
 					<div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center justify-between">
 						<div className="flex flex-1 min-w-[300px] items-center gap-3 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl focus-within:ring-2 focus-within:ring-sky-500 transition-all">
 							<Search size={18} className="text-slate-400" />
@@ -124,41 +114,47 @@ export default function CouponManagementPage() {
 							/>
 						</div>
 
-						<div className="flex items-center gap-4">
-							<div className="flex items-center gap-2">
-								<Filter size={16} className="text-slate-400" />
-								<select
-									className="text-sm bg-transparent font-semibold outline-none cursor-pointer"
-									value={filterStatus}
-									onChange={(e) => {
-										setFilterStatus(e.target.value);
+						<select
+							className="text-sm bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl font-semibold outline-none cursor-pointer hover:bg-slate-100 transition-colors"
+							value={filterType}
+							onChange={(e) => {
+								setFilterType(e.target.value);
+								setCurrentPage(1);
+							}}
+						>
+							<option value="ALL">All Types</option>
+							<option value="FIXED_AMOUNT">Fixed Amount</option>
+							<option value="PERCENTAGE">Percentage</option>
+						</select>
+					</div>
+
+					{/* Tabs */}
+					<div className="border-b border-slate-200">
+						<div className="flex gap-8">
+							{tabs.map((tab) => (
+								<button
+									key={tab.key}
+									onClick={() => {
+										setActiveTab(tab.key);
 										setCurrentPage(1);
 									}}
+									className={`pb-4 text-sm font-bold transition-all relative ${
+										activeTab === tab.key 
+										? 'text-sky-600' 
+										: 'text-slate-500 hover:text-slate-700'
+									}`}
 								>
-									<option value="ALL">All Status</option>
-									<option value="ACTIVE">Active</option>
-									<option value="SCHEDULED">Scheduled</option>
-									<option value="EXPIRED">Expired</option>
-									<option value="DISABLED">Disabled</option>
-								</select>
-							</div>
-
-							<div className="h-6 w-[1px] bg-slate-200"></div>
-
-							<select
-								className="text-sm bg-transparent font-semibold outline-none cursor-pointer"
-								value={filterType}
-								onChange={(e) => {
-									setFilterType(e.target.value);
-									setCurrentPage(1);
-								}}
-							>
-								<option value="ALL">All Types</option>
-								<option value="FIXED_AMOUNT">Fixed Amount</option>
-								<option value="PERCENTAGE">Percentage</option>
-							</select>
+									{tab.label}
+									{/* Indicator line */}
+									{activeTab === tab.key && (
+										<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-600 rounded-full" />
+									)}
+								</button>
+							))}
 						</div>
 					</div>
+
+
 
 					{/* Table Area */}
 					<div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
@@ -169,8 +165,6 @@ export default function CouponManagementPage() {
 									<th className="px-6 py-4">Type</th>
 									<th className="px-6 py-4">Value</th>
 									<th className="px-6 py-4">Usage</th>
-									<th className="px-6 py-4">Start Date</th>
-									<th className="px-6 py-4">End Date</th>
 									<th className="px-6 py-4">Status</th>
 									<th className="px-6 py-4 text-right">Actions</th>
 								</tr>
@@ -180,19 +174,19 @@ export default function CouponManagementPage() {
 									<tr key={coupon.id} className="hover:bg-slate-50/50 transition-colors group">
 										<td className="px-6 py-4 font-bold text-blue-600 uppercase font-mono">{coupon.code}</td>
 										<td className="px-6 py-4">
-											<span className="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-500">
-												{coupon.discountType === 'PERCENTAGE' ? 'PERCENT' : 'FIXED'}
+											<span className="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-500 uppercase">
+												{coupon.discountType === 'PERCENTAGE' ? 'Percent' : 'Fixed'}
 											</span>
 										</td>
 										<td className="px-6 py-4 font-bold text-slate-700">
 											{coupon.discountValue.toLocaleString()} {coupon.discountType === 'PERCENTAGE' ? '%' : '$'}
 										</td>
 										<td className="px-6 py-4">
-											<div className="flex flex-col gap-1">
+											<div className="flex flex-col gap-1 w-24">
 												<span className="text-[11px] font-semibold text-slate-500">
 													{coupon.usedCount} / {coupon.usageLimit}
 												</span>
-												<div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
+												<div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
 													<div
 														className="h-full bg-blue-500"
 														style={{width: `${(coupon.usedCount / coupon.usageLimit) * 100}%`}}
@@ -200,8 +194,6 @@ export default function CouponManagementPage() {
 												</div>
 											</div>
 										</td>
-										<td className="px-6 py-4 text-slate-500 text-xs">{new Date(coupon.startDate).toLocaleString('vi-VN')}</td>
-										<td className="px-6 py-4 text-slate-500 text-xs">{new Date(coupon.endDate).toLocaleString('vi-VN')}</td>
 										<td className="px-6 py-4">
 											<span
 												className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
@@ -245,17 +237,6 @@ export default function CouponManagementPage() {
 								>
 									<ChevronLeft size={16} />
 								</button>
-								<div className="flex gap-1">
-									{[...Array(totalPages)].map((_, i) => (
-										<button
-											key={i}
-											onClick={() => setCurrentPage(i + 1)}
-											className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${currentPage === i + 1 ? 'bg-sky-500 text-white shadow-md shadow-sky-100' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-										>
-											{i + 1}
-										</button>
-									))}
-								</div>
 								<button
 									disabled={currentPage === totalPages || totalPages === 0}
 									onClick={() => setCurrentPage((prev) => prev + 1)}

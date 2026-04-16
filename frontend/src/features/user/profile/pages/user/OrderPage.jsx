@@ -1,9 +1,10 @@
-import React, {useEffect, useMemo, useState} from 'react';
-import {useLocation, useNavigate} from 'react-router-dom';
-import {getMyOrders} from '@/services/profileApi';
-import {getOrderForReview} from '@/services/orderReviewApi';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { getMyOrders } from '@/services/profileApi';
+import { getOrderForReview } from '@/services/orderReviewApi';
 import TopNavbar from '@/components/user/dashboard/TopNavbar';
 import Sidebar from '@/components/user/dashboard/Sidebar';
+import OrderDetailModal from '@/components/user/order/OrderDetailModal';
 
 export default function OrdersPage() {
 	const [orders, setOrders] = useState([]);
@@ -11,8 +12,17 @@ export default function OrdersPage() {
 	const [activeTab, setActiveTab] = useState('ALL');
 	const [reviewableMap, setReviewableMap] = useState({});
 
+	// Modal States
+	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [selectedOrderId, setSelectedOrderId] = useState(null);
+
 	const navigate = useNavigate();
 	const location = useLocation();
+
+	const handleOpenDetail = (orderId) => {
+		setSelectedOrderId(orderId);
+		setIsModalOpen(true);
+	};
 
 	useEffect(() => {
 		const fetchOrders = async () => {
@@ -105,18 +115,28 @@ export default function OrdersPage() {
 		order.totalPayPrice ?? order.total_pay_price ?? order.totalBasePrice ?? order.total_base_price ?? 0;
 
 	const getItemCount = (order) => {
+		// 1. Ưu tiên lấy từ trường tổng số lượng của Backend (nếu có)
+		if (order.totalQuantity !== undefined) return order.totalQuantity;
+		if (order.total_quantity !== undefined) return order.total_quantity;
+
+		// 2. Fallback: Nếu Backend trả về mảng items, thì mới đếm độ dài mảng
 		if (Array.isArray(order.orderItems)) return order.orderItems.length;
 		if (Array.isArray(order.items)) return order.items.length;
+
 		return 0;
 	};
 
+	// Trong OrderPage.jsx
 	const getDisplayProducts = (order) => {
 		const items = order.orderItems || order.items || [];
-		return items.slice(0, 2).map((item, index) => ({
+		// Chỉ lấy món hàng đầu tiên làm đại diện
+		return items.slice(0, 1).map((item, index) => ({
 			id: item.id ?? index,
-			name: item.product?.variantName || item.product?.name || item.productName || `Product ${index + 1}`,
-			price: item.priceAtPurchase ?? item.price_at_purchase ?? item.salePrice ?? item.price ?? 0,
-			image: item.product?.thumbnailUrl || item.product?.imageUrl || item.imageUrl || null,
+			name: item.product?.variantName || item.product?.name || "Product",
+			price: item.priceAtPurchase ?? 0,
+			quantity: item.quantity,
+			// Lấy link ảnh từ backend
+			image: item.product?.thumbnailUrl || null,
 		}));
 	};
 
@@ -166,9 +186,9 @@ export default function OrdersPage() {
 			case 'DELIVERED':
 				return orders.filter((o) => o.orderStatus === 'DELIVERED');
 			case 'NEEDS_REVIEW':
-				return orders.filter((o) => needsReview(o));
-			case 'RETURNED':
-				return orders.filter((o) => o.orderStatus === 'RETURNED');
+				return orders.filter((o) => needsReview(o)); // Logic giữ nguyên
+			case 'CANCELLED':
+				return orders.filter((o) => o.orderStatus === 'CANCELLED');
 			default:
 				return orders;
 		}
@@ -205,14 +225,16 @@ export default function OrdersPage() {
 	};
 
 	const tabs = [
-		{key: 'ALL', label: 'All Orders', icon: null},
-		{key: 'PENDING', label: 'Pending Payment', icon: 'schedule'},
-		{key: 'CONFIRMED', label: 'Awaiting Shipment', icon: 'inventory_2'},
-		{key: 'SHIPPING', label: 'Awaiting Delivery', icon: 'local_shipping'},
-		{key: 'DELIVERED', label: 'Completed', icon: 'check_circle'},
-		{key: 'NEEDS_REVIEW', label: 'Needs Review', icon: 'star'},
-		{key: 'RETURNED', label: 'Returns / Refunds', icon: 'keyboard_return'},
+		{ key: 'ALL', label: 'All Orders', icon: null },
+		{ key: 'PENDING', label: 'Pending', icon: 'schedule' },
+		{ key: 'CONFIRMED', label: 'Confirmed', icon: 'inventory_2' },
+		{ key: 'SHIPPING', label: 'Shipping', icon: 'local_shipping' },
+		{ key: 'DELIVERED', label: 'Completed', icon: 'check_circle' },
+		{ key: 'NEEDS_REVIEW', label: 'Needs Review', icon: 'star' }, // Giữ nguyên theo yêu cầu
+		{ key: 'CANCELLED', label: 'Cancelled', icon: 'cancel' },
 	];
+
+
 
 	return (
 		<div className="min-h-screen bg-surface text-on-surface">
@@ -267,13 +289,12 @@ export default function OrdersPage() {
 										key={tab.key}
 										type="button"
 										onClick={() => setActiveTab(tab.key)}
-										className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-5 py-3 text-sm transition-all ${
-											activeTab === tab.key
-												? 'border-primary font-bold text-primary'
-												: tab.key === 'NEEDS_REVIEW'
-													? 'border-transparent font-bold text-amber-700 hover:bg-amber-50'
-													: 'border-transparent font-medium text-on-surface-variant hover:text-on-surface'
-										}`}
+										className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-5 py-3 text-sm transition-all ${activeTab === tab.key
+											? 'border-primary font-bold text-primary'
+											: tab.key === 'NEEDS_REVIEW'
+												? 'border-transparent font-bold text-amber-700 hover:bg-amber-50'
+												: 'border-transparent font-medium text-on-surface-variant hover:text-on-surface'
+											}`}
 									>
 										{tab.icon && <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>}
 										{tab.label}
@@ -283,9 +304,15 @@ export default function OrdersPage() {
 											</span>
 										)}
 									</button>
+
 								))}
 							</div>
 						</div>
+						<OrderDetailModal
+							isOpen={isModalOpen}
+							onClose={() => setIsModalOpen(false)}
+							orderId={selectedOrderId}
+						/>
 
 						{loading ? (
 							<div className="rounded-xl bg-surface-container-lowest p-8 text-on-surface-variant shadow-sm">
@@ -301,17 +328,19 @@ export default function OrdersPage() {
 									const products = getDisplayProducts(order);
 									const primaryImage = getPrimaryImage(order);
 									const total = getOrderTotal(order);
-									const itemCount = getItemCount(order);
 									const orderDate = getOrderDate(order);
+
+									// 2. Định nghĩa các biến đếm (Sửa lỗi ReferenceError)
+									const totalUnits = getItemCount(order); // Tổng số lượng (ví dụ: 3 cái iPhone)
+									const distinctItemsCount = (order.orderItems || order.items || []).length;
 									const showReviewButton = needsReview(order);
 									const isDeliveredWithoutReviewItems = order.orderStatus === 'DELIVERED' && reviewableMap[order.id] === false;
 
 									return (
 										<div
 											key={order.id}
-											className={`group rounded-xl bg-surface-container-lowest p-8 shadow-[0_12px_32px_rgba(0,26,64,0.04)] transition-all hover:shadow-[0_12px_32px_rgba(0,26,64,0.08)] ${
-												showReviewButton ? 'border-2 border-transparent hover:border-amber-100/50' : ''
-											}`}
+											className={`group rounded-xl bg-surface-container-lowest p-8 shadow-[0_12px_32px_rgba(0,26,64,0.04)] transition-all hover:shadow-[0_12px_32px_rgba(0,26,64,0.08)] ${showReviewButton ? 'border-2 border-transparent hover:border-amber-100/50' : ''
+												}`}
 										>
 											<div className="mb-6 flex items-start justify-between gap-4">
 												<div className="min-w-0 flex items-center gap-4">
@@ -321,13 +350,13 @@ export default function OrdersPage() {
 														) : (
 															<span className="material-symbols-outlined text-3xl text-on-surface-variant">inventory_2</span>
 														)}
+
 													</div>
 
 													<div className="min-w-0">
 														<h3 className="truncate font-headline font-bold text-on-surface">Order #{order.id}</h3>
 														<p className="text-xs font-medium text-on-surface-variant">
-															{formatDate(orderDate)} • {itemCount} item
-															{itemCount !== 1 ? 's' : ''}
+															{formatDate(orderDate)} • {totalUnits} item{totalUnits !== 1 ? 's' : ''}
 														</p>
 													</div>
 												</div>
@@ -347,21 +376,46 @@ export default function OrdersPage() {
 													)}
 												</div>
 											</div>
-
 											<div className="space-y-4">
 												{products.length > 0 ? (
-													products.map((product) => (
-														<div
-															key={product.id}
-															className="flex items-center justify-between gap-4 border-b border-outline-variant/20 pb-4 text-sm"
-														>
-															<span className="line-clamp-1 text-on-surface-variant">{product.name}</span>
-															<span className="shrink-0 font-bold text-on-surface">{formatPrice(product.price)}</span>
+													<div className="flex items-center justify-between gap-4 border-b border-outline-variant/20 pb-4 text-sm">
+														<div className="flex items-center gap-3">
+															{/* KHUNG HIỂN THỊ HÌNH ẢNH SẢN PHẨM */}
+															<div className="w-12 h-12 shrink-0 bg-slate-50 border border-slate-100 rounded-lg overflow-hidden flex items-center justify-center p-1">
+																{products[0].image ? (
+																	<img
+																		src={products[0].image}
+																		alt={products[0].name}
+																		className="w-full h-full object-contain"
+																	/>
+																) : (
+																	<span className="material-symbols-outlined text-slate-300 text-xl">image</span>
+																)}
+															</div>
+
+															<div className="flex flex-col">
+																<div className="flex items-center gap-2">
+																	<span className="line-clamp-1 font-bold text-on-surface">
+																		{products[0].name}
+																		<span className="ml-1.5 text-blue-600 font-black">x{products[0].quantity}</span>
+																	</span>
+
+																	{distinctItemsCount > 1 && (
+																		<span className="shrink-0 text-[9px] bg-slate-100 px-2 py-0.5 rounded-full font-bold text-slate-500 uppercase">
+																			+ {distinctItemsCount - 1} more
+																		</span>
+																	)}
+																</div>
+																{/* Hiển thị giá đơn vị nhỏ bên dưới tên nếu muốn */}
+																<p className="text-[10px] text-slate-400 font-bold uppercase">Unit Price: {formatPrice(products[0].price)}</p>
+															</div>
 														</div>
-													))
+
+														{/* Tổng giá trị của toàn bộ đơn hàng ở bên phải (giá trị 'total' đã có sẵn) */}
+													</div>
 												) : (
-													<div className="border-b border-outline-variant/20 pb-4 text-sm text-on-surface-variant">
-														Order details unavailable
+													<div className="border-b border-outline-variant/20 pb-4 text-sm text-on-surface-variant italic">
+														Order preview unavailable
 													</div>
 												)}
 											</div>
@@ -369,47 +423,24 @@ export default function OrdersPage() {
 											<div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 												<div className="text-2xl font-headline font-extrabold text-primary">{formatPrice(total)}</div>
 
-												{showReviewButton ? (
-													<button
-														type="button"
-														onClick={() => handleOpenReview(order)}
-														className="flex items-center justify-center gap-2 rounded-lg bg-amber-500 px-5 py-2 text-sm font-bold text-white shadow-md transition-all hover:bg-amber-600"
-													>
-														<span className="material-symbols-outlined text-[18px]">rate_review</span>
+												<button
+													type="button"
+													onClick={() => handleOpenDetail(order.id)}
+													className="flex items-center justify-center gap-1.5 rounded-lg border border-primary/20 px-4 py-2 text-sm font-bold text-primary hover:bg-primary/5 transition-all shadow-sm active:scale-95"
+												>
+													<span className="material-symbols-outlined text-[18px]">visibility</span>
+													View Details
+												</button>
+
+												{showReviewButton && (
+													<button onClick={() => navigate(`/profile/orders/${order.id}/review`)} className="bg-amber-500 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-amber-600 shadow-md transition-all">
 														Write Review
 													</button>
-												) : isDeliveredWithoutReviewItems ? (
-													<button
-														type="button"
-														onClick={() => handleOpenReviewedDetails(order)}
-														className="flex items-center justify-center gap-1.5 rounded-lg border border-primary/20 px-4 py-2 text-sm font-bold text-primary transition-all hover:bg-primary/5"
-													>
-														<span className="material-symbols-outlined text-[18px]">visibility</span>
-														View Reviewed Items
-													</button>
-												) : order.orderStatus === 'SHIPPING' ? (
-													<button
-														type="button"
-														className="flex items-center justify-center gap-1 text-sm font-bold text-primary hover:underline"
-													>
-														Track Shipment
-														<span className="material-symbols-outlined text-sm">local_shipping</span>
-													</button>
-												) : order.orderStatus === 'PENDING' || order.orderStatus === 'CONFIRMED' ? (
-													<button
-														type="button"
-														className="rounded-lg bg-surface-container-high px-4 py-2 text-sm font-bold text-on-surface transition-all hover:bg-surface-container-highest"
-													>
+												)}
+
+												{(order.orderStatus === 'PENDING' || order.orderStatus === 'CONFIRMED') && (
+													<button onClick={() => handleOpenDetail(order.id)} className="bg-red-50 text-red-600 border border-red-100 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-600 hover:text-white transition-all">
 														Cancel Order
-													</button>
-												) : (
-													<button
-														type="button"
-														onClick={() => handleOpenReview(order)}
-														className="flex items-center justify-center gap-1.5 rounded-lg border border-primary/20 px-4 py-2 text-sm font-bold text-primary transition-all hover:bg-primary/5"
-													>
-														<span className="material-symbols-outlined text-[18px]">visibility</span>
-														Details
 													</button>
 												)}
 											</div>
