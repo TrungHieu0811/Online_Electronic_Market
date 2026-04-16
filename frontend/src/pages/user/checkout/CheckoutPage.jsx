@@ -180,7 +180,12 @@ const CheckoutPage = () => {
 
                 // Dữ liệu từ Java trả về thường bọc trong field 'data' của GHN
                 if (res.data && res.data.data) {
-                    setProvinces(res.data.data);
+                    // Lọc bỏ những tỉnh có tên chứa chữ "Test" hoặc các tên lạ
+                    const cleanProvinces = res.data.data.filter(p => 
+                        !p.ProvinceName.includes("Test") && 
+                        !p.ProvinceName.includes("Hà Nội 02")
+            );
+                    setProvinces(cleanProvinces);
                 }
             } catch (err) {
                 console.error("Lỗi lấy tỉnh thành từ Backend:", err);
@@ -393,7 +398,7 @@ const CheckoutPage = () => {
                                     <input
                                         value={formData.address}
                                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                        disabled={useProfileInfo}
+                                        // disabled={useProfileInfo}
                                         placeholder="House number, Street name..."
                                         className="border border-slate-200 p-4 rounded-xl w-full focus:ring-2 focus:ring-orange-500 disabled:bg-slate-50 outline-none"
                                         required
