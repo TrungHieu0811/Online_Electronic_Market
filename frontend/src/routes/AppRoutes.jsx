@@ -18,6 +18,8 @@ import CheckoutPage from '@/pages/user/checkout/CheckoutPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AdminRoute from '@/components/AdminRoute';
 import PaymentSuccessPage from '@/pages/user/payment/PaymentSuccessPage';
+import PaymentFailurePage from '@/pages/user/payment/PaymentFailurePage';
+
 
 export default function AppRoutes() {
 	return (
@@ -64,6 +66,8 @@ export default function AppRoutes() {
 				}
 			/>
 
+
+
 			<Route
 				path="/cart"
 				element={
@@ -90,7 +94,7 @@ export default function AppRoutes() {
 					</MainLayout>
 				}
 			/>
-			{/* <Route path="/checkout/failure" element={<MainLayout><PaymentFailurePage /></MainLayout>} /> */}
+			<Route path="/checkout/failure" element={<MainLayout><PaymentFailurePage /></MainLayout>} />
 
 			<Route path="/admin/*" element={<AdminRoutes />}>
 				<Route path="*" element={<AdminSubRoutes />} />
