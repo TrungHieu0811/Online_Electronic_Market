@@ -159,7 +159,7 @@ export default function CouponFormModal({ isOpen, onClose, onSuccess, editData }
                                 <AlertCircle size={20} className="text-amber-600" />
                                 <div>
                                     <p className="font-bold">{isActive ? 'Coupon is Active' : 'Coupon is Scheduled'}</p>
-                                    <p className="opacity-80">Would you like to disable this coupon before it runs?</p>
+                                    <p className="opacity-80">Would you like to disable this coupon?</p>
                                 </div>
                             </div>
                             <button

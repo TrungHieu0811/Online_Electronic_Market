@@ -5,6 +5,7 @@ import UserDashboardPage from '@/features/user/profile/pages/user/UserDashboardP
 import RateOrderPage from '@/features/user/profile/pages/RateOrderPage';
 import OrdersPage from '@/features/user/profile/pages/user/OrderPage';
 import EditProfileModal from '@/components/user/dashboard/EditProfileModal';
+import OrderDetailPage from '@/pages/user/order/OrderDetailPage';
 
 function WishlistPage() {
 	return <div>Wishlist page</div>;
@@ -54,6 +55,7 @@ export default function UserRoutes() {
 				<Route index element={<UserDashboardPage />} />
 				<Route path="edit" element={<UserDashboardPage />} />
 				<Route path="orders" element={<OrdersPage />} />
+				<Route path="orders/:id" element={<OrderDetailPage />} />
 				<Route path="orders/:orderId/review" element={<RateOrderPage />} />
 				<Route path="wishlist" element={<WishlistPage />} />
 				<Route path="settings" element={<SettingsPage />} />

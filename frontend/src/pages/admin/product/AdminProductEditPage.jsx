@@ -686,7 +686,13 @@ export default function AdminProductEditPage() {
 								<div className="space-y-3 text-xs">
 									<div className="flex items-center gap-2">
 										{product.brand?.logoUrl && (
-											<img src={product.brand.logoUrl} alt={product.brand.name} className="w-6 h-6 object-contain" />
+											<img
+												src={
+													product.brand.logoUrl.startsWith('http') ? product.brand.logoUrl : IMAGE_BASE_URL + product.brand.logoUrl
+												}
+												alt={product.brand.name}
+												className="w-6 h-6 object-contain"
+											/>
 										)}
 										<div>
 											<p className="text-slate-500">Brand</p>

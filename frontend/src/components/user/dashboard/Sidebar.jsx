@@ -28,11 +28,11 @@ export default function Sidebar() {
 
 	return (
 		<aside className="fixed left-0 top-16 flex h-screen w-64 flex-col space-y-2 bg-slate-50 py-6 pl-4 font-['Inter'] text-sm font-medium dark:bg-slate-950">
-			<div className="mb-8 px-4">
+			{/* <div className="mb-8 px-4">
 				<p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Account Tier</p>
 				<h3 className="font-bold text-blue-700 dark:text-blue-400">Premium Member</h3>
 				<p className="text-xs text-on-surface-variant/70">Precision Ledger</p>
-			</div>
+			</div> */}
 
 			<nav className="flex-1 space-y-1">
 				<NavLink to="/profile" end className={({isActive}) => `${baseClass} ${isActive ? activeClass : inactiveClass}`}>

@@ -31,7 +31,7 @@ export default function CommentTab() {
             setLoading(true);
 
             const data = await getAdminCommentProducts({ page, size });
-            console.log('getAdminCommentProducts response:', data);
+            // console.log('getAdminCommentProducts response:', data);
 
             const content = Array.isArray(data?.content) ? data.content : [];
             const totalPagesValue = data?.totalPages ?? 0;
@@ -68,7 +68,7 @@ export default function CommentTab() {
             setLoading(false);
         }
     };
-
+console.log("groups: ",groups);
     const startItem = useMemo(() => {
         if (totalElements === 0) return 0;
         return page * size + 1;
@@ -170,7 +170,7 @@ export default function CommentTab() {
                                                     <div className='flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-gray-200'>
                                                         {group.productThumbnail ? (
                                                             <img
-                                                                src={group.productThumbnail}
+                                                                src={group.productThumbnail.startsWith('http') ? group.productThumbnail : `${'http://localhost:8080/uploads'+group.productThumbnail}`}
                                                                 alt={group.productName || 'Product'}
                                                                 className='h-full w-full object-cover'
                                                             />

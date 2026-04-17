@@ -131,7 +131,6 @@ export default function ProductDetailPage() {
 			try {
 				const res = await api.get(`/public/products/${product.id}/related`);
 				setRelated(res.data);
-				console.log('related List: ', res.data);
 			} catch (e) {
 				console.error(e);
 			}
@@ -487,7 +486,6 @@ export default function ProductDetailPage() {
 											} else {
 												setQty(parseInt(e.target.value));
 											}
-											console.log('value: ', e.target.value);
 										}}
 										className="w-10 text-center text-sm font-medium text-gray-800 border-none focus:ring-2 focus:ring-blue-500"
 										disabled={unavailable}

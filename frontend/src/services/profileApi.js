@@ -2,7 +2,7 @@ import api from '@/services/api';
 
 export const getMyProfile = async () => {
     const response = await api.get('/users/me');
-    console.log(response.data);
+    // console.log(response.data);
     return response.data;
 };
 

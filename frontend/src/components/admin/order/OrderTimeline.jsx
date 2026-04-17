@@ -31,7 +31,7 @@ const OrderTimeline = ({ history }) => {
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-black text-slate-900">
-                                        {log.admin?.fullname || 'System'} 
+                                        {log.admin?.fullName || 'System'} 
                                     </span>
                                     <span className="text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded uppercase">
                                         {log.newStatus}
