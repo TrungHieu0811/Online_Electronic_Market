@@ -47,6 +47,7 @@ export default function OrderDetailPage() {
         };
         fetchDetails();
     }, [id]);
+    console.log("items: ",items);
 
     // Ngăn chặn việc render khi chưa có dữ liệu hoặc đang load
     if (loading) return <div className="p-20 text-center font-bold text-slate-500 text-xl animate-pulse">Loading order info...</div>;
@@ -69,7 +70,7 @@ export default function OrderDetailPage() {
                 {items && items.length > 0 ? items.map((item) => (
                     <div key={item.id} className="flex items-center gap-6 p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:shadow-md transition-shadow">
                         <div className="w-20 h-20 bg-white rounded-xl p-1 border">
-                             <img src={item.product?.thumbnailUrl} className="w-full h-full object-contain" alt="" />
+                             <img src={item.imageUrl.startsWith('http') ? item.imageUrl : `http://localhost:8080/uploads${item.imageUrl}`} className="w-full h-full object-contain" alt="" />
                         </div>
                         <div className="flex-1">
                             <h4 className="font-bold text-slate-800 text-lg leading-tight">{item.product?.variantName || "Product"}</h4>

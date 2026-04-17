@@ -69,7 +69,6 @@ export default function AdminProductGroupDetailsPage() {
 		});
 		return map;
 	}, [brands]);
-
 	const categoryMap = useMemo(() => {
 		const map = {};
 		categories.forEach((c) => {

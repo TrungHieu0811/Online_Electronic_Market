@@ -29,7 +29,7 @@ export default function Header() {
 			setLoading(true);
 			const data = await getMyProfile();
 			setUser(data);
-			console.log('data: ', data);
+			// console.log('data: ', data);
 		} catch (err) {
 			console.error('Error fetching profile:', err);
 		} finally {

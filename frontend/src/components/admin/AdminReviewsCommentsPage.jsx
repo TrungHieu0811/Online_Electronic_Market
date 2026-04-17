@@ -24,7 +24,6 @@ export default function AdminReviewsCommentsPage() {
     const [size] = useState(10);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
-
     const [loading, setLoading] = useState(true);
     const [actionLoadingId, setActionLoadingId] = useState(null);
 
@@ -112,7 +111,7 @@ export default function AdminReviewsCommentsPage() {
         if (!status) return 'Unknown';
         return status.charAt(0) + status.slice(1).toLowerCase();
     };
-
+console.log("REVIEWS: ",reviews);
     const renderStatusBadge = (status) => {
         switch (status) {
             case 'PENDING':

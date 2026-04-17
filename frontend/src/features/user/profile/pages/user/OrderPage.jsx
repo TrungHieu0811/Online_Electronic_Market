@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { getMyOrders } from '@/services/profileApi';
-import { getOrderForReview } from '@/services/orderReviewApi';
+import React, {useEffect, useMemo, useState} from 'react';
+import {useLocation, useNavigate} from 'react-router-dom';
+import {getMyOrders} from '@/services/profileApi';
+import {getOrderForReview} from '@/services/orderReviewApi';
 import TopNavbar from '@/components/user/dashboard/TopNavbar';
 import Sidebar from '@/components/user/dashboard/Sidebar';
 import OrderDetailModal from '@/components/user/order/OrderDetailModal';
@@ -38,7 +38,6 @@ export default function OrdersPage() {
 					const dateB = new Date(b.createdAt || b.created_at || 0);
 					return dateB - dateA;
 				});
-				console.log('orders: ', sortedOrders);
 				setOrders(sortedOrders);
 			} catch (error) {
 				console.error('Failed to load orders:', error);
@@ -129,21 +128,21 @@ export default function OrdersPage() {
 	// Trong OrderPage.jsx
 	const getDisplayProducts = (order) => {
 		const items = order.orderItems || order.items || [];
+
 		// Chỉ lấy món hàng đầu tiên làm đại diện
 		return items.slice(0, 1).map((item, index) => ({
 			id: item.id ?? index,
-			name: item.product?.variantName || item.product?.name || "Product",
+			name: item.product?.variantName || item.product?.name || 'Product',
 			price: item.priceAtPurchase ?? 0,
 			quantity: item.quantity,
 			// Lấy link ảnh từ backend
-			image: item.product?.thumbnailUrl || null,
+			imageUrl: item.imageUrl || null,
 		}));
 	};
 
 	const getPrimaryImage = (order) => {
 		const items = order.orderItems || order.items || [];
 		const first = items[0];
-
 		return first?.product?.thumbnailUrl || first?.product?.imageUrl || first?.imageUrl || null;
 	};
 
@@ -225,16 +224,14 @@ export default function OrdersPage() {
 	};
 
 	const tabs = [
-		{ key: 'ALL', label: 'All Orders', icon: null },
-		{ key: 'PENDING', label: 'Pending', icon: 'schedule' },
-		{ key: 'CONFIRMED', label: 'Confirmed', icon: 'inventory_2' },
-		{ key: 'SHIPPING', label: 'Shipping', icon: 'local_shipping' },
-		{ key: 'DELIVERED', label: 'Completed', icon: 'check_circle' },
-		{ key: 'NEEDS_REVIEW', label: 'Needs Review', icon: 'star' }, // Giữ nguyên theo yêu cầu
-		{ key: 'CANCELLED', label: 'Cancelled', icon: 'cancel' },
+		{key: 'ALL', label: 'All Orders', icon: null},
+		{key: 'PENDING', label: 'Pending', icon: 'schedule'},
+		{key: 'CONFIRMED', label: 'Confirmed', icon: 'inventory_2'},
+		{key: 'SHIPPING', label: 'Shipping', icon: 'local_shipping'},
+		{key: 'DELIVERED', label: 'Completed', icon: 'check_circle'},
+		{key: 'NEEDS_REVIEW', label: 'Needs Review', icon: 'star'}, // Giữ nguyên theo yêu cầu
+		{key: 'CANCELLED', label: 'Cancelled', icon: 'cancel'},
 	];
-
-
 
 	return (
 		<div className="min-h-screen bg-surface text-on-surface">
@@ -289,12 +286,13 @@ export default function OrdersPage() {
 										key={tab.key}
 										type="button"
 										onClick={() => setActiveTab(tab.key)}
-										className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-5 py-3 text-sm transition-all ${activeTab === tab.key
-											? 'border-primary font-bold text-primary'
-											: tab.key === 'NEEDS_REVIEW'
-												? 'border-transparent font-bold text-amber-700 hover:bg-amber-50'
-												: 'border-transparent font-medium text-on-surface-variant hover:text-on-surface'
-											}`}
+										className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-5 py-3 text-sm transition-all ${
+											activeTab === tab.key
+												? 'border-primary font-bold text-primary'
+												: tab.key === 'NEEDS_REVIEW'
+													? 'border-transparent font-bold text-amber-700 hover:bg-amber-50'
+													: 'border-transparent font-medium text-on-surface-variant hover:text-on-surface'
+										}`}
 									>
 										{tab.icon && <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>}
 										{tab.label}
@@ -304,15 +302,10 @@ export default function OrdersPage() {
 											</span>
 										)}
 									</button>
-
 								))}
 							</div>
 						</div>
-						<OrderDetailModal
-							isOpen={isModalOpen}
-							onClose={() => setIsModalOpen(false)}
-							orderId={selectedOrderId}
-						/>
+						<OrderDetailModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} orderId={selectedOrderId} />
 
 						{loading ? (
 							<div className="rounded-xl bg-surface-container-lowest p-8 text-on-surface-variant shadow-sm">
@@ -329,7 +322,6 @@ export default function OrdersPage() {
 									const primaryImage = getPrimaryImage(order);
 									const total = getOrderTotal(order);
 									const orderDate = getOrderDate(order);
-
 									// 2. Định nghĩa các biến đếm (Sửa lỗi ReferenceError)
 									const totalUnits = getItemCount(order); // Tổng số lượng (ví dụ: 3 cái iPhone)
 									const distinctItemsCount = (order.orderItems || order.items || []).length;
@@ -339,18 +331,24 @@ export default function OrdersPage() {
 									return (
 										<div
 											key={order.id}
-											className={`group rounded-xl bg-surface-container-lowest p-8 shadow-[0_12px_32px_rgba(0,26,64,0.04)] transition-all hover:shadow-[0_12px_32px_rgba(0,26,64,0.08)] ${showReviewButton ? 'border-2 border-transparent hover:border-amber-100/50' : ''
-												}`}
+											className={`group rounded-xl bg-surface-container-lowest p-8 shadow-[0_12px_32px_rgba(0,26,64,0.04)] transition-all hover:shadow-[0_12px_32px_rgba(0,26,64,0.08)] ${
+												showReviewButton ? 'border-2 border-transparent hover:border-amber-100/50' : ''
+											}`}
 										>
 											<div className="mb-6 flex items-start justify-between gap-4">
 												<div className="min-w-0 flex items-center gap-4">
-													<div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-container-low">
+													<div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-container-low overflow-hidden">
 														{primaryImage ? (
-															<img src={primaryImage} alt="Order item" className="h-full w-full object-cover" />
+															<img
+																src={
+																	primaryImage?.startsWith('http') ? primaryImage : `${'http://localhost:8080/uploads' + primaryImage}`
+																}
+																alt="Order item"
+																className="h-full w-full object-cover"
+															/>
 														) : (
 															<span className="material-symbols-outlined text-3xl text-on-surface-variant">inventory_2</span>
 														)}
-
 													</div>
 
 													<div className="min-w-0">
@@ -381,10 +379,14 @@ export default function OrdersPage() {
 													<div className="flex items-center justify-between gap-4 border-b border-outline-variant/20 pb-4 text-sm">
 														<div className="flex items-center gap-3">
 															{/* KHUNG HIỂN THỊ HÌNH ẢNH SẢN PHẨM */}
-															<div className="w-12 h-12 shrink-0 bg-slate-50 border border-slate-100 rounded-lg overflow-hidden flex items-center justify-center p-1">
-																{products[0].image ? (
+															<div className="w-12 h-12 shrink-0 bg-slate-50 border border-slate-100 rounded-lg overflow-hidden flex items-center justify-center p-0 overflow-hidden">
+																{products[0].imageUrl ? (
 																	<img
-																		src={products[0].image}
+																		src={
+																			products[0].imageUrl?.startsWith('http')
+																				? products[0].imageUrl
+																				: `${'http://localhost:8080/uploads' + products[0].imageUrl}`
+																		}
 																		alt={products[0].name}
 																		className="w-full h-full object-contain"
 																	/>
@@ -407,7 +409,9 @@ export default function OrdersPage() {
 																	)}
 																</div>
 																{/* Hiển thị giá đơn vị nhỏ bên dưới tên nếu muốn */}
-																<p className="text-[10px] text-slate-400 font-bold uppercase">Unit Price: {formatPrice(products[0].price)}</p>
+																<p className="text-[10px] text-slate-400 font-bold uppercase">
+																	Unit Price: {formatPrice(products[0].price)}
+																</p>
 															</div>
 														</div>
 
@@ -433,13 +437,19 @@ export default function OrdersPage() {
 												</button>
 
 												{showReviewButton && (
-													<button onClick={() => navigate(`/profile/orders/${order.id}/review`)} className="bg-amber-500 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-amber-600 shadow-md transition-all">
+													<button
+														onClick={() => navigate(`/profile/orders/${order.id}/review`)}
+														className="bg-amber-500 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-amber-600 shadow-md transition-all"
+													>
 														Write Review
 													</button>
 												)}
 
 												{(order.orderStatus === 'PENDING' || order.orderStatus === 'CONFIRMED') && (
-													<button onClick={() => handleOpenDetail(order.id)} className="bg-red-50 text-red-600 border border-red-100 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-600 hover:text-white transition-all">
+													<button
+														onClick={() => handleOpenDetail(order.id)}
+														className="bg-red-50 text-red-600 border border-red-100 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-600 hover:text-white transition-all"
+													>
 														Cancel Order
 													</button>
 												)}
