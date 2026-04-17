@@ -5,12 +5,14 @@ import {ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScrollToTop from './components/layout/ScrollToTop';
 import {useEffect} from 'react';
+import ChatBox from './components/user/ChatBox';
 
 export default function App() {
 	return (
 		<BrowserRouter>
 			<ScrollToTop />
 			<AppRoutes />
+			<ChatBox />
 			<ToastContainer position="bottom-right" autoClose={3000} />
 		</BrowserRouter>
 	);
