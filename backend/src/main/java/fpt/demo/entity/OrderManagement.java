@@ -4,13 +4,17 @@
  */
 package fpt.demo.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,22 +23,33 @@ import lombok.Setter;
  * @author ngo42
  */
 @Entity
+@Data
 @Table(name = "order_managements")
-@Getter
-@Setter
+
 public class OrderManagement {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @JsonIgnore
     @ManyToOne
     private Order order;
 
     @ManyToOne
     private User admin;
 
-    private String actionType;
+    public enum ActionType{
+        PENDING,
+        CONFIRMED,
+        SHIPPING,
+        CANCELLED,
+        DELIVERED,
+        RETURNED
+    }
+    
+    @Enumerated(EnumType.STRING)
+    private ActionType actionType;
 
     private String previousStatus;
     private String newStatus;

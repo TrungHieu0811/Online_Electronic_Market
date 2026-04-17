@@ -4,14 +4,17 @@
  */
 package fpt.demo.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -38,8 +41,13 @@ public class ProductReview {
     @ManyToOne
     private User user;
 
-    private Integer orderId;
+    @ManyToOne
+    private Order order;
 
+    @ManyToOne
+    private OrderItem orderItem; 
+
+    @Column(nullable = false)
     private Integer ratingScore;
 
     @Column(columnDefinition = "NVARCHAR(MAX)")
@@ -47,7 +55,14 @@ public class ProductReview {
 
     private String imageUrl;
 
-    private String status = "PENDING";
+    public enum ReviewStatus {
+        PENDING,
+        APPROVED,
+        REJECTED
+    }
+
+    @Enumerated(EnumType.STRING)
+    private ReviewStatus status = ReviewStatus.PENDING;
 
     private LocalDateTime createdAt;
 }

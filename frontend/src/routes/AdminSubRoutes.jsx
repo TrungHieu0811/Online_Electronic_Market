@@ -8,7 +8,7 @@ import AdminCategoryPage from '@/pages/admin/category/AdminCategoryPage';
 import AdminCategoryConfigPage from '@/pages/admin/category/AdminCategoryConfigPage';
 import TestCateConfigManagementPage from '@/pages/admin/category/TestCateConfigManagementPage';
 import AdminProductsPage from '@/pages/admin/product/AdminProductsPage';
-import {Routes, Route} from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import AdminProductGroupPage from '@/pages/admin/product/AdminProductGroupPage';
 import AdminProductGroupDetailsPage from '@/pages/admin/product/AdminProductGroupDetailsPage';
 import AdminProductEditPage from '@/pages/admin/product/AdminProductEditPage';
@@ -20,11 +20,15 @@ import AdminProductCreatePage from '@/pages/admin/product/AdminProductCreatePage
 import AdminReviewsCommentsPage from '@/components/admin/AdminReviewsCommentsPage';
 import OrderManagementPage from '@/pages/admin/order/OrderManagementPage';
 import OrderDetailPage from '@/pages/admin/order/OrderDetailPage';
+import RequireSuperAdmin from '@/pages/admin/RequireSuperAdmin';
+import CreateAdmin from '@/pages/admin/CreateAdmin';
+import ChangePassword from '@/pages/admin/ChangePassword';
 
 export default function AdminSubRoutes() {
 	return (
 		<Routes>
 			<Route index element={<AdminDashboardPage />} /> {/* path: /admin */}
+			<Route path="change-password" element={<ChangePassword />} />
 			<Route path="dashboard" element={<AdminDashboardPage />} />
 			{/* Products group */}
 			<Route path="products/" element={<AdminProductsPage />} />
@@ -54,6 +58,15 @@ export default function AdminSubRoutes() {
 			{/* Order management */}
 			<Route path="/orders" element={<OrderManagementPage />} />
 			<Route path="/orders/:orderId" element={<OrderDetailPage />} />
+			{/* 👉 TRANG ĐƯỢC BẢO VỆ NGHIÊM NGẶT BỞI SUPERADMIN */}
+			<Route
+				path="create-admin"
+				element={
+					<RequireSuperAdmin>
+						<CreateAdmin />
+					</RequireSuperAdmin>
+				}
+			/>
 		</Routes>
 	);
 }

@@ -1,12 +1,12 @@
-import React, {useState} from 'react';
-import {Link, useNavigate} from 'react-router-dom';
-import {FaApple} from 'react-icons/fa';
-import {FcGoogle} from 'react-icons/fc';
-import {toast} from 'react-toastify';
-import {authApi} from '../../services/authApi';
-import {MdBolt, MdShoppingCart, MdOutlineMail, MdLockOutline, MdArrowForward, MdStar, MdLogin} from 'react-icons/md';
-import {cartService} from '../../services/cartService';
-import {useCart} from '../../context/CartContext';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaApple } from 'react-icons/fa';
+import { FcGoogle } from 'react-icons/fc';
+import { toast } from 'react-toastify';
+import { authApi } from '../../services/authApi';
+import { MdBolt, MdShoppingCart, MdOutlineMail, MdLockOutline, MdArrowForward, MdStar, MdLogin } from 'react-icons/md';
+import { cartService } from '../../services/cartService';
+import { useCart } from '../../context/CartContext';
 import Header from '@/components/layout/Header';
 import { jwtDecode } from "jwt-decode";
 
@@ -57,12 +57,56 @@ const Login = () => {
 			if (token) {
 				// Lưu Access Token
 				localStorage.setItem('token', token);
-				toast.success('Login successful!');
-				
+
 				// 👉 Lưu Refresh Token (Nếu Backend có trả về)
 				if (refreshToken) {
 					localStorage.setItem('refreshToken', refreshToken);
 				}
+
+				//Merge cart sau khi login
+				try {
+					// 1. Lấy dữ liệu giỏ hàng tạm thời từ localStorage
+					const localCart = JSON.parse(localStorage.getItem('guestCart')) || [];
+
+					// 2. Nếu có hàng trong giỏ tạm, tiến hành gọi API merge
+					if (localCart.length > 0) {
+						await cartService.mergeCart(localCart);
+						console.log('Cart merged successfully!');
+						// 3. Xóa giỏ hàng tạm sau khi đã gộp thành công vào Database
+						localStorage.removeItem('guestCart');
+						await fetchCartCount();
+					} else {
+						await fetchCartCount();
+					}
+				} catch (mergeError) {
+					// Chỉ log lỗi merge để không làm gián đoạn quá trình login chính
+					console.error('Failed to merge cart:', mergeError);
+				}
+
+				//Merge cart
+				try {
+					// 1. Lấy dữ liệu giỏ hàng tạm thời từ localStorage
+					const localCart = JSON.parse(localStorage.getItem('guestCart')) || [];
+
+					// 2. Nếu có hàng trong giỏ tạm, tiến hành gọi API merge
+					if (localCart.length > 0) {
+						await cartService.mergeCart(localCart);
+						console.log('Cart merged successfully!');
+						// 3. Xóa giỏ hàng tạm sau khi đã gộp thành công vào Database
+						localStorage.removeItem('guestCart');
+						await fetchCartCount();
+					} else {
+						await fetchCartCount();
+					}
+				} catch (mergeError) {
+					// Chỉ log lỗi merge để không làm gián đoạn quá trình login chính
+					console.error('Failed to merge cart:', mergeError);
+				}
+
+				toast.success('Login successful!');
+
+
+
 				// =========================================================
 				// 👉 2. GIẢI MÃ TOKEN ĐỂ KIỂM TRA ROLE VÀ CHUYỂN TRANG
 				// =========================================================
@@ -89,32 +133,23 @@ const Login = () => {
 
 					// Kiểm tra xem có quyền Admin/Superadmin không
 					const isAdmin = roleStrings.includes('ADMIN') ||
-						roleStrings.includes('ROLE_ADMIN') ||
+						roleStrings.includes('ROLE_STAFF') ||
 						roleStrings.includes('SUPERADMIN') ||
 						roleStrings.includes('ROLE_SUPERADMIN');
 
-					if (isAdmin) {
-						navigate('/admin'); // Trả về trang Admin
-					} else {
-						//Merge cart sau khi login
-							try {
-							// 1. Lấy dữ liệu giỏ hàng tạm thời từ localStorage
-							const localCart = JSON.parse(localStorage.getItem('guestCart')) || [];
 
-							// 2. Nếu có hàng trong giỏ tạm, tiến hành gọi API merge
-							if (localCart.length > 0) {
-								await cartService.mergeCart(localCart);
-								console.log('Cart merged successfully!');
-								// 3. Xóa giỏ hàng tạm sau khi đã gộp thành công vào Database
-								localStorage.removeItem('guestCart');
-								await fetchCartCount();
-							} else {
-								await fetchCartCount();
-							}
-						} catch (mergeError) {
-							// Chỉ log lỗi merge để không làm gián đoạn quá trình login chính
-							console.error('Failed to merge cart:', mergeError);
+					if (isAdmin) {
+						if (formData.password === '123') {
+							toast.warning("This is your first login. Please change your password to continue!");
+
+							// Chuyển hướng thẳng sang trang Đổi mật khẩu
+							navigate('/admin/change-password'); // Sửa lại đường dẫn này cho khớp với Route của bạn
+						} else {
+							// toast.success("Login successful!");
+							// Đăng nhập bình thường thì vào Dashboard
+							navigate('/admin');
 						}
+					} else {
 						navigate(originPath, { replace: true });     // Trả về trang User (Trang chủ)
 					}
 
@@ -143,7 +178,7 @@ const Login = () => {
 				<div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
 					<div className="flex items-center gap-2">
 						<div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-md">
-						<MdBolt className="text-white text-2xl" />
+							<MdBolt className="text-white text-2xl" />
 						</div>
 						<h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">ElectroMart</h1>
 					</div>
@@ -210,7 +245,7 @@ const Login = () => {
 
 						{/* Login Button */}
 						<button
-						disabled={isLoading}
+							disabled={isLoading}
 							className={`w-full h-14 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-4 group ${isLoading ? 'bg-slate-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/90 shadow-primary/20'}`}
 							type="submit"
 						>

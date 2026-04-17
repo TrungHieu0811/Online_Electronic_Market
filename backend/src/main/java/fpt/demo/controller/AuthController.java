@@ -1,24 +1,31 @@
 package fpt.demo.controller;
 
-import fpt.demo.dto.LoginRequestDto;
-import fpt.demo.dto.UserRegistrationDto;
-import fpt.demo.service.AuthService; // 👉 Sửa import thành Interface
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
+import fpt.demo.dto.ChangePasswordDto;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import fpt.demo.dto.LoginRequestDto;
+import fpt.demo.dto.UserRegistrationDto;
+import fpt.demo.service.AuthServiceImpl;
+import jakarta.validation.Valid;
+import java.security.Principal;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.PutMapping;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    // 👉 Đổi thành AuthService (Interface)
-    private final AuthService authService;
+    private final AuthServiceImpl authService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody UserRegistrationDto request) {
@@ -33,8 +40,10 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDto request) {
         try {
+            // Lấy mảng 2 token từ AuthServiceImpl
             String[] tokens = authService.login(request);
             
+            // Đóng gói thành dạng JSON chuẩn xác để Flutter/Web dễ đọc
             Map<String, String> response = new HashMap<>();
             response.put("accessToken", tokens[0]);
             response.put("refreshToken", tokens[1]);
@@ -73,7 +82,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
+    // API 2: Bấm nút "Quên mật khẩu"
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
         try {
@@ -84,6 +93,7 @@ public class AuthController {
         }
     }
 
+    // API 3: Nhập mã OTP và Mật khẩu mới
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestParam String email, 
                                            @RequestParam String otp, 
@@ -95,7 +105,6 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
     @PostMapping("/resend-otp")
     public ResponseEntity<?> resendOtp(@RequestParam String email) {
         try {
@@ -105,7 +114,6 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
     @PostMapping("/check-otp")
     public ResponseEntity<?> checkOtp(@RequestParam String email, @RequestParam String otp) {
         try {
@@ -113,6 +121,25 @@ public class AuthController {
             return ResponseEntity.ok(message);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @Valid @RequestBody ChangePasswordDto request, 
+            Principal principal
+    ) {
+        // Principal sẽ tự động lấy username từ Token mà người dùng gửi kèm
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Phiên làm việc hết hạn, vui lòng đăng nhập lại!"));
+        }
+
+        try {
+            // Gọi service xử lý đổi mật khẩu
+            authService.changePassword(principal.getName(), request.getNewPassword());
+            
+            return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Lỗi: " + e.getMessage()));
         }
     }
 }

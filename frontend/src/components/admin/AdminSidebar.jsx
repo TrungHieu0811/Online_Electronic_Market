@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard,
     Package,
@@ -9,6 +9,7 @@ import {
     Bolt
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode'; // 👉 Nhớ cài thư viện này nếu chưa có: npm install jwt-decode
 
 const menuItems = [
     { label: 'Dashboard', icon: LayoutDashboard, href: 'dashboard', active: true },
@@ -26,6 +27,70 @@ const menuItems = [
 
 export default function AdminSidebar() {
     const currentPath = (window.location.href.split('/admin/')[1] || '/').split('?')[0];
+    const navigate = useNavigate();
+
+    // 👉 1. KHAI BÁO STATE LƯU THÔNG TIN ADMIN
+    const [adminInfo, setAdminInfo] = useState({
+        name: 'Đang tải...',
+        role: 'Admin',
+        avatar: 'https://ui-avatars.com/api/?name=A&background=045fae&color=fff'
+    });
+
+    // 👉 2. CHẠY LẤY DỮ LIỆU KHI VỪA MỞ SIDEBAR
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user'); 
+
+        if (token) {
+            try {
+                const decoded = jwtDecode(token);
+                
+                // Xác định chức danh (Role)
+                let currentRole = "Staff Admin";
+                let rolesStr = JSON.stringify(decoded.roles || decoded.role || decoded.authorities || "");
+                if (rolesStr.toUpperCase().includes("SUPERADMIN")) {
+                    currentRole = "Super Admin";
+                }
+
+                // Xác định Tên
+                let currentName = decoded.sub || "Admin"; // Mặc định lấy username
+                let currentAvatar = null;
+
+                // Ưu tiên lấy fullName và avatar thực tế nếu có lưu lúc login
+                if (userStr) {
+                    try {
+                        const userObj = JSON.parse(userStr);
+                        currentName = userObj.fullName || userObj.username || currentName;
+                        currentAvatar = userObj.avatarUrl || userObj.avatar;
+                    } catch (e) {
+                        console.error("Lỗi đọc dữ liệu user từ localStorage");
+                    }
+                }
+
+                // Nếu không có ảnh, tự tạo ảnh xịn xò từ chữ cái đầu của tên
+                if (!currentAvatar) {
+                    currentAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentName)}&background=045fae&color=fff&rounded=true&bold=true`;
+                }
+
+                // Cập nhật lên màn hình
+                setAdminInfo({
+                    name: currentName,
+                    role: currentRole,
+                    avatar: currentAvatar
+                });
+
+            } catch (error) {
+                console.error("Lỗi giải mã token:", error);
+            }
+        }
+    }, []);
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+    };
+
     return (
         <aside className='w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col justify-between'>
             <div className='flex flex-col p-6 gap-8'>
@@ -70,24 +135,29 @@ export default function AdminSidebar() {
                 </nav>
             </div>
 
+            {/* 👉 3. PHẦN PROFILE DƯỚI CÙNG ĐÃ ĐƯỢC LÀM ĐỘNG */}
             <div className='p-6 border-t border-slate-100'>
                 <div className='flex items-center gap-3'>
                     <img
-                        src='https://lh3.googleusercontent.com/aida-public/AB6AXuBzGMsOjc9LIhx6H9amiVMVdo5WqiNfPn_kbAULU_sNY-Mr_wnTfPcpWZc0GNdTNrhdfmqzOQOohYrPlbeHAphOk7lCYAljy5QM2VoU9-lNLrqBjkPnu54zehYRY0_DZep73FvcFDmmwZD_JF5nWzf88VHnE8Ys-Og0q_w03rH9fGRfMmoeZxKB951Oq5R4GwkTibYl0yqUQY6KigtXezLZaI3Ah1gE391VqACa4MabjGQkXS1NvbFprmZzzUgIzOcw9mYoO8qSUN_e'
+                        src={adminInfo.avatar}
                         alt='Admin avatar'
                         className='w-10 h-10 rounded-full border-2 border-slate-200 object-cover'
                     />
 
                     <div className='flex flex-col overflow-hidden'>
-                        <p className='text-sm font-bold text-slate-900 truncate'>Alex Johnson</p>
-                        <p className='text-xs text-slate-500 truncate'>System Admin</p>
+                        <p 
+                            className='text-sm font-bold text-slate-900 truncate' 
+                            title={adminInfo.name} // Di chuột vào sẽ hiện tên đầy đủ nếu bị dài quá
+                        >
+                            {adminInfo.name}
+                        </p>
+                        <p className='text-xs text-slate-500 truncate' title={adminInfo.role}>
+                            {adminInfo.role}
+                        </p>
 
                         <button
-                            onClick={() => {
-                                localStorage.removeItem('token');
-                                window.location.href = '/login';
-                            }}
-                            className='mt-2 text-xs text-red-500 hover:text-red-600 font-medium text-left'
+                            onClick={handleLogout}
+                            className='mt-2 text-xs text-red-500 hover:text-red-600 font-medium text-left transition-colors'
                         >
                             Logout
                         </button>
