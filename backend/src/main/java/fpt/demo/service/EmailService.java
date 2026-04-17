@@ -10,4 +10,6 @@ package fpt.demo.service;
  */
 public interface EmailService {
     public void sendOtpEmail(String toEmail, String otpCode);
+    
+    public void sendUserBlockedEmail(String toEmail, String fullName, String reason);
 }

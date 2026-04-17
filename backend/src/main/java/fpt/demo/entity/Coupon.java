@@ -1,15 +1,18 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+  /*
+     * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+     * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package fpt.demo.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -44,7 +47,16 @@ public class Coupon {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
 
-    private Boolean status = true;
+    public enum CouponStatus {
+        ACTIVE, // Đang có hiệu lực
+        SCHEDULED, // Chờ đến ngày bắt đầu (Tạo trước)
+        EXPIRED, // Đã hết hạn theo thời gian
+        FULLY_REDEEMED, // Đã hết lượt sử dụng (usageLimit)
+        DISABLED         // Bị Admin vô hiệu hóa thủ công
+    }
+
+    @Enumerated(EnumType.STRING)
+    private CouponStatus status;
 
     private LocalDateTime createdAt;
 }

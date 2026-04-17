@@ -13,6 +13,13 @@ export default function EditProfileModal() {
 
     const routeUser = location.state?.user;
 
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const maxDate = `${yyyy}-${mm}-${dd}`; // Ngày hôm nay (YYYY-MM-DD)
+    const minDate = '1950-01-01'; // Giới hạn dưới
+
     const [formData, setFormData] = useState({
         fullName: '',
         phone: '',
@@ -100,6 +107,17 @@ export default function EditProfileModal() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (formData.dob) {
+            if (formData.dob > maxDate) {
+                toast.warning("Date of birth cannot be in the future!");
+                return; // Dừng lại, không gửi API
+            }
+            if (formData.dob < minDate) {
+                toast.warning("Date of birth cannot be before January 1, 1950!");
+                return; // Dừng lại, không gửi API
+            }
+        }
+
         try {
             setLoading(true);
 
@@ -117,14 +135,14 @@ export default function EditProfileModal() {
             );
 
             await updateMyProfile(cleanedPayload);
-            
+
             // 👉 1. HIỆN TOAST THÀNH CÔNG ĐẸP MẮT
             toast.success('Profile updated successfully!');
-            
+
             // 👉 2. TRUYỀN TÍN HIỆU (refresh: Date.now()) VỀ TRANG CHA KHI ĐÓNG MODAL
             // Dùng Date.now() để đảm bảo mỗi lần update xong tín hiệu đều khác nhau -> Ép React render lại
             navigate('/profile', { replace: true, state: { refresh: Date.now() } });
-            
+
         } catch (error) {
             console.error('Update failed:', error);
             toast.error(error?.response?.data || 'Profile update failed!'); // 👉 ĐỔI THÀNH TOAST
@@ -275,6 +293,9 @@ export default function EditProfileModal() {
                                     value={formData.dob}
                                     onChange={handleChange}
                                     className={inputClass}
+                                    // 👉 3. THÊM 2 DÒNG NÀY VÀO ĐỂ KHÓA LỊCH
+                                    min={minDate} 
+                                    max={maxDate} 
                                 />
                             </Field>
                         </div>

@@ -1,9 +1,10 @@
 package fpt.demo.config;
 
-import fpt.demo.jwt.JwtAuthenticationFilter;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -14,56 +15,75 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import java.util.List;
+
+import fpt.demo.jwt.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthFilter;
-    private final AuthenticationProvider authenticationProvider;
+  private final JwtAuthenticationFilter jwtAuthFilter;
+  private final AuthenticationProvider authenticationProvider;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // Tắt bảo vệ CSRF vì chúng ta đang dùng JWT (stateless)
-                .csrf(AbstractHttpConfigurer::disable)
-                // THÊM DÒNG NÀY ĐỂ KÍCH HOẠT CORS
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // CẤU HÌNH CÁC CỬA TẠI ĐÂY
-                .authorizeHttpRequests(auth -> auth
-                // MỞ KHÓA hoàn toàn các API bắt đầu bằng /api/auth (Cái này sẽ sửa lỗi 401 của bạn)
-                .requestMatchers("/api/auth/**", "/error").permitAll()
-                // Khóa khu vực Admin, chỉ những ai có role STAFF hoặc SUPERADMIN mới được vào
-                .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_STAFF", "ROLE_SUPERADMIN")
-                // Bất kỳ API nào khác đều phải có Token hợp lệ
-                .anyRequest().authenticated()
-                )
-                // Thiết lập Session là Stateless (Server không nhớ ai đang đăng nhập, chỉ nhìn vào Token)
-                .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authenticationProvider(authenticationProvider)
-                // Bắt buộc request phải đi qua bộ lọc kiểm tra Token của chúng ta trước
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+  @Bean
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(AbstractHttpConfigurer::disable)
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-        return http.build();
-    }
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-    // THÊM HÀM NÀY ĐỂ CẤP PHÉP CHO FLUTTER WEB GỌI API
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        // Cho phép mọi domain gọi tới (Dùng dấu * cho môi trường dev)
-        configuration.setAllowedOriginPatterns(List.of("*"));
-        // Cho phép các method cần thiết
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        // Cho phép gửi Header chứa Token
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+            // public
+            .requestMatchers("/api/auth/**", "/error").permitAll()
+            .requestMatchers("/api/public/**").permitAll()
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+            // file upload tĩnh
+            .requestMatchers("/uploads/**").permitAll()
+
+            // callback payment public
+            .requestMatchers("/api/users/payment/paypal-callback/**").permitAll()
+            .requestMatchers("/api/users/payment/cancel/**").permitAll()
+
+            // comment: ai cũng xem được
+            .requestMatchers(HttpMethod.GET, "/api/comments/product/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/comments/replies/**").permitAll()
+
+            // admin area
+            .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_STAFF", "ROLE_SUPERADMIN")
+
+            // user area
+            .requestMatchers("/api/users/**").hasAnyAuthority("ROLE_USER", "ROLE_STAFF", "ROLE_SUPERADMIN")
+
+            // user comment actions
+            .requestMatchers(HttpMethod.POST, "/api/comments/**").hasAuthority("ROLE_USER")
+            .requestMatchers(HttpMethod.PUT, "/api/comments/**").hasAuthority("ROLE_USER")
+            .requestMatchers(HttpMethod.DELETE, "/api/comments/**").hasAuthority("ROLE_USER")
+
+            .anyRequest().authenticated())
+
+        .sessionManagement(session ->
+          session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))   
+
+        .authenticationProvider(authenticationProvider)
+        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+    return http.build();
+  }
+
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+
+    configuration.setAllowedOriginPatterns(List.of("*"));
+    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+    configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+    configuration.setAllowCredentials(true);
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+  }
 }
