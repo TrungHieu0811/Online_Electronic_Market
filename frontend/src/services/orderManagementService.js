@@ -16,12 +16,18 @@ export const orderManagementService = {
     // --- Nhóm 1: Quản lý trạng thái & Tìm kiếm ---
     
     // Cập nhật: Thêm params status để lọc theo Tab (PENDING, SHIPPING, DELIVERED...)
-    getAllOrders: (page = 0, size = 10, status = '') => {
-        return axios.get(`${API_BASE_URL}/orders/all`, {
-            params: { page, size, status },
-            ...getAuthHeader()
-        });
-    },
+   getAllOrders: (page = 0, size = 10, status = '', sortField = 'createdAt', sortDir = 'desc') => {
+    return axios.get(`${API_BASE_URL}/orders`, {
+        params: { 
+            page, 
+            size, 
+            status,
+            sortField, // Tên cột cần sắp xếp (Vd: createdAt, totalPayPrice)
+            sortDir    // Hướng sắp xếp (asc hoặc desc)
+        },
+        ...getAuthHeader()
+    });
+},
 
     // Mới: Tìm kiếm đơn hàng theo ID hoặc Tên người nhận (Khớp với hàm mới ở Backend)
     searchOrders: (searchText, page = 0, size = 10) => {

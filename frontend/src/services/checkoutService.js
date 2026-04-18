@@ -40,4 +40,16 @@ export const checkoutService = {
 		});
 		return response.data;
 	},
+
+	getShippingDistance: async (districtId, wardCode) => {
+    const response = await api.get('/distance', {
+      params: {
+        districtId: districtId,
+        wardCode: wardCode,
+      },
+    });
+    // Trả về số mét thực tế nhận được từ Backend
+    return response.data;
+  },
+
 };

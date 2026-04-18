@@ -32,6 +32,7 @@ const CheckoutPage = () => {
 		districtId: '',
 		wardCode: '',
 	});
+	const [distance, setDistance] = useState(0);
 
 	//Payment mặc định COD
 	const [paymentMethod, setPaymentMethod] = useState('COD');
@@ -243,16 +244,21 @@ const CheckoutPage = () => {
 		setLoadingFee(true);
 
 		try {
-			const currentSubtotal = checkoutItems.reduce((sum, item) => sum + item.product.salePrice * item.quantity, 0);
+			// const currentSubtotal = checkoutItems.reduce((sum, item) => sum + item.product.salePrice * item.quantity, 0);
 
 			// Dùng selectedAddress.districtId hiện có trong state
-			const fee = await checkoutService.previewShippingFee(selectedAddress.districtId, wCode, currentSubtotal);
-			console.log('Phí ship nhận được:', fee);
+			const [fee, dist] = await Promise.all([
+            checkoutService.previewShippingFee(selectedAddress.districtId, wCode, subtotal),
+            checkoutService.getShippingDistance(selectedAddress.districtId, wCode)
+        ]);
+			console.log('Tiền ship:', fee, 'Khoảng cách:', dist);
 			setShippingFee(typeof fee === 'number' ? fee : 0);
+			setDistance(dist || 0);
 			// setShippingFee(fee);
 		} catch (err) {
 			console.error('Lỗi tính phí ship:', err);
 			setShippingFee(0);
+			setDistance(0);
 		} finally {
 			setLoadingFee(false);
 		}
@@ -571,6 +577,14 @@ const CheckoutPage = () => {
 								<div className="flex justify-between text-slate-400">
 									<span>Subtotal</span>
 									<span className="text-white font-bold">${subtotal.toFixed(2)}</span>
+								</div>
+								<div className="flex justify-between text-slate-400">
+										<span>Distance</span>
+										<span className="text-white font-bold">
+												{/* distance nhận từ GHN thường là đơn vị mét (m) */}
+												{distance > 0 ? `${(distance / 1000).toFixed(1)} km` : '---'}
+												{/* {distance > 0 ? `${distance.toLocaleString()} m` : '---'} */}
+										</span>
 								</div>
 								<div className="flex justify-between text-slate-400">
 									<span>Shipping</span>
