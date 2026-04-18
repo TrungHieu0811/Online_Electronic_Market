@@ -249,14 +249,14 @@ export default function OrdersPage() {
 							</div>
 
 							<div className="flex flex-wrap gap-3">
-								<button className="flex items-center gap-2 rounded-xl bg-surface-container-high px-5 py-2.5 text-sm font-medium text-on-secondary-fixed-variant transition-all hover:bg-surface-container-highest">
+								{/* <button className="flex items-center gap-2 rounded-xl bg-surface-container-high px-5 py-2.5 text-sm font-medium text-on-secondary-fixed-variant transition-all hover:bg-surface-container-highest">
 									<span className="material-symbols-outlined text-lg">filter_list</span>
 									Filter
-								</button>
+								</button> */}
 
-								<button className="rounded-xl bg-gradient-to-br from-primary to-primary-container px-5 py-2.5 text-sm font-medium text-white shadow-lg transition-all active:scale-95">
+								{/* <button className="rounded-xl bg-gradient-to-br from-primary to-primary-container px-5 py-2.5 text-sm font-medium text-white shadow-lg transition-all active:scale-95">
 									Download Report
-								</button>
+								</button> */}
 							</div>
 						</header>
 

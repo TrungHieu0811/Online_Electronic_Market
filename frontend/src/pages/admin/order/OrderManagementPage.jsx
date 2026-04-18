@@ -98,9 +98,9 @@ const OrderManagementPage = () => {
                             >
                                 <PlayCircle size={18} /> Simulate GHN
                             </button> */}
-                            <button className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg">
+                            {/*<button className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg">
                                 Export CSV
-                            </button>
+                            </button>*/}
                         </div>
                     </div>
 
