@@ -1,5 +1,6 @@
 package fpt.demo.service;
 
+import fpt.demo.dto.AdminCreationDto;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import fpt.demo.dto.LoginRequestDto;
 import fpt.demo.dto.UserRegistrationDto;
 import fpt.demo.entity.RefreshToken;
+import fpt.demo.entity.Role;
 import fpt.demo.entity.User;
 import fpt.demo.jwt.JwtService;
 import fpt.demo.repository.RefreshTokenRepository;
@@ -34,7 +36,17 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final EmailService emailService;
-
+    
+    @Transactional
+    public void changePassword(String username, String newPassword) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Admin not found!"));
+        
+        // Cập nhật và mã hóa mật khẩu mới
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+    
     @Override
     @Transactional
     public String register(UserRegistrationDto request) {
@@ -131,6 +143,45 @@ public class AuthServiceImpl implements AuthService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error sending email: " + e.getMessage());
         }
+    }
+    
+    @Override
+    @Transactional
+    public String createAdmin(AdminCreationDto request) {
+        // 1. Kiểm tra trùng lặp
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("Username has already existed!");
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email has already existed!");
+        }
+        if (request.getPhone() != null && !request.getPhone().isEmpty() && userRepository.existsByPhone(request.getPhone())) {
+            throw new IllegalArgumentException("Số điện thoại has already existed!");
+        }
+
+        // 2. Tạo tài khoản Admin mới
+        User newAdmin = User.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                // 👉 TỰ ĐỘNG GÁN MẬT KHẨU MẶC ĐỊNH LÀ "123"
+                .password(passwordEncoder.encode("123"))
+                .fullName(request.getFullName())
+                .phone(request.getPhone())
+                
+                // 👉 LƯU Ý QUAN TRỌNG: Thiết lập quyền cho tài khoản này là ADMIN
+                // (Tùy thuộc vào Database của bạn lưu Role là số hay chữ. 
+                // Ví dụ: .userRole("ROLE_ADMIN") hoặc .roleId(2)... bạn sửa dòng này cho khớp nhé!)
+                .userRole(Role.ROLE_STAFF)
+                
+                // Admin tạo ra là xài được luôn, không cần OTP
+                .status(true) 
+                .emailConfirmed(true)
+                .build();
+
+        // 3. Lưu xuống Database
+        userRepository.save(newAdmin);
+
+        return "Tạo tài khoản Admin thành công!";
     }
 
     @Override

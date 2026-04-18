@@ -1,18 +1,26 @@
 package fpt.demo.controller;
 
-import fpt.demo.dto.UserProfileResponseDto;
-import fpt.demo.service.UserServiceImpl;
-import lombok.RequiredArgsConstructor;
+import java.security.Principal;
+import java.util.Map;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import fpt.demo.dto.UserProfileResponseDto;
 import fpt.demo.dto.UserUpdateDto;
 import fpt.demo.entity.User;
 import fpt.demo.repository.UserRepository;
-
-import java.security.Principal;
-import org.springframework.http.HttpStatus;
+import fpt.demo.service.FileStorageService;
+import fpt.demo.service.UserServiceImpl;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/users")
@@ -21,40 +29,31 @@ public class UserController {
 
     private final UserServiceImpl userService;
     private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
 
-    // Lấy thông tin cá nhân
+    // Get current user profile
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponseDto> getMyProfile(Principal principal) {
-        // principal.getName() chính là username được trích xuất từ JWT Token
         UserProfileResponseDto profile = userService.getUserProfile(principal.getName());
         return ResponseEntity.ok(profile);
     }
-    
-    // Cập nhật thông tin cá nhân
-//    @PutMapping("/me")
-//    public ResponseEntity<UserProfileResponseDto> updateMyProfile(
-//            Principal principal,
-//            @RequestBody UserProfileResponseDto updateRequest) {
-//        
-//        UserProfileResponseDto updatedProfile = userService.updateProfile(principal.getName(), updateRequest);
-//        return ResponseEntity.ok(updatedProfile);
-//    }
+
+    // Update current user profile
     @PutMapping("/me")
     public ResponseEntity<?> updateProfile(Principal principal, @RequestBody UserUpdateDto request) {
         if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("You are not logged in.!");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("You are not logged in!");
         }
 
-        // Tìm user đang đăng nhập
+        // Find current logged-in user
         User currentUser = userRepository.findByUsername(principal.getName())
-                .orElseThrow(() -> new RuntimeException("No user found!"));
+                .orElseThrow(() -> new RuntimeException("User not found!"));
 
-        // Kiểm tra xem user có gửi dữ liệu nào lên không thì mới cập nhật dữ liệu đó
+        // Update only fields that are provided
         if (request.getFullName() != null && !request.getFullName().isEmpty()) {
             currentUser.setFullName(request.getFullName());
         }
         if (request.getPhone() != null && !request.getPhone().isEmpty()) {
-            // Lưu ý: Nếu muốn an toàn, bạn nên thêm check trùng số điện thoại ở đây
             currentUser.setPhone(request.getPhone());
         }
         if (request.getAddress() != null) {
@@ -70,9 +69,47 @@ public class UserController {
             currentUser.setAvatarUrl(request.getAvatarUrl());
         }
 
-        // Lưu lại vào DB   
+        // Save to DB
         userRepository.save(currentUser);
 
-        return ResponseEntity.ok("Information updated successfully!");
+        UserProfileResponseDto updatedProfile = userService.getUserProfile(principal.getName());
+        return ResponseEntity.ok(updatedProfile);
+    }
+
+    // Upload avatar
+    @PostMapping("/upload-avatar")
+    public ResponseEntity<?> uploadAvatar(
+            @RequestParam("file") MultipartFile file,
+            Principal principal
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("You are not logged in!");
+        }
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body("Please select an image!");
+        }
+
+        User user = userRepository.findByUsername(principal.getName())
+                .orElseThrow(() -> new RuntimeException("User not found!"));
+
+        // Delete old avatar if it exists
+        if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+            fileStorageService.deleteFile(user.getAvatarUrl());
+        }
+
+        // Save new file
+        String filePath = fileStorageService.saveFile(file, "avatars");
+
+        // Save new avatar path to DB
+        user.setAvatarUrl(filePath);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Avatar uploaded successfully!",
+                "avatarUrl", filePath
+        ));
     }
 }
