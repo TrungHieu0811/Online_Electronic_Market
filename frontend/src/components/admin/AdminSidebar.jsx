@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
+
+import { Link, useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode'; // 👉 Nhớ cài thư viện này nếu chưa có: npm install jwt-decode
+
 import {
     LayoutDashboard,
     Package,
     ShoppingCart,
     Users,
-    BarChart3,
+    UserPlus, // 👉 Thêm icon này vào phần import ở đầu file
     Settings,
     Bolt
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode'; // 👉 Nhớ cài thư viện này nếu chưa có: npm install jwt-decode
 
 const menuItems = [
     { label: 'Dashboard', icon: LayoutDashboard, href: 'dashboard', active: true },
@@ -22,7 +24,15 @@ const menuItems = [
     { label: 'Reviews & Comments', icon: Users, href: 'reviews-comments' },
     { label: 'Coupons', icon: Package, href: 'coupons' },
     // { label: 'Analytics', icon: BarChart3 },
-    { label: 'Settings', icon: Settings, href: 'settings' }
+    { label: 'Settings', icon: Settings, href: 'settings' },
+    
+    // 👉 CẬP NHẬT PHẦN CREATE ADMIN TẠI ĐÂY
+    { 
+        label: 'Create Admin', 
+        icon: UserPlus,      // Dùng UserPlus nhìn sẽ chuẩn "Add Admin" hơn
+        href: 'create-admin',
+        requiresSuperAdmin: true // Đặt flag này để sau này bạn check quyền ẩn/hiện menu
+    },
 ];
 
 export default function AdminSidebar() {
