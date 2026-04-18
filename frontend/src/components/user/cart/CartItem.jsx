@@ -16,6 +16,44 @@ const CartItem = ({item, onToggle, onUpdate, onRemove}) => {
 	const productDetailPath = `/products/${product?.slug || product?.id}`;
 	const BASE_IMAGE_URL = 'http://localhost:8080/uploads';
 
+	// 1. Tìm ảnh dự phòng từ nhiều nguồn khác nhau
+const getValidUrl = () => {
+    // Ưu tiên 1: Link trực tiếp từ item (thường có khi login)
+    if (item.imageUrl && item.imageUrl !== 'null' && item.imageUrl !== 'undefined') {
+        return item.imageUrl;
+    }
+    
+    // Ưu tiên 2: Ảnh chính của product
+    if (product?.mainImage) return product.mainImage;
+    
+    // Ưu tiên 3: Ảnh trong danh sách imageList
+    const list = product?.imageList || product?.images; 
+    if (list && list.length > 0) {
+        return list[0].imageUrl || list[0].image_url; 
+    }
+    
+    return null;
+};
+
+const finalUrl = getValidUrl();
+
+const formatImageUrl = (url) => {
+    // 1. Kiểm tra nếu url rỗng hoặc undefined
+    if (!url || url === 'null' || url === 'undefined') return '/default-product.png';
+    
+    // 2. Làm sạch khoảng trắng (Rất quan trọng khi merge dữ liệu)
+    const cleanUrl = String(url).trim();
+    
+    // 3. LOGIC QUYẾT ĐỊNH:
+    // Nếu link bắt đầu bằng 'http', đây là link Picsum/online -> Trả về chính nó
+    if (cleanUrl.startsWith('http')) {
+        return cleanUrl; 
+    }
+    
+    // 4. Nếu không, đây mới là ảnh local trong folder uploads -> Thực hiện nối chuỗi
+    return `${BASE_IMAGE_URL}/${cleanUrl}`.replace(/([^:]\/)\/+/g, "$1");
+};
+
 	const handleInputChange = (e) => {
 		const value = e.target.value;
 
@@ -57,10 +95,11 @@ const CartItem = ({item, onToggle, onUpdate, onRemove}) => {
 				className="w-32 h-32 flex-shrink-0 bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700 hover:opacity-80 transition-opacity"
 			>
 				<img
-					className="w-full h-full object-contain overflow-hidden"
-					src={item.imageUrl?.startsWith('http') ? item.imageUrl : `${BASE_IMAGE_URL + item.imageUrl}`}
-					alt={item.product.variantName}
-				/>
+        className="w-full h-full object-contain overflow-hidden"
+        src={formatImageUrl(finalUrl)}
+        alt={product?.variantName}
+        // THÊM DÒNG NÀY: Chốt chặn cuối cùng nếu link vẫn die
+    />
 			</Link>
 
 			<div className="flex-1 text-center sm:text-left">

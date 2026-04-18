@@ -314,6 +314,7 @@ const CheckoutPage = () => {
 				const paymentData = await paymentService.createPayment(orderId, 'PAYPAL');
 
 				if (paymentData.paymentUrl) {
+					localStorage.removeItem('checkoutItems');
 					// Chuyển hướng sang trang PayPal
 					window.location.href = paymentData.paymentUrl;
 				} else {
@@ -322,6 +323,8 @@ const CheckoutPage = () => {
 			} else {
 				// Trường hợp COD (Giao hàng trả tiền mặt)
 				await paymentService.createPayment(orderId, 'COD');
+
+				localStorage.removeItem('checkoutItems');
 
 				if (!location.state?.isBuyNow) {
 					localStorage.removeItem('checkoutItems'); // Chỉ xóa cache giỏ hàng nếu không phải Buy Now
@@ -398,13 +401,23 @@ const CheckoutPage = () => {
 									<input
 										value={formData.phone}
 										onChange={(e) => setFormData({...formData, phone: e.target.value})}
-										disabled={useProfileInfo}
+										// disabled={useProfileInfo}
 										placeholder="Enter phone number"
 										className="border border-slate-200 p-4 rounded-xl w-full focus:ring-2 focus:ring-orange-500 disabled:bg-slate-50 outline-none"
 										required
 									/>
 								</div>
-								<div>
+								
+							</div>
+						</div>
+
+						{/* Shipping Area */}
+						<div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+							<h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+								<span className="w-1.5 h-5 bg-blue-500 rounded-full"></span>
+								Shipping Area
+							</h3>
+							<div>
 									<label className="text-[10px] font-bold text-slate-400 ml-1">STREET ADDRESS</label>
 									<input
 										value={formData.address}
@@ -415,15 +428,6 @@ const CheckoutPage = () => {
 										required
 									/>
 								</div>
-							</div>
-						</div>
-
-						{/* Shipping Area */}
-						<div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-							<h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-								<span className="w-1.5 h-5 bg-blue-500 rounded-full"></span>
-								Shipping Area
-							</h3>
 							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 								<select onChange={handleProvinceChange} value={selectedAddress.provinceId} className="...">
 									<option value="">Select Province</option>

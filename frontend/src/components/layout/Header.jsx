@@ -157,16 +157,16 @@ export default function Header() {
 			{/* Top Bar */}
 			<div className="bg-[#045fae] px-4 py-2 text-xs text-white">
 				<div className="mx-auto flex max-w-6xl items-center justify-between">
-					<span>Free International Shipping on orders over $500</span>
+					<span>Free International Shipping on orders over $1500</span>
 
-					<div className="flex gap-4">
+					{/* <div className="flex gap-4">
 						<a href="#" className="hover:underline">
 							Store Locator
 						</a>
 						<a href="#" className="hover:underline">
 							Track Order
 						</a>
-					</div>
+					</div> */}
 				</div>
 			</div>
 			<div className="border-t border-gray-100 bg-gray-50">

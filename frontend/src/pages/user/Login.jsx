@@ -26,6 +26,8 @@ const Login = () => {
 		});
 	};
 
+	const { fetchCartCount } = useCart();
+
 	const handleSubmit = async (e) => {
 		const originPath = location.state?.from || '/';
 		e.preventDefault();
@@ -70,27 +72,17 @@ const Login = () => {
 
 					// 2. Nếu có hàng trong giỏ tạm, tiến hành gọi API merge
 					if (localCart.length > 0) {
-						await cartService.mergeCart(localCart);
-						console.log('Cart merged successfully!');
-						// 3. Xóa giỏ hàng tạm sau khi đã gộp thành công vào Database
-						localStorage.removeItem('guestCart');
-						await fetchCartCount();
-					} else {
-						await fetchCartCount();
-					}
-				} catch (mergeError) {
-					// Chỉ log lỗi merge để không làm gián đoạn quá trình login chính
-					console.error('Failed to merge cart:', mergeError);
-				}
 
-				//Merge cart
-				try {
-					// 1. Lấy dữ liệu giỏ hàng tạm thời từ localStorage
-					const localCart = JSON.parse(localStorage.getItem('guestCart')) || [];
+						const dataToMerge = localCart.map(item => ({
+								productId: item.productId,
+								quantity: item.quantity,
+								// Lấy ảnh đầu tiên từ imageList của Guest để gửi lên
+								imageUrl: item.product?.imageList?.[0]?.imageUrl || item.imageUrl 
+						}));
 
-					// 2. Nếu có hàng trong giỏ tạm, tiến hành gọi API merge
-					if (localCart.length > 0) {
-						await cartService.mergeCart(localCart);
+						console.log("Dữ liệu gửi lên Backend để gộp nè:", dataToMerge);
+						await cartService.mergeCart(dataToMerge);
+						// await cartService.mergeCart(localCart);
 						console.log('Cart merged successfully!');
 						// 3. Xóa giỏ hàng tạm sau khi đã gộp thành công vào Database
 						localStorage.removeItem('guestCart');
@@ -264,7 +256,7 @@ const Login = () => {
 						</div>
 
 						{/* Social Login */}
-						<div className="grid grid-cols-2 gap-4">
+						{/* <div className="grid grid-cols-2 gap-4">
 							<button
 								className="h-12 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
 								type="button"
@@ -281,7 +273,7 @@ const Login = () => {
 								<FaApple />
 								<span className="text-sm font-medium text-slate-700 dark:text-slate-300">Apple</span>
 							</button>
-						</div>
+						</div> */}
 					</form>
 
 					{/* Footer Link */}
