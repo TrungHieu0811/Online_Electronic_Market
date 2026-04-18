@@ -22,7 +22,7 @@ const menuItems = [
     { label: 'Reviews & Comments', icon: Users, href: 'reviews-comments' },
     { label: 'Coupons', icon: Package, href: 'coupons' },
     // { label: 'Analytics', icon: BarChart3 },
-    { label: 'Settings', icon: Settings, href: 'settings' }
+    // { label: 'Settings', icon: Settings, href: 'settings' }
 ];
 
 export default function AdminSidebar() {

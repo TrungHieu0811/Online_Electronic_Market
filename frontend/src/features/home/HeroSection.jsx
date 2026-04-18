@@ -103,14 +103,14 @@ export default function HeroSection() {
 							Experience the latest smartphone technology with the Galaxy S24 Ultra. Professional-grade camera, titanium build,
 							and AI-powered performance.
 						</p>
-						<div className="flex flex-col justify-center gap-4 sm:flex-row md:justify-start">
+						{/* <div className="flex flex-col justify-center gap-4 sm:flex-row md:justify-start">
 							<button className="rounded bg-[#045fae] px-10 py-4 font-bold text-white shadow-lg transition hover:bg-blue-800">
 								Shop Now
 							</button>
 							<button className="rounded border-2 border-[#045fae] px-10 py-4 font-bold text-[#045fae] transition hover:bg-[#045fae] hover:text-white">
 								Learn More
 							</button>
-						</div>
+						</div> */}
 					</div>
 
 					{/* Right */}

@@ -264,7 +264,7 @@ const Login = () => {
 						</div>
 
 						{/* Social Login */}
-						<div className="grid grid-cols-2 gap-4">
+						{/* <div className="grid grid-cols-2 gap-4">
 							<button
 								className="h-12 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
 								type="button"
@@ -281,7 +281,7 @@ const Login = () => {
 								<FaApple />
 								<span className="text-sm font-medium text-slate-700 dark:text-slate-300">Apple</span>
 							</button>
-						</div>
+						</div> */}
 					</form>
 
 					{/* Footer Link */}
