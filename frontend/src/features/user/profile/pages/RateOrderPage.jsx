@@ -1,208 +1,272 @@
-import {useEffect, useMemo, useState} from 'react';
-import {useLocation, useParams} from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import OrderReviewHeader from '../components/OrderReviewHeader';
 import ReviewProductCard from '../components/ReviewProductCard';
-import {getOrderForReview, submitOrderReviews} from '../../../../services/orderReviewApi';
+import { getOrderForReview, submitOrderReviews } from '../../../../services/orderReviewApi';
 
 export default function RateOrderPage() {
-	const {orderId} = useParams();
-	const location = useLocation();
+    const { orderId } = useParams();
+    const location = useLocation();
+    const navigate = useNavigate();
 
-	const passedOrder = location.state?.order || null;
+    const passedOrder = location.state?.order || null;
 
-	const [order, setOrder] = useState(null);
-	const [reviews, setReviews] = useState({});
-	const [loading, setLoading] = useState(true);
-	const [submitting, setSubmitting] = useState(false);
-	const [error, setError] = useState('');
-	const BASE_IMAGE_URL = 'http://localhost:8080/uploads';
-	useEffect(() => {
-		const fetchOrder = async () => {
-			try {
-				setLoading(true);
-				setError('');
+    const [order, setOrder] = useState(null);
+    const [reviews, setReviews] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState(false);
 
-				const data = await getOrderForReview(orderId);
-				setOrder(data);
+    const BASE_IMAGE_URL = 'http://localhost:8080/uploads';
 
-				const initialReviews = {};
-				const apiItems = Array.isArray(data?.items) ? data.items : [];
+    useEffect(() => {
+        const fetchOrder = async () => {
+            try {
+                setLoading(true);
+                setError('');
 
-				apiItems.forEach((item) => {
-					initialReviews[item.id] = {
-						rating: 0,
-						comment: '',
-					};
-				});
+                const data = await getOrderForReview(orderId);
+                setOrder(data);
 
-				setReviews(initialReviews);
-			} catch (err) {
-				console.error(err);
-				setError(err?.response?.data?.error || 'Failed to load order review data');
-			} finally {
-				setLoading(false);
-			}
-		};
+                const initialReviews = {};
+                const apiItems = Array.isArray(data?.items) ? data.items : [];
 
-		if (orderId) {
-			fetchOrder();
-		}
-	}, [orderId]);
+                apiItems.forEach((item) => {
+                    initialReviews[item.id] = {
+                        rating: 0,
+                        comment: ''
+                    };
+                });
 
-	const fallbackItems = useMemo(() => {
-		if (!passedOrder) return [];
+                setReviews(initialReviews);
+            } catch (err) {
+                console.error(err);
+                setError(err?.response?.data?.error || 'Failed to load order review data');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-		const sourceItems = passedOrder.orderItems || passedOrder.items || [];
+        if (orderId) {
+            fetchOrder();
+        }
+    }, [orderId]);
 
-		return sourceItems.map((item, index) => ({
-			id: item.id ?? index,
-			productId: item.product?.id ?? item.productId ?? null,
-			productName: item.product?.variantName || item.product?.name || item.productName || `Product ${index + 1}`,
-			price: item.priceAtPurchase ?? item.price_at_purchase ?? item.product?.salePrice ?? item.price ?? 0,
-			imageUrl: item.product?.thumbnailUrl || item.product?.imageUrl || item.imageUrl || null,
-		}));
-	}, [passedOrder]);
+    const fallbackItems = useMemo(() => {
+        if (!passedOrder) return [];
 
-	const reviewableItems = Array.isArray(order?.items) ? order.items : [];
-	const hasReviewableItems = reviewableItems.length > 0;
-	const hasFallbackItems = fallbackItems.length > 0;
+        const sourceItems = passedOrder.orderItems || passedOrder.items || [];
 
-	const handleRatingChange = (itemId, rating) => {
-		setReviews((prev) => ({
-			...prev,
-			[itemId]: {
-				...prev[itemId],
-				rating,
-			},
-		}));
-	};
+        return sourceItems.map((item, index) => ({
+            id: item.id ?? index,
+            productId: item.product?.id ?? item.productId ?? null,
+            productName:
+                item.product?.variantName ||
+                item.product?.name ||
+                item.productName ||
+                `Product ${index + 1}`,
+            price:
+                item.priceAtPurchase ??
+                item.price_at_purchase ??
+                item.product?.salePrice ??
+                item.price ??
+                0,
+            imageUrl: item.product?.thumbnailUrl || item.product?.imageUrl || item.imageUrl || null
+        }));
+    }, [passedOrder]);
 
-	const handleCommentChange = (itemId, comment) => {
-		setReviews((prev) => ({
-			...prev,
-			[itemId]: {
-				...prev[itemId],
-				comment,
-			},
-		}));
-	};
+    const reviewableItems = Array.isArray(order?.items) ? order.items : [];
+    const hasReviewableItems = reviewableItems.length > 0;
+    const hasFallbackItems = fallbackItems.length > 0;
 
-	const handleSubmit = async (e) => {
-		e.preventDefault();
+    const handleRatingChange = (itemId, rating) => {
+        setReviews((prev) => ({
+            ...prev,
+            [itemId]: {
+                ...prev[itemId],
+                rating
+            }
+        }));
+    };
 
-		if (!order || reviewableItems.length === 0) return;
+    const handleCommentChange = (itemId, comment) => {
+        setReviews((prev) => ({
+            ...prev,
+            [itemId]: {
+                ...prev[itemId],
+                comment
+            }
+        }));
+    };
 
-		const payload = {
-			reviews: reviewableItems.map((item) => ({
-				orderItemId: item.id,
-				productId: item.productId,
-				image: item.product?.thumbnailUrl || item.product?.imageUrl || null,
-				rating: reviews[item.id]?.rating || 0,
-				comment: reviews[item.id]?.comment || '',
-			})),
-		};
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-		const hasInvalidRating = payload.reviews.some((r) => r.rating < 1 || r.rating > 5);
-		if (hasInvalidRating) {
-			alert('Please select a rating for all products.');
-			return;
-		}
+        if (!order || reviewableItems.length === 0) return;
 
-		try {
-			setSubmitting(true);
-			await submitOrderReviews(orderId, payload);
-			alert('Reviews submitted successfully!');
-		} catch (err) {
-			console.error(err);
-			alert(err?.response?.data?.error || 'Failed to submit reviews!');
-		} finally {
-			setSubmitting(false);
-		}
-	};
+        setError('');
 
-	if (loading) {
-		return <div className="p-10 text-lg">Loading...</div>;
-	}
+        const payload = {
+            reviews: reviewableItems.map((item) => ({
+                orderItemId: item.id,
+                productId: item.productId,
+                image: item.product?.thumbnailUrl || item.product?.imageUrl || null,
+                rating: reviews[item.id]?.rating || 0,
+                comment: reviews[item.id]?.comment || ''
+            }))
+        };
 
-	if (error) {
-		return <div className="p-10 text-red-500">{error}</div>;
-	}
+        const hasInvalidRating = payload.reviews.some((r) => r.rating < 1 || r.rating > 5);
 
-	if (!order) {
-		return <div className="p-10">No order data available.</div>;
-	}
+        if (hasInvalidRating) {
+            setError('Please select a rating for all products.');
+            return;
+        }
 
-	return (
-		<main className="mx-auto max-w-4xl px-6 pb-10 pt-14">
-			<OrderReviewHeader orderId={order.orderId} status={order.status} />
+        try {
+            setSubmitting(true);
+            await submitOrderReviews(orderId, payload);
 
-			{hasReviewableItems ? (
-				<form onSubmit={handleSubmit}>
-					{reviewableItems.map((item) => (
-						<ReviewProductCard
-							key={item.id}
-							item={item}
-							review={reviews[item.id]}
-							onRatingChange={handleRatingChange}
-							onCommentChange={handleCommentChange}
-						/>
-					))}
+            setSuccess(true);
 
-					<div className="flex justify-center">
-						<button
-							type="submit"
-							disabled={submitting}
-							className="min-w-[320px] rounded-2xl bg-gradient-to-br from-[#003f87] to-[#0056b3] px-12 py-5 text-lg font-bold text-white shadow-[0px_8px_24px_rgba(0,86,179,0.3)] transition hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-						>
-							{submitting ? 'Submitting...' : 'Submit All Reviews'}
-						</button>
-					</div>
-				</form>
-			) : hasFallbackItems ? (
-				<div className="space-y-6">
-					<div className="rounded-2xl bg-white p-8 text-center shadow-[0px_12px_32px_rgba(0,26,64,0.08)]">
-						<h2 className="mb-2 text-2xl font-bold text-slate-900">Reviewed items</h2>
-						<p className="text-slate-600">This order has already been reviewed. Here are the products from that order.</p>
-					</div>
+            setTimeout(() => {
+                navigate('/profile/orders', { replace: true });
+            }, 1500);
+        } catch (err) {
+            console.error(err);
+            setError(err?.response?.data?.error || 'Failed to submit reviews!');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
-					<div className="space-y-4">
-						{fallbackItems.map((item) => (
-							<div
-								key={item.id}
-								className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-[0px_12px_32px_rgba(0,26,64,0.08)]"
-							>
-								<div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl bg-slate-100">
-									{item.imageUrl ? (
-										<img
-											src={item.imageUrl.startsWith('http') ? item.imageUrl : `${BASE_IMAGE_URL + item.imageUrl}`}
-											alt={item.productName}
-											className="h-full w-full object-cover"
-										/>
-									) : (
-										<span className="material-symbols-outlined text-3xl text-slate-400">inventory_2</span>
-									)}
-								</div>
+    if (loading) {
+        return <div className='p-10 text-lg'>Loading...</div>;
+    }
 
-								<div className="min-w-0 flex-1">
-									<h3 className="truncate text-lg font-bold text-slate-900">{item.productName}</h3>
-									<p className="mt-1 text-sm text-slate-500">Product ID: {item.productId ?? 'N/A'}</p>
-									<p className="mt-1 font-semibold text-slate-900">
-										{new Intl.NumberFormat('en-US', {
-											style: 'currency',
-											currency: 'USD',
-										}).format(Number(item.price ?? 0))}
-									</p>
-								</div>
-							</div>
-						))}
-					</div>
-				</div>
-			) : (
-				<div className="rounded-2xl bg-white p-8 text-center shadow-[0px_12px_32px_rgba(0,26,64,0.08)]">
-					<h2 className="mb-2 text-2xl font-bold text-slate-900">No items to review</h2>
-					<p className="text-slate-600">This order has already been reviewed. Thank you.</p>
-				</div>
-			)}
-		</main>
-	);
+    if (error && !order) {
+        return <div className='p-10 text-red-500'>{error}</div>;
+    }
+
+    if (!order) {
+        return <div className='p-10'>No order data available.</div>;
+    }
+
+    return (
+        <main className='mx-auto max-w-4xl px-6 pb-10 pt-14'>
+            <OrderReviewHeader orderId={order.orderId} status={order.status} />
+
+            {success && (
+                <div className='mb-6 rounded-2xl border border-green-200 bg-green-50 px-6 py-4 text-green-700 shadow-sm'>
+                    <div className='flex items-center gap-3'>
+                        <span className='text-xl'>✅</span>
+                        <div>
+                            <p className='font-semibold'>Reviews submitted successfully!</p>
+                            <p className='text-sm text-green-600'>Redirecting to your orders...</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {!!error && order && (
+                <div className='mb-6 rounded-2xl border border-red-200 bg-red-50 px-6 py-4 text-red-700 shadow-sm'>
+                    <div className='flex items-center gap-3'>
+                        <span className='text-xl'>⚠️</span>
+                        <div>
+                            <p className='font-semibold'>Something went wrong</p>
+                            <p className='text-sm text-red-600'>{error}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {hasReviewableItems ? (
+                <form onSubmit={handleSubmit}>
+                    {reviewableItems.map((item) => (
+                        <ReviewProductCard
+                            key={item.id}
+                            item={item}
+                            review={reviews[item.id]}
+                            onRatingChange={handleRatingChange}
+                            onCommentChange={handleCommentChange}
+                        />
+                    ))}
+
+                    <div className='flex justify-center'>
+                        <button
+                            type='submit'
+                            disabled={submitting || success}
+                            className='min-w-[320px] rounded-2xl bg-gradient-to-br from-[#003f87] to-[#0056b3] px-12 py-5 text-lg font-bold text-white shadow-[0px_8px_24px_rgba(0,86,179,0.3)] transition hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60'
+                        >
+                            {submitting
+                                ? 'Submitting...'
+                                : success
+                                  ? 'Submitted Successfully'
+                                  : 'Submit All Reviews'}
+                        </button>
+                    </div>
+                </form>
+            ) : hasFallbackItems ? (
+                <div className='space-y-6'>
+                    <div className='rounded-2xl bg-white p-8 text-center shadow-[0px_12px_32px_rgba(0,26,64,0.08)]'>
+                        <h2 className='mb-2 text-2xl font-bold text-slate-900'>Reviewed items</h2>
+                        <p className='text-slate-600'>
+                            This order has already been reviewed. Here are the products from that
+                            order.
+                        </p>
+                    </div>
+
+                    <div className='space-y-4'>
+                        {fallbackItems.map((item) => (
+                            <div
+                                key={item.id}
+                                className='flex items-center gap-4 rounded-2xl bg-white p-5 shadow-[0px_12px_32px_rgba(0,26,64,0.08)]'
+                            >
+                                <div className='flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl bg-slate-100'>
+                                    {item.imageUrl ? (
+                                        <img
+                                            src={
+                                                item.imageUrl.startsWith('http')
+                                                    ? item.imageUrl
+                                                    : `${BASE_IMAGE_URL + item.imageUrl}`
+                                            }
+                                            alt={item.productName}
+                                            className='h-full w-full object-cover'
+                                        />
+                                    ) : (
+                                        <span className='material-symbols-outlined text-3xl text-slate-400'>
+                                            inventory_2
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className='min-w-0 flex-1'>
+                                    <h3 className='truncate text-lg font-bold text-slate-900'>
+                                        {item.productName}
+                                    </h3>
+                                    <p className='mt-1 text-sm text-slate-500'>
+                                        Product ID: {item.productId ?? 'N/A'}
+                                    </p>
+                                    <p className='mt-1 font-semibold text-slate-900'>
+                                        {new Intl.NumberFormat('en-US', {
+                                            style: 'currency',
+                                            currency: 'USD'
+                                        }).format(Number(item.price ?? 0))}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div className='rounded-2xl bg-white p-8 text-center shadow-[0px_12px_32px_rgba(0,26,64,0.08)]'>
+                    <h2 className='mb-2 text-2xl font-bold text-slate-900'>No items to review</h2>
+                    <p className='text-slate-600'>
+                        This order has already been reviewed. Thank you.
+                    </p>
+                </div>
+            )}
+        </main>
+    );
 }
