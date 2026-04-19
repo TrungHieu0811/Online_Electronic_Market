@@ -15,7 +15,7 @@ const ConditionalChatBox = () => {
         return null;
     }
 
-    // Trả về thẳng ChatBox, các class bên trong ChatBox.css sẽ lo việc hiển thị nổi lên hello 123
+    // Trả về thẳng ChatBox, các class bên trong ChatBox.css sẽ lo việc hiển thị nổi lên
     return <ChatBox />;
 };
 
