@@ -323,7 +323,7 @@ const handleRemove = async (id) => {
 	}, 0);
 
 	// TÍNH TOÁN: Chỉ tính tiền cho những món được check (isSelected = true)
-	const tax = subtotal > 0 ? 12.5 : 0;
+	const tax = subtotal * 0.1;
 	const total = subtotal + tax;
 
 	if (loading) return <div className="p-20 text-center">Loading your cart...</div>;

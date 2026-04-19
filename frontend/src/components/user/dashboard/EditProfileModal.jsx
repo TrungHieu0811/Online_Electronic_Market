@@ -67,10 +67,14 @@ export default function EditProfileModal() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value
-        }));
+        if (name === 'phone') {
+            const onlyNums = value.replace(/[^0-9]/g, '');
+            if (onlyNums.length <= 10) {
+                setFormData(prev => ({ ...prev, [name]: onlyNums }));
+            }
+            return;
+        }
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleClose = () => {
@@ -118,6 +122,13 @@ export default function EditProfileModal() {
             }
         }
 
+        // 👉 2. CHẶN SỐ ĐIỆN THOẠI (Regex: Bắt đầu bằng 0 và theo sau là 9 chữ số)
+        const phoneRegex = /^0\d{9}$/;
+        if (formData.phone && !phoneRegex.test(formData.phone)) {
+            toast.warning("Phone number must be 10 digits and start with 0!");
+            return;
+        }
+
         try {
             setLoading(true);
 
@@ -144,8 +155,13 @@ export default function EditProfileModal() {
             navigate('/profile', { replace: true, state: { refresh: Date.now() } });
 
         } catch (error) {
-            console.error('Update failed:', error);
-            toast.error(error?.response?.data || 'Profile update failed!'); // 👉 ĐỔI THÀNH TOAST
+            // 👉 3. BẮT LỖI TRÙNG SỐ ĐIỆN THOẠI TỪ BACKEND TRẢ VỀ
+            if (error.response && error.response.status === 400) {
+                // Nếu backend trả về tin nhắn lỗi trùng phone
+                toast.error(error.response.data.error || error.response.data || "Update failed!");
+            } else {
+                toast.error("An error occurred!");
+            }
         } finally {
             setLoading(false);
         }

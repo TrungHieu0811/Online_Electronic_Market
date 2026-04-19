@@ -35,7 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 # Thư viện dùng để gọi API (Mạnh và dễ dùng hơn http mặc định)
-  dio: ^5.4.3
+  dio: ^5.9.2
   
   # Thư viện để giấu kín Access Token / Refresh Token an toàn trong máy
   flutter_secure_storage: ^9.0.0

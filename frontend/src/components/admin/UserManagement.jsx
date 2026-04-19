@@ -279,10 +279,10 @@ export default function UserManagementPage() {
 
 						<div className="h-8 w-px bg-slate-200" />
 
-						<button className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-orange-700 transition-colors">
+						{/* <button className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-orange-700 transition-colors">
 							<UserPlus size={16} />
 							<span>Add New User</span>
-						</button>
+						</button> */}
 					</div>
 				</header>
 

@@ -111,7 +111,7 @@ export default function AdminReviewsCommentsPage() {
         if (!status) return 'Unknown';
         return status.charAt(0) + status.slice(1).toLowerCase();
     };
-console.log("REVIEWS: ",reviews);
+    console.log('REVIEWS: ', reviews);
     const renderStatusBadge = (status) => {
         switch (status) {
             case 'PENDING':
@@ -363,7 +363,7 @@ console.log("REVIEWS: ",reviews);
                                                     >
                                                         <td className='px-6 py-5'>
                                                             <div className='flex items-center gap-3'>
-                                                                <div className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-gray-200'>
+                                                                {/* <div className='flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-gray-200'>
                                                                     {review.productThumbnail ? (
                                                                         <img
                                                                             src={
@@ -377,7 +377,7 @@ console.log("REVIEWS: ",reviews);
                                                                             IMG
                                                                         </span>
                                                                     )}
-                                                                </div>
+                                                                </div> */}
                                                                 <div>
                                                                     <p className='text-sm font-bold text-gray-900'>
                                                                         {review.productName ||
@@ -400,7 +400,7 @@ console.log("REVIEWS: ",reviews);
                                                         </td>
 
                                                         <td className='max-w-xs px-6 py-5 text-sm text-gray-600'>
-                                                            <p className='truncate'>
+                                                            <p className='whitespace-normal break-words leading-6'>
                                                                 {review.comment || 'No comment'}
                                                             </p>
                                                         </td>

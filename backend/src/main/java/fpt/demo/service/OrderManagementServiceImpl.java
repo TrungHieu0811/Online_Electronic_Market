@@ -90,12 +90,21 @@ public class OrderManagementServiceImpl implements OrderManagementService {
     }
 
     @Override
-    public Page<Order> findAllOrders(int page, int size, String status) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+    public Page<Order> findAllOrders(int page, int size, String status, String sortField, String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("asc") 
+                ? Sort.by(sortField).ascending() 
+                : Sort.by(sortField).descending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
 
         if (status != null && !status.isEmpty()) {
-            // Lọc theo trạng thái nếu Admin nhấn vào tab tương ứng
-            return orderRepository.findByOrderStatus(Order.OrderStatus.valueOf(status.toUpperCase()), pageable);
+            try {
+                Order.OrderStatus statusEnum = Order.OrderStatus.valueOf(status.toUpperCase());
+                // PHẢI dùng pageable ở đây để Sort có tác dụng khi lọc theo Tab
+                return orderRepository.findByOrderStatus(statusEnum, pageable);
+            } catch (IllegalArgumentException e) {
+                // Nếu status không hợp lệ, quay về mặc định
+            }
         }
 
         // Mặc định lấy tất cả
