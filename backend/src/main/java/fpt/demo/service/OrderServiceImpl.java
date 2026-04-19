@@ -357,10 +357,6 @@ public class OrderServiceImpl implements OrderService {
             // 2. Truyền giá trị VNĐ vào service
             double ghnFeeVnd = shippingService.getShippingFee(districtId, wardCode, totalBaseVnd, totalWeight);
 
-            // Nếu Sandbox trả về phí quá thấp (dưới 1000đ), hãy gán một con số thực tế hơn
-//      if (ghnFeeVnd < 1000.0) {
-//        ghnFeeVnd = 35000.0; // Giả lập phí ship là 35,000đ
-//      }
             double adjustedFeeVnd = (ghnFeeVnd);
 
             // 3. Quy đổi kết quả phí ship từ VNĐ ngược lại USD
@@ -377,7 +373,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public double getShippingDistance(Integer districtId, String wardCode) {
+    public double getShippingDistance(Integer provinceId, Integer districtId, String wardCode) {
         try {
             // 1. Lấy User hiện tại để tìm giỏ hàng
             String currentUsername = org.springframework.security.core.context.SecurityContextHolder
@@ -396,7 +392,7 @@ public class OrderServiceImpl implements OrderService {
             }
 
             // 3. Gọi Service với đầy đủ 3 tham số (Sau khi bé đã sửa Interface và Impl)
-            return shippingService.getActualDistance(districtId, wardCode, totalWeight);
+            return shippingService.getActualDistance(provinceId, districtId, wardCode, totalWeight);
 
         } catch (Exception e) {
             System.err.println("Lỗi tính khoảng cách: " + e.getMessage());

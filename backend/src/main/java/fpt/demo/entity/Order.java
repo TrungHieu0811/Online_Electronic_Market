@@ -44,6 +44,7 @@ public class Order {
     @ManyToOne
     private Coupon coupon;
 
+    @Column(name = "shipping_name", columnDefinition = "NVARCHAR(MAX)")
     private String shippingName;
     private String shippingPhone;
     @Column(name = "shipping_address", columnDefinition = "NVARCHAR(MAX)")

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import { Link, useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode'; // 👉 Nhớ cài thư viện này nếu chưa có: npm install jwt-decode
-
+import { FiLogOut } from "react-icons/fi";
 import {
     LayoutDashboard,
     Package,
@@ -23,12 +23,10 @@ const menuItems = [
     { label: 'Users', icon: Users, href: 'users' },
     { label: 'Reviews & Comments', icon: Users, href: 'reviews-comments' },
     { label: 'Coupons', icon: Package, href: 'coupons' },
-    // { label: 'Analytics', icon: BarChart3 },
-    { label: 'Settings', icon: Settings, href: 'settings' },
-    
+
     // 👉 CẬP NHẬT PHẦN CREATE ADMIN TẠI ĐÂY
-    { 
-        label: 'Create Admin', 
+    {
+        label: 'Create Admin',
         icon: UserPlus,      // Dùng UserPlus nhìn sẽ chuẩn "Add Admin" hơn
         href: 'create-admin',
         requiresSuperAdmin: true // Đặt flag này để sau này bạn check quyền ẩn/hiện menu
@@ -49,12 +47,12 @@ export default function AdminSidebar() {
     // 👉 2. CHẠY LẤY DỮ LIỆU KHI VỪA MỞ SIDEBAR
     useEffect(() => {
         const token = localStorage.getItem('token');
-        const userStr = localStorage.getItem('user'); 
+        const userStr = localStorage.getItem('user');
 
         if (token) {
             try {
                 const decoded = jwtDecode(token);
-                
+
                 // Xác định chức danh (Role)
                 let currentRole = "Staff Admin";
                 let rolesStr = JSON.stringify(decoded.roles || decoded.role || decoded.authorities || "");
@@ -127,11 +125,10 @@ export default function AdminSidebar() {
                             <Link
                                 key={item.label}
                                 to={`/admin/${item.href}`}
-                                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors ${
-                                    currentPath === item.href
+                                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors ${currentPath === item.href
                                         ? 'bg-sky-100 text-sky-600'
                                         : 'text-slate-600 hover:bg-slate-100'
-                                }`}
+                                    }`}
                             >
                                 <Icon size={20} />
                                 <span
@@ -155,8 +152,8 @@ export default function AdminSidebar() {
                     />
 
                     <div className='flex flex-col overflow-hidden'>
-                        <p 
-                            className='text-sm font-bold text-slate-900 truncate' 
+                        <p
+                            className='text-sm font-bold text-slate-900 truncate'
                             title={adminInfo.name} // Di chuột vào sẽ hiện tên đầy đủ nếu bị dài quá
                         >
                             {adminInfo.name}
@@ -167,8 +164,9 @@ export default function AdminSidebar() {
 
                         <button
                             onClick={handleLogout}
-                            className='mt-2 text-xs text-red-500 hover:text-red-600 font-medium text-left transition-colors'
+                            className='mt-2 flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 font-medium text-left transition-colors'
                         >
+                            <FiLogOut className="w-3.5 h-3.5" />
                             Logout
                         </button>
                     </div>

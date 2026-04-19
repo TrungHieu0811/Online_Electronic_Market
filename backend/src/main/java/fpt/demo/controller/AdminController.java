@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import fpt.demo.entity.User;
 import fpt.demo.repository.UserRepository;
 import fpt.demo.service.AuthService;
-import fpt.demo.service.UserServiceImpl;
+import fpt.demo.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,32 +35,30 @@ import org.springframework.web.bind.annotation.PutMapping;
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final UserServiceImpl userService;
+    private final UserService userService;
     private final UserRepository userRepository;
     private final AuthService authService;
 
     // ===============================
-    // 📌 1. GET USERS (SEARCH + PAGINATION)
+    // 📌 1. GET USERS (SEARCH + PAGINATION + TAB FILTER)
     // ===============================
     @GetMapping
     public ResponseEntity<?> getUsers(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(required = false) Boolean status,
             @RequestParam(required = false) String role,
+            // 👉 ĐÓN THAM SỐ TAB TỪ FRONTEND (Mặc định là tab USER)
+            @RequestParam(required = false, defaultValue = "USER") String roleType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-        Page<User> users;
+        // 👉 GỌI XUỐNG HÀM MỚI Ở SERVICE ĐỂ NÓ LO VIỆC LỌC 10 NGƯỜI/TRANG CHUẨN XÁC
+        Page<User> users = userService.getAdminUsers(keyword, roleType, pageable);
 
-        if (!keyword.isEmpty()) {
-            users = userRepository.searchUsers(keyword, pageable);
-        } else {
-            users = userRepository.findAll(pageable);
-        }
-
+        // Giữ nguyên logic map dữ liệu rất chuẩn của bạn
         List<Map<String, Object>> result = users.getContent().stream().map(user -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", user.getId());

@@ -51,6 +51,12 @@ public class ProductComment {
     // thời điểm admin đọc comment
     private LocalDateTime adminReadAt;
 
+    // user đã đọc reply của admin chưa
+    private Boolean isReadByUser = false;
+
+    // thời điểm user đọc reply của admin
+    private LocalDateTime userReadAt;
+
     // thời điểm tạo comment
     private LocalDateTime createdAt;
 }

@@ -35,4 +35,11 @@ public interface ProductReviewRepository extends JpaRepository<ProductReview, In
             LocalDateTime end);
 
     Page<ProductReview> findByCommentContainingIgnoreCaseOrderByCreatedAtDesc(String keyword, Pageable pageable);
+
+    Long countByProductIdAndStatus(Integer productId, ProductReview.ReviewStatus status);
+
+    Long countByProductIdAndRatingScoreAndStatus(
+            Integer productId,
+            Integer ratingScore,
+            ProductReview.ReviewStatus status);
 }

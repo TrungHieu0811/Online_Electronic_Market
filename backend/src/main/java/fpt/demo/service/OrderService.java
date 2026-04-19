@@ -22,5 +22,5 @@ public interface OrderService {
     
     void cancelOrderInternal(Integer orderId, String reason);
     
-    double getShippingDistance(Integer districtId, String wardCode);
+    double getShippingDistance(Integer provinceId, Integer districtId, String wardCode);
 }

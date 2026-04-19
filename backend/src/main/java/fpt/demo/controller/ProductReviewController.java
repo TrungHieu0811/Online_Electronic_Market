@@ -2,6 +2,7 @@ package fpt.demo.controller;
 
 import fpt.demo.dto.CreateReviewDto;
 import fpt.demo.dto.ReviewResponseDto;
+import fpt.demo.dto.ReviewSummaryDto;
 import fpt.demo.entity.ProductReview;
 import fpt.demo.service.ProductReviewService;
 import jakarta.validation.Valid;
@@ -45,5 +46,10 @@ public class ProductReviewController {
     @GetMapping("/product/{productId}")
     public ResponseEntity<List<ReviewResponseDto>> getByProduct(@PathVariable Integer productId) {
         return ResponseEntity.ok(service.getByProduct(productId));
+    }
+
+    @GetMapping("/product/{productId}/summary")
+    public ResponseEntity<ReviewSummaryDto> getReviewSummary(@PathVariable Integer productId) {
+        return ResponseEntity.ok(service.getReviewSummary(productId));
     }
 }

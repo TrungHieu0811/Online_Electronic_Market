@@ -41,4 +41,16 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     long countByStatus(Boolean status);
 
     long countByCreatedAtAfter(LocalDateTime time);
+    
+    // 👉 Cách an toàn 100%: Dùng danh sách Role truyền từ ngoài vào
+    @Query("""
+    SELECT u FROM User u
+    WHERE (
+           LOWER(COALESCE(u.fullName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        OR LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        OR LOWER(COALESCE(u.username, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+    )
+    AND u.userRole IN :roles
+    """)
+    Page<User> searchUsersForAdmin(@Param("keyword") String keyword, @Param("roles") java.util.List<fpt.demo.entity.Role> roles, Pageable pageable);
 }

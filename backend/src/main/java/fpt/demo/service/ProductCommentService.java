@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 
 import fpt.demo.dto.AdminCommentProductDto;
+import fpt.demo.dto.CommentNotificationDto;
 import fpt.demo.dto.CommentResponseDto;
 import fpt.demo.dto.CreateCommentDto;
 import fpt.demo.dto.UpdateCommentDto;
@@ -27,4 +28,10 @@ public interface ProductCommentService {
     Page<AdminCommentProductDto> getAdminCommentProducts(int page, int size);
 
     void markProductCommentsAsRead(Integer productId);
+
+    List<CommentNotificationDto> getMyCommentNotifications(String username);
+
+    void markCommentNotificationAsRead(Integer notificationId, String username);
+
+    void markAllCommentNotificationsAsRead(String username);
 }

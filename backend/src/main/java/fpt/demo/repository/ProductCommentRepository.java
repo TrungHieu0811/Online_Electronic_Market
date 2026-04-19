@@ -54,4 +54,30 @@ public interface ProductCommentRepository extends JpaRepository<ProductComment, 
     int markAllUserCommentsAsReadByProductId(
             @Param("productId") Integer productId,
             @Param("readAt") LocalDateTime readAt);
+
+    @Query("""
+        SELECT c
+        FROM ProductComment c
+        WHERE c.isAdminReply = true
+          AND c.status = true
+          AND c.parent IS NOT NULL
+          AND c.parent.user.username = :username
+        ORDER BY c.createdAt DESC
+        """)
+    List<ProductComment> findAdminRepliesForUser(@Param("username") String username);
+
+    @Modifying
+    @Query("""
+        UPDATE ProductComment c
+        SET c.isReadByUser = true,
+            c.userReadAt = :readAt
+        WHERE c.isAdminReply = true
+          AND c.status = true
+          AND c.parent IS NOT NULL
+          AND c.parent.user.username = :username
+          AND (c.isReadByUser = false OR c.isReadByUser IS NULL)
+        """)
+    int markAllAdminReplyNotificationsAsReadByUsername(
+            @Param("username") String username,
+            @Param("readAt") LocalDateTime readAt);
 }

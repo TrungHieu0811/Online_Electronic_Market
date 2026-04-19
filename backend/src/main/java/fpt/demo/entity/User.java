@@ -40,12 +40,13 @@ public class User {
 
     private String password;
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", columnDefinition = "NVARCHAR(MAX)")
     private String fullName;
 
     @Column(unique = true)
     private String phone;
 
+    @Column(columnDefinition = "nvarchar(500)")
     private String address;
 
     private Integer gender;

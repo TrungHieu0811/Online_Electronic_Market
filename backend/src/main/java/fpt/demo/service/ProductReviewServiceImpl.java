@@ -11,7 +11,10 @@ import org.springframework.stereotype.Service;
 import fpt.demo.dto.CreateReviewDto;
 import fpt.demo.dto.ReviewResponseDto;
 import fpt.demo.dto.ReviewStatsDto;
+import fpt.demo.dto.ReviewSummaryDto;
 import fpt.demo.dto.UserSimpleDto;
+import fpt.demo.dto.ai.ReviewSentimentRequest;
+import fpt.demo.dto.ai.ReviewSentimentResponse;
 import fpt.demo.entity.Order;
 import fpt.demo.entity.Product;
 import fpt.demo.entity.ProductGroup;
@@ -33,6 +36,7 @@ public class ProductReviewServiceImpl implements ProductReviewService {
     private final ProductGroupRepository groupRepository;
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    private final AiReviewService aiReviewService;
 
     // =========================
     // CREATE REVIEW
@@ -73,6 +77,19 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         review.setComment(dto.getComment());
         review.setImageUrl(dto.getImageUrl());
 
+        if (dto.getComment() != null && !dto.getComment().isBlank()) {
+            ReviewSentimentRequest aiRequest = new ReviewSentimentRequest();
+            aiRequest.setContent(dto.getComment());
+            aiRequest.setRating(dto.getRatingScore());
+            aiRequest.setProductId(dto.getProductId());
+            aiRequest.setUserId(dto.getUserId());
+
+            ReviewSentimentResponse aiResult = aiReviewService.analyzeSentiment(aiRequest);
+
+            review.setSentiment(aiResult.getSentiment());
+            review.setSentimentExplanation(aiResult.getExplanation());
+        }
+
         review.setCreatedAt(LocalDateTime.now());
         review.setStatus(ProductReview.ReviewStatus.PENDING);
 
@@ -106,6 +123,22 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         review.setRatingScore(dto.getRatingScore());
         review.setComment(dto.getComment());
         review.setImageUrl(dto.getImageUrl());
+
+        if (dto.getComment() != null && !dto.getComment().isBlank()) {
+            ReviewSentimentRequest aiRequest = new ReviewSentimentRequest();
+            aiRequest.setContent(dto.getComment());
+            aiRequest.setRating(dto.getRatingScore());
+            aiRequest.setProductId(review.getProduct().getId());
+            aiRequest.setUserId(dto.getUserId());
+
+            ReviewSentimentResponse aiResult = aiReviewService.analyzeSentiment(aiRequest);
+
+            review.setSentiment(aiResult.getSentiment());
+            review.setSentimentExplanation(aiResult.getExplanation());
+        } else {
+            review.setSentiment(null);
+            review.setSentimentExplanation(null);
+        }
 
         // có thể set lại status để admin duyệt lại
         review.setStatus(ProductReview.ReviewStatus.PENDING);
@@ -145,7 +178,7 @@ public class ProductReviewServiceImpl implements ProductReviewService {
 
         reviewRepository.save(review);
 
-        // 🔥 update average rating
+        // update average rating
         Product product = review.getProduct();
 
         Double avg = reviewRepository.getAverageRating(product.getId());
@@ -166,7 +199,7 @@ public class ProductReviewServiceImpl implements ProductReviewService {
 
         reviewRepository.save(review);
 
-        // 🔥 update lại average rating (nếu trước đó review này đã APPROVED)
+        // update lại average rating
         Product product = review.getProduct();
 
         Double avg = reviewRepository.getAverageRating(product.getId());
@@ -230,6 +263,8 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         dto.setImageUrl(review.getImageUrl());
         dto.setStatus(review.getStatus().name());
         dto.setCreatedAt(review.getCreatedAt());
+        dto.setSentiment(review.getSentiment());
+        dto.setSentimentExplanation(review.getSentimentExplanation());
 
         UserSimpleDto userDto = new UserSimpleDto();
         if (review.getUser() != null) {
@@ -241,6 +276,44 @@ public class ProductReviewServiceImpl implements ProductReviewService {
         }
 
         dto.setUser(userDto);
+
+        return dto;
+    }
+
+    @Override
+    public ReviewSummaryDto getReviewSummary(Integer productId) {
+        ProductReview.ReviewStatus approved = ProductReview.ReviewStatus.APPROVED;
+
+        Long totalReviews = reviewRepository.countByProductIdAndStatus(productId, approved);
+
+        Long fiveStar = reviewRepository.countByProductIdAndRatingScoreAndStatus(productId, 5, approved);
+        Long fourStar = reviewRepository.countByProductIdAndRatingScoreAndStatus(productId, 4, approved);
+        Long threeStar = reviewRepository.countByProductIdAndRatingScoreAndStatus(productId, 3, approved);
+        Long twoStar = reviewRepository.countByProductIdAndRatingScoreAndStatus(productId, 2, approved);
+        Long oneStar = reviewRepository.countByProductIdAndRatingScoreAndStatus(productId, 1, approved);
+
+        Double avg = reviewRepository.getAverageRating(productId);
+        if (avg == null) {
+            avg = 0.0;
+        }
+
+        ReviewSummaryDto dto = new ReviewSummaryDto();
+        dto.setAverageRating(avg);
+        dto.setTotalReviews(totalReviews);
+
+        if (totalReviews == 0) {
+            dto.setFiveStarPercent(0);
+            dto.setFourStarPercent(0);
+            dto.setThreeStarPercent(0);
+            dto.setTwoStarPercent(0);
+            dto.setOneStarPercent(0);
+        } else {
+            dto.setFiveStarPercent((int) Math.round(fiveStar * 100.0 / totalReviews));
+            dto.setFourStarPercent((int) Math.round(fourStar * 100.0 / totalReviews));
+            dto.setThreeStarPercent((int) Math.round(threeStar * 100.0 / totalReviews));
+            dto.setTwoStarPercent((int) Math.round(twoStar * 100.0 / totalReviews));
+            dto.setOneStarPercent((int) Math.round(oneStar * 100.0 / totalReviews));
+        }
 
         return dto;
     }
