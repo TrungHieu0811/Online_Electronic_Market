@@ -1,4 +1,4 @@
-import {Routes, Route} from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 
 import HomePage from '@/pages/HomePage';
@@ -19,37 +19,37 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import AdminRoute from '@/components/AdminRoute';
 import PaymentSuccessPage from '@/pages/user/payment/PaymentSuccessPage';
 import PaymentFailurePage from '@/pages/user/payment/PaymentFailurePage';
-
+import CommentThreadPage from '@/features/user/profile/pages/user/comments/CommentThreadPage';
 
 export default function AppRoutes() {
-	return (
-		<Routes>
-			<Route
-				path="/"
-				element={
-					<MainLayout>
-						<HomePage />
-					</MainLayout>
-				}
-			/>
+    return (
+        <Routes>
+            <Route
+                path='/'
+                element={
+                    <MainLayout>
+                        <HomePage />
+                    </MainLayout>
+                }
+            />
 
-			<Route
-				path="/products/*"
-				element={
-					<MainLayout>
-						<ProductRoutes />
-					</MainLayout>
-				}
-			/>
-			<Route
-				path="/category/*"
-				element={
-					<MainLayout>
-						<CategoryRoutes />
-					</MainLayout>
-				}
-			/>
-			{/* <Route
+            <Route
+                path='/products/*'
+                element={
+                    <MainLayout>
+                        <ProductRoutes />
+                    </MainLayout>
+                }
+            />
+            <Route
+                path='/category/*'
+                element={
+                    <MainLayout>
+                        <CategoryRoutes />
+                    </MainLayout>
+                }
+            />
+            {/* <Route
 				path="/profile/*"
 				element={
 					<MainLayout>
@@ -57,49 +57,63 @@ export default function AppRoutes() {
 					</MainLayout>
 				}
 			/> */}
-			<Route
-				path="/profile/*"
-				element={
-					<ProtectedRoute>
-						<UserRoutes />
-					</ProtectedRoute>
-				}
-			/>
+            <Route
+                path='/profile/*'
+                element={
+                    <ProtectedRoute>
+                        <UserRoutes />
+                    </ProtectedRoute>
+                }
+            />
 
+            <Route
+                path='/comments/thread/:productId'
+                element={
+                    <MainLayout>
+                        <CommentThreadPage />
+                    </MainLayout>
+                }
+            />
 
+            <Route
+                path='/cart'
+                element={
+                    <MainLayout>
+                        <CartPage />
+                    </MainLayout>
+                }
+            />
 
-			<Route
-				path="/cart"
-				element={
-					<MainLayout>
-						<CartPage />
-					</MainLayout>
-				}
-			/>
+            <Route
+                path='/checkout'
+                element={
+                    <MainLayout>
+                        <CheckoutPage />
+                    </MainLayout>
+                }
+            />
 
-			<Route
-				path="/checkout"
-				element={
-					<MainLayout>
-						<CheckoutPage />
-					</MainLayout>
-				}
-			/>
+            <Route
+                path='/checkout/success'
+                element={
+                    <MainLayout>
+                        <PaymentSuccessPage />
+                    </MainLayout>
+                }
+            />
+            <Route
+                path='/checkout/failure'
+                element={
+                    <MainLayout>
+                        <PaymentFailurePage />
+                    </MainLayout>
+                }
+            />
 
-			<Route
-				path="/checkout/success"
-				element={
-					<MainLayout>
-						<PaymentSuccessPage />
-					</MainLayout>
-				}
-			/>
-			<Route path="/checkout/failure" element={<MainLayout><PaymentFailurePage /></MainLayout>} />
-
-			<Route path="/admin/*" element={<AdminRoutes />}>
-				<Route path="*" element={<AdminSubRoutes />} />
-			</Route>
-			{/* <Route
+            <Route path='/admin/*' element={<AdminRoutes />}>
+                <Route path='*' element={<AdminSubRoutes />} />
+            </Route>
+            {/* <Route
 				path="/admin/*"
 				element={
 					<AdminRoute>
@@ -108,29 +122,29 @@ export default function AppRoutes() {
 				}
 			/> */}
 
-			<Route path="/login" element={<Login />} />
-			<Route path="/register" element={<Register />} />
-			<Route path="/forgot-password" element={<ForgotPassword />} />
-			<Route path="/check-otp" element={<CheckOTP />} />
-			<Route path="/reset-password" element={<ResetPassword />} />
-			{/* Route cho trang 404 cụ thể */}
-			<Route
-				path="/404"
-				element={
-					<MainLayout>
-						<NotFound />
-					</MainLayout>
-				}
-			/>
-			{/* Route bắt tất cả các đường dẫn sai khác không khai báo */}
-			<Route
-				path="*"
-				element={
-					<MainLayout>
-						<NotFound />
-					</MainLayout>
-				}
-			/>
-		</Routes>
-	);
+            <Route path='/login' element={<Login />} />
+            <Route path='/register' element={<Register />} />
+            <Route path='/forgot-password' element={<ForgotPassword />} />
+            <Route path='/check-otp' element={<CheckOTP />} />
+            <Route path='/reset-password' element={<ResetPassword />} />
+            {/* Route cho trang 404 cụ thể */}
+            <Route
+                path='/404'
+                element={
+                    <MainLayout>
+                        <NotFound />
+                    </MainLayout>
+                }
+            />
+            {/* Route bắt tất cả các đường dẫn sai khác không khai báo */}
+            <Route
+                path='*'
+                element={
+                    <MainLayout>
+                        <NotFound />
+                    </MainLayout>
+                }
+            />
+        </Routes>
+    );
 }
