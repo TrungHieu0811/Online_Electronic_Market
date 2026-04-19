@@ -24,7 +24,7 @@ export const uploadAvatar = async (file) => {
     return response.data;
 };
 
-export const getMyOrders = async () => {
-    const response = await api.get('/users/orders/me');
+export const getMyOrders = async (page = 0, size = 1000) => {
+    const response = await api.get(`/users/orders/me?page=${page}&size=${size}`);
     return response.data;
 };

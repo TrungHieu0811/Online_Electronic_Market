@@ -1,8 +1,8 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
-const OrderDetailModal = ({isOpen, onClose, orderId}) => {
+const OrderDetailModal = ({ isOpen, onClose, orderId }) => {
 	const [order, setOrder] = useState(null);
 	const [items, setItems] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -13,26 +13,49 @@ const OrderDetailModal = ({isOpen, onClose, orderId}) => {
 			try {
 				setLoading(true);
 				const token = localStorage.getItem('token');
-				const headers = {Authorization: `Bearer ${token}`};
+				const headers = { Authorization: `Bearer ${token}` };
 
-				// Fetching Order Info and Order Items simultaneously
 				const [orderRes, itemsRes] = await Promise.all([
-					axios.get(`http://localhost:8080/api/users/orders/${orderId}`, {headers}),
-					axios.get(`http://localhost:8080/api/users/order-details/${orderId}`, {headers}),
+					axios.get(`http://localhost:8080/api/users/orders/${orderId}`, { headers }),
+					axios.get(`http://localhost:8080/api/users/order-details/${orderId}`, { headers }),
 				]);
 
 				setOrder(orderRes.data);
 				setItems(Array.isArray(itemsRes.data) ? itemsRes.data : []);
 			} catch (error) {
 				console.error('Error loading order details:', error);
-				Swal.fire('Error', 'Could not load order details.', 'error');
-				onClose();
+				Swal.fire('Error', 'Could not load order details', 'error');
 			} finally {
 				setLoading(false);
 			}
 		};
+
 		fetchDetails();
 	}, [isOpen, orderId]);
+
+	const formatDate = (dateValue) => {
+		if (!dateValue) return 'N/A';
+		const date = new Date(dateValue);
+		return date.toLocaleDateString('en-US', {
+			month: 'short',
+			day: '2-digit',
+			year: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	};
+
+	const getStatusClass = (status) => {
+		switch (status) {
+			case 'CONFIRMED': return 'bg-blue-100 text-blue-700 border border-blue-200';
+			case 'SHIPPING': return 'bg-indigo-100 text-indigo-700 border border-indigo-200';
+			case 'DELIVERED': return 'bg-green-100 text-green-700 border border-green-200';
+			case 'CANCELLED': return 'bg-red-100 text-red-700 border border-red-200';
+			case 'PENDING': return 'bg-amber-100 text-amber-700 border border-amber-200';
+			default: return 'bg-slate-100 text-slate-600 border border-slate-200';
+		}
+	};
+
 	// Handle order cancellation directly within the Modalconst isPayPalPaid = order?.paymentMethod === 'PAYPAL' && order?.paymentStatus === 'PAID';
 	const isPayPalPaid = order?.paymentMethod === 'PAYPAL' && order?.paymentStatus === 'PAID';
 	const handleCancel = async () => {
@@ -72,103 +95,137 @@ const OrderDetailModal = ({isOpen, onClose, orderId}) => {
 	if (!isOpen) return null;
 
 	return (
-		<div
-			className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-			onClick={onClose}
-		>
-			<div
-				className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl bg-white shadow-2xl"
-				onClick={(e) => e.stopPropagation()}
-			>
+		<div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+			<div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[40px] shadow-2xl relative p-8 md:p-12">
+
 				{/* Close Button */}
-				<button
-					onClick={onClose}
-					className="absolute right-6 top-6 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all"
-				>
-					<span className="material-symbols-outlined">close</span>
+				<button onClick={onClose} className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 transition-colors">
+					<span className="material-symbols-outlined text-3xl">close</span>
 				</button>
 
 				{loading ? (
-					<div className="p-20 text-center font-bold text-slate-500 animate-pulse text-xl">Loading data...</div>
-				) : (
-					order && (
-						<div className="p-8">
-							<div className="mb-8 border-b pb-6">
-								<h2 className="text-3xl font-black text-slate-900 uppercase">Order Details</h2>
-								<div className="mt-2 flex flex-wrap gap-x-6 gap-y-2">
-									<p className="text-slate-500 font-bold text-sm uppercase">
-										Order ID: <span className="text-slate-900">#{order.id}</span>
-									</p>
-									<p className="text-slate-500 font-bold text-sm uppercase">
-										Order Date:{' '}
-										<span className="text-slate-900">
-											{new Date(order.createdAt).toLocaleDateString('en-US', {
-												day: '2-digit',
-												month: 'long',
-												year: 'numeric',
-												hour: '2-digit',
-												minute: '2-digit',
-											})}
-										</span>
-									</p>
-								</div>
+					<div className="flex flex-col items-center justify-center py-20">
+						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+						<p className="mt-4 text-slate-500 font-bold uppercase tracking-widest text-xs">Loading Details...</p>
+					</div>
+				) : order && (
+					<div className="animate-in fade-in zoom-in duration-300">
+						{/* Header Info */}
+						<div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-12">
+							<div>
+								<h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase mb-2">Order Summary</h2>
+								<p className="text-sm text-slate-400 font-bold tracking-widest">ID: #{order.id}</p>
+								<p className="text-sm text-slate-400 font-bold tracking-widest uppercase">Placed: {formatDate(order.createdAt)}</p>
+
+								{/* HIỂN THỊ NGÀY NHẬN HÀNG NẾU ĐÃ GIAO */}
+								{order.orderStatus === 'DELIVERED' && (
+									<div className="mt-2 flex items-center gap-2 text-green-600">
+										<span className="material-symbols-outlined text-lg">verified</span>
+										<p className="text-sm font-black uppercase tracking-widest">
+											Received on: {formatDate(order.updatedAt)}
+										</p>
+									</div>
+								)}
+							</div>
+							<div className="flex flex-col items-end gap-3">
+								<span className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] shadow-sm ${getStatusClass(order.orderStatus)}`}>
+									{order.orderStatus}
+								</span>
+							</div>
+						</div>
+
+						{/* Items Table */}
+						<div className="mb-12">
+							<div className="grid grid-cols-12 pb-4 border-b-2 border-slate-100 mb-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+								<div className="col-span-6">Product Information</div>
+								<div className="col-span-2 text-center">Quantity</div>
+								<div className="col-span-4 text-right">Price</div>
 							</div>
 
-							{/* Product List */}
-							<div className="mb-10 space-y-4">
+							<div className="space-y-8">
 								{items.map((item) => (
-									<div
-										key={item.id}
-										className="flex items-center gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:shadow-md transition-all overflow-hidden"
-									>
-										<div className="w-20 h-20 bg-white rounded-xl p-0 border flex-shrink-0 overflow-hidden">
-											<img
-												src={item.imageUrl?.startsWith('http') ? item.imageUrl : `http://localhost:8080/uploads${item.imageUrl}`}
-												className="w-full h-full object-contain"
-												alt=""
-											/>
+									<div key={item.id} className="grid grid-cols-12 items-center group">
+										<div className="col-span-6 flex items-center gap-6">
+											<div className="w-20 h-20 rounded-3xl bg-slate-50 overflow-hidden flex-shrink-0 border border-slate-100 group-hover:scale-105 transition-transform">
+												<img
+													src={item.imageUrl || "/api/placeholder/80/80"}
+													alt={item.product?.name}
+													className="w-full h-full object-cover"
+												/>
+											</div>
+											<div>
+												<h4 className="font-bold text-slate-900 text-lg leading-tight mb-1">{item.product?.variantName || 'Product'}</h4>
+												
+											</div>
 										</div>
-										<div className="flex-1">
-											<h4 className="font-bold text-slate-800 text-lg leading-tight">{item.product?.variantName || 'Product'}</h4>
-											<p className="text-xs font-bold text-slate-400 mt-1 uppercase">Quantity: {item.quantity}</p>
+										<div className="col-span-2 text-center font-black text-slate-900">
+											{item.quantity}
 										</div>
-										<div className="text-right">
-											<p className="font-black text-xl text-slate-900">${(item.priceAtPurchase * item.quantity).toFixed(2)}</p>
+										
+										<div className="col-span-4 text-right font-black text-slate-900 text-lg">
+											${(item.priceAtPurchase * item.quantity).toFixed(2)}
 											<p className="text-[10px] text-slate-400 font-bold uppercase">${item.priceAtPurchase?.toFixed(2)} / unit</p>
 										</div>
 									</div>
 								))}
 							</div>
+						</div>
 
-							{/* Payment Summary */}
-							<div className="bg-slate-900 text-white p-8 rounded-3xl space-y-4 shadow-xl">
-								<div className="flex justify-between opacity-60 text-xs font-bold uppercase tracking-widest">
+						{/* Bottom Section */}
+						<div className="grid md:grid-cols-2 gap-12 pt-12 border-t-2 border-slate-100">
+							{/* Shipping Address */}
+							<div className="space-y-4">
+								<h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Shipping To</h3>
+								<div className="bg-slate-50 p-6 rounded-[30px] border border-slate-100">
+									<p className="font-black text-slate-900 uppercase text-lg mb-1">{order.shippingName}</p>
+									<p className="text-slate-500 font-medium leading-relaxed">{order.shippingAddress}</p>
+									<p className="text-slate-500 font-bold mt-2">Tel: {order.shippingPhone}</p>
+								</div>
+							</div>
+
+							{/* Totals */}
+							{/* Totals Section */}
+							<div className="bg-slate-900 text-white p-8 rounded-[40px] space-y-4 shadow-xl relative overflow-hidden">
+								{/* Subtotal */}
+								<div className="flex justify-between opacity-50 text-[10px] font-black uppercase tracking-widest">
 									<span>Subtotal</span>
 									<span>${order.totalBasePrice?.toFixed(2)}</span>
 								</div>
-								<div className="flex justify-between opacity-60 text-xs font-bold uppercase tracking-widest">
+
+								{/* Shipping Fee - Logic hiển thị FREE */}
+								<div className="flex justify-between opacity-50 text-[10px] font-black uppercase tracking-widest">
 									<span>Shipping Fee</span>
-									<span>${order.shippingFee?.toFixed(2)}</span>
+									<span className={order.shippingFee === 0 ? "text-green-400 font-black" : ""}>
+										{order.shippingFee === 0 ? "FREE" : `$${order.shippingFee?.toFixed(2)}`}
+									</span>
 								</div>
-								<div className="flex justify-between items-center pt-4 border-t border-slate-800">
-									<span className="text-lg font-black uppercase text-slate-400">Total Paid</span>
+
+								{/* Discount Amount - Chỉ hiện nếu có giảm giá */}
+								{order.discountAmount > 0 && (
+									<div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-red-400">
+										<span>Discount</span>
+										<span>-${order.discountAmount?.toFixed(2)}</span>
+									</div>
+								)}
+
+								{/* Total Amount */}
+								<div className="flex justify-between items-center pt-6 border-t border-white/10 mt-4">
+									<span className="text-sm font-black uppercase tracking-widest text-slate-400">Total Amount</span>
 									<span className="text-4xl font-black text-orange-500 tracking-tighter">
 										${order.totalPayPrice?.toFixed(2)}
 									</span>
 								</div>
 							</div>
-
-							{/* Action Buttons: Only visible if status is PENDING or CONFIRMED */}
-							{(order.orderStatus === 'CONFIRMED' || order.orderStatus === 'PENDING') && (
-								<button
-									onClick={handleCancel}
-									className="w-full mt-8 py-4 bg-red-50 text-red-600 font-black rounded-2xl border-2 border-red-100 hover:bg-red-600 hover:text-white transition-all uppercase tracking-widest"
-								>
-									{isPayPalPaid ? 'Cancel Order & Refund' : 'Cancel Order'}
-								</button>
-							)}
 						</div>
-					)
+						{(order.orderStatus === 'CONFIRMED' || order.orderStatus === 'PENDING') && (
+                            <button
+                                onClick={handleCancel}
+                                className="w-full mt-10 py-5 bg-red-50 text-red-600 font-black rounded-[30px] border-2 border-red-100 hover:bg-red-600 hover:text-white transition-all uppercase tracking-[0.2em] shadow-sm active:scale-[0.98]"
+                            >
+                                {isPayPalPaid ? 'Cancel Order & Refund' : 'Cancel Order'}
+                            </button>
+                        )}	
+					</div>
 				)}
 			</div>
 		</div>

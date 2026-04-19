@@ -59,20 +59,18 @@ export default function RecentOrders() {
 
     const getStatusClass = (status) => {
         switch (status) {
-            case 'DELIVERED':
-                return 'bg-surface-container-highest text-on-surface-variant';
-            case 'SHIPPING':
-                return 'bg-secondary-container text-on-secondary-container';
             case 'CONFIRMED':
-                return 'bg-primary/10 text-primary';
-            case 'PENDING':
-                return 'bg-yellow-100 text-yellow-700';
+                return 'bg-blue-100 text-blue-700 border border-blue-200'; // Màu xanh dương (Đã xác nhận)
+            case 'SHIPPING':
+                return 'bg-indigo-100 text-indigo-700 border border-indigo-200'; // Màu tím xanh (Đang giao)
+            case 'DELIVERED':
+                return 'bg-green-100 text-green-700 border border-green-200'; // Màu xanh lá (Hoàn thành)
             case 'CANCELLED':
-                return 'bg-red-100 text-red-600';
-            case 'RETURNED':
-                return 'bg-orange-100 text-orange-600';
+                return 'bg-red-100 text-red-700 border border-red-200'; // Màu đỏ (Đã hủy)
+            case 'PENDING':
+                return 'bg-amber-100 text-amber-700 border border-amber-200'; // Màu vàng cam (Chờ xử lý)
             default:
-                return 'bg-surface-container-highest text-on-surface-variant';
+                return 'bg-slate-100 text-slate-600 border border-slate-200';
         }
     };
 
@@ -108,11 +106,9 @@ export default function RecentOrders() {
                             order.totalPayPrice ?? order.total_price ?? order.totalBasePrice ?? 0;
 
                         return (
-                            <button
+                            <div
                                 key={order.id}
-                                type='button'
-                                onClick={() => handleOpenOrder(order.id)}
-                                className='group flex w-full items-center justify-between rounded-xl p-3 text-left transition hover:bg-surface-container-low'
+                                className='flex w-full items-center justify-between rounded-xl p-3 text-left transition'
                             >
                                 <div className='flex items-center gap-5'>
                                     <div className='flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg bg-surface-container-low'>
@@ -139,12 +135,12 @@ export default function RecentOrders() {
                                         {formatPrice(totalPrice)}
                                     </p>
                                     <span
-                                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${getStatusClass(order.orderStatus)}`}
+                                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${getStatusClass(order.orderStatus)}`}
                                     >
-                                        {order.orderStatus || 'UNKNOWN'}
+                                        {order.orderStatus ? order.orderStatus.charAt(0) + order.orderStatus.slice(1).toLowerCase() : 'Unknown'}
                                     </span>
                                 </div>
-                            </button>
+                            </div>
                         );
                     })}
                 </div>
