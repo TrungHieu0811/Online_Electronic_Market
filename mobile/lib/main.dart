@@ -1,4 +1,6 @@
+import 'package:electromart_flutter/screens/home_page.dart';
 import 'package:electromart_flutter/screens/login_screen.dart';
+import 'package:electromart_flutter/screens/main_page.dart';
 import 'package:flutter/material.dart';
 
 void main() {

@@ -3,11 +3,12 @@ import 'package:electromart_flutter/screens/profile_screen.dart';
 import 'package:electromart_flutter/services/cart_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'home_page.dart'; // Import trang Home
+import 'home_page.dart';
 import 'chat_ai_screen.dart';
 
 class MainPage extends StatefulWidget {
-  final int initialIndex; // 👈 Thêm biến này
+  final int initialIndex;
+
   const MainPage({super.key, this.initialIndex = 0});
 
   @override
@@ -19,47 +20,49 @@ class _MainPageState extends State<MainPage> {
   final Color secondaryColor = const Color(0xFFff8c00);
 
   int _selectedIndex = 0;
-  int _cartCount = 0; // Biến lưu số lượng giỏ hàng
+  int _cartCount = 0;
   final CartService _cartService = CartService();
   final GlobalKey<CartScreenState> cartKey = GlobalKey<CartScreenState>();
 
   late List<Widget> _pages;
 
-  // 👉 Khai báo danh sách các trang sẽ được Footer điều hướng
-  // final List<Widget> _pages = [
-  //   const HomePage(),
-  //   const Center(child: Text("Trang Categories")), // Tạm thời để trống
-  //   CartScreen(key: cartKey),
-  //   const Center(child: Text("Trang Wishlist")), // Tạm thời để trống
-  //   const ProfileScreen(), // 👉 Trang Profile
-  // ];
-
   @override
   void initState() {
     super.initState();
-    _loadCartCount(); // Lấy số lượng ngay khi vào app
 
     _pages = [
-    HomePage(),
-    Center(child: Text("Category")),
-    CartScreen(key: cartKey), // 👈 Bây giờ gắn key thoải mái không bị đỏ nữa
-    ChatAIScreen(),
-    ProfileScreen(),
+      HomePage(), // 0
+      CartScreen(key: cartKey), // 1
+      ChatAIScreen(), // 2
+      ProfileScreen(), // 3
+    ];
 
-  ];
+    _selectedIndex =
+        (widget.initialIndex >= 0 && widget.initialIndex < _pages.length)
+        ? widget.initialIndex
+        : 0;
+
+    _loadCartCount();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (_selectedIndex == 1) {
+        await cartKey.currentState?.fetchCart();
+        if (!mounted) return;
+        setState(() {
+          _cartCount = cartKey.currentState?.items.length ?? _cartCount;
+        });
+      }
+    });
   }
 
-  // Hàm lấy số lượng từ Backend hoặc Local
   Future<void> _loadCartCount() async {
     const storage = FlutterSecureStorage();
     String? token = await storage.read(key: 'jwt_token');
-    
+
     int count = 0;
     if (token != null) {
-      // Gọi API lấy số lượng thật từ DB
-      count = await _cartService.getCartCountFromApi(token); 
+      count = await _cartService.getCartCountFromApi(token);
     } else {
-      // Nếu là khách, lấy từ SharedPreferences
       final guestItems = await _cartService.getGuestCart();
       count = guestItems.length;
     }
@@ -72,8 +75,8 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> refreshBadge() async {
-  await _loadCartCount();
-}
+    await _loadCartCount();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +86,6 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  // Bê nguyên hàm Footer từ home_page.dart sang đây
   Widget _buildBottomNavbar() {
     return Container(
       decoration: BoxDecoration(
@@ -95,11 +97,13 @@ class _MainPageState extends State<MainPage> {
           setState(() {
             _selectedIndex = index;
           });
-          if (index == 2){
+
+          if (index == 1) {
             await cartKey.currentState?.fetchCart();
-          setState(() {
-                _cartCount = cartKey.currentState?.items.length ?? 0; 
-              });
+            if (!mounted) return;
+            setState(() {
+              _cartCount = cartKey.currentState?.items.length ?? _cartCount;
+            });
           }
         },
         type: BottomNavigationBarType.fixed,
@@ -111,18 +115,11 @@ class _MainPageState extends State<MainPage> {
         elevation: 0,
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: _buildCartBadge(), label: "Cart"),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view),
-            label: "Categories",
+            icon: Icon(Icons.chat_bubble_outline),
+            label: "Chat AI",
           ),
-          BottomNavigationBarItem(
-            icon: _buildCartBadge(), // Gọi widget riêng cho nút Cart
-            label: "Cart",
-          ),
-         const BottomNavigationBarItem(
-          icon: Icon(Icons.chat_bubble_outline), // Đổi icon sang Chat
-          label: "Chat AI",
-        ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             label: "Profile",
@@ -132,13 +129,12 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  // Widget hiển thị Icon giỏ hàng kèm số lượng động
   Widget _buildCartBadge() {
     return Stack(
       clipBehavior: Clip.none,
       children: [
         const Icon(Icons.shopping_bag_outlined),
-        if (_cartCount > 0) // Chỉ hiện khi có hàng
+        if (_cartCount > 0)
           Positioned(
             top: -4,
             right: -8,
@@ -152,7 +148,11 @@ class _MainPageState extends State<MainPage> {
               ),
               child: Text(
                 _cartCount > 9 ? "9+" : "$_cartCount",
-                style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),

@@ -1,7 +1,12 @@
+import 'package:electromart_flutter/models/comment_notification_model.dart';
 import 'package:electromart_flutter/models/models.dart';
 import 'package:electromart_flutter/screens/product_detail_page.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:electromart_flutter/models/models.dart';
+import 'package:electromart_flutter/services/comment_notification_service.dart';
+import 'package:electromart_flutter/screens/comment_thread_page.dart';
 // 👉 NHỚ IMPORT FILE MODELS BẠN VỪA TẠO VÀO ĐÂY:
 // import 'models.dart';
 
@@ -17,6 +22,18 @@ class _HomePageState extends State<HomePage> {
   bool _isSearching = false;
   bool _isSearchLoading = false;
   List<ProductModel> _searchResults = [];
+  final CommentNotificationService _commentNotificationService =
+      CommentNotificationService();
+
+  List<CommentNotificationModel> _commentNotifications = [];
+  bool _isNotificationLoading = false;
+  int get _unreadNotificationCount =>
+      _commentNotifications.where((e) => !e.isRead).length;
+  @override
+  void initState() {
+    super.initState();
+    _loadCommentNotifications();
+  }
 
   @override
   void dispose() {
@@ -83,6 +100,241 @@ class _HomePageState extends State<HomePage> {
         _isSearchLoading = false;
         _searchResults = [];
       });
+    }
+  }
+
+  Future<void> _loadCommentNotifications() async {
+    setState(() {
+      _isNotificationLoading = true;
+    });
+
+    try {
+      final notifications = await _commentNotificationService
+          .getMyCommentNotifications();
+
+      debugPrint('NOTI COUNT = ${notifications.length}');
+
+      setState(() {
+        _commentNotifications = notifications;
+      });
+    } catch (e) {
+      debugPrint('LOAD NOTI ERROR = $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isNotificationLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showNotificationMenu() async {
+    await _loadCommentNotifications();
+
+    if (!mounted) return;
+
+    final RenderBox button = context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+
+    final result = await showMenu<dynamic>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromPoints(
+          button.localToGlobal(const Offset(260, 70), ancestor: overlay),
+          button.localToGlobal(const Offset(360, 120), ancestor: overlay),
+        ),
+        Offset.zero & overlay.size,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      items: [
+        PopupMenuItem(
+          enabled: false,
+          padding: EdgeInsets.zero,
+          child: SizedBox(
+            width: 320,
+            child: StatefulBuilder(
+              builder: (context, setMenuState) {
+                if (_isNotificationLoading) {
+                  return const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Thông báo bình luận',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _commentNotifications.isEmpty
+                                ? null
+                                : () async {
+                                    try {
+                                      await _commentNotificationService
+                                          .markAllCommentNotificationsAsRead();
+
+                                      if (!mounted) return;
+
+                                      setState(() {
+                                        _commentNotifications =
+                                            _commentNotifications
+                                                .map(
+                                                  (e) =>
+                                                      e.copyWith(isRead: true),
+                                                )
+                                                .toList();
+                                      });
+
+                                      Navigator.pop(context, 'reload');
+                                    } catch (e) {
+                                      debugPrint('Lỗi mark all read: $e');
+                                    }
+                                  },
+                            child: const Text('Mark all read'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+
+                    if (_commentNotifications.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(18),
+                        child: Text(
+                          'Chưa có thông báo nào.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      )
+                    else
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 360),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: _commentNotifications.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final notification = _commentNotifications[index];
+
+                            return InkWell(
+                              onTap: () async {
+                                try {
+                                  if (!notification.isRead) {
+                                    await _commentNotificationService
+                                        .markCommentNotificationAsRead(
+                                          notification.id,
+                                        );
+
+                                    setState(() {
+                                      _commentNotifications[index] =
+                                          _commentNotifications[index].copyWith(
+                                            isRead: true,
+                                          );
+                                    });
+                                  }
+
+                                  if (!mounted) return;
+                                  Navigator.pop(context, notification);
+                                } catch (e) {
+                                  debugPrint('Lỗi mark read: $e');
+                                }
+                              },
+                              child: Container(
+                                color: notification.isRead
+                                    ? Colors.white
+                                    : const Color(0xFFF2F8FF),
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.comment_outlined,
+                                      color: notification.isRead
+                                          ? Colors.grey
+                                          : primaryColor,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            notification.title ??
+                                                'Admin đã phản hồi bình luận',
+                                            style: TextStyle(
+                                              fontWeight: notification.isRead
+                                                  ? FontWeight.w500
+                                                  : FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            notification.message ??
+                                                'Nhấn để xem chi tiết bình luận.',
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (!notification.isRead)
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        margin: const EdgeInsets.only(top: 6),
+                                        decoration: BoxDecoration(
+                                          color: secondaryColor,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+
+    if (result == 'reload') {
+      await _loadCommentNotifications();
+      return;
+    }
+
+    if (result is CommentNotificationModel && mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CommentThreadPage(
+            productId: result.productId,
+            focusCommentId: result.commentId,
+          ),
+        ),
+      ).then((_) => _loadCommentNotifications());
     }
   }
 
@@ -230,26 +482,40 @@ class _HomePageState extends State<HomePage> {
           Row(
             children: [
               Stack(
+                clipBehavior: Clip.none,
                 children: [
                   IconButton(
                     icon: const Icon(
                       Icons.notifications_none,
                       color: Colors.black87,
                     ),
-                    onPressed: () {},
+                    onPressed: _showNotificationMenu,
                   ),
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: secondaryColor,
-                        shape: BoxShape.circle,
+                  if (_unreadNotificationCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: secondaryColor,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          _unreadNotificationCount > 9
+                              ? '9+'
+                              : '$_unreadNotificationCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
               IconButton(
