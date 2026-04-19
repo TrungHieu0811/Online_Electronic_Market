@@ -1,7 +1,91 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 
-export default function QuestionAnswerSection({ productId }) {
+const DEFAULT_VISIBLE_COMMENTS = 2;
+const LOAD_MORE_COMMENTS_STEP = 2;
+const DEFAULT_VISIBLE_REPLIES = 2;
+
+function ReplyItem({ reply, level = 1, focusCommentId = null }) {
+    const childReplies = Array.isArray(reply?.replies) ? reply.replies : [];
+    const hasManyReplies = childReplies.length > DEFAULT_VISIBLE_REPLIES;
+
+    const [expanded, setExpanded] = useState(false);
+
+    const visibleReplies = expanded ? childReplies : childReplies.slice(0, DEFAULT_VISIBLE_REPLIES);
+
+    const isFocusedReply = String(reply?.id) === String(focusCommentId);
+
+    return (
+        <div
+            id={`comment-${reply?.id}`}
+            className={`relative rounded-xl transition-all ${
+                isFocusedReply ? 'bg-blue-50/60 ring-2 ring-blue-200' : ''
+            }`}
+            style={{
+                marginLeft: `${Math.min(level - 1, 4) * 24}px`
+            }}
+        >
+            <div className='absolute -left-[21px] top-3 h-[2px] w-4 bg-gray-100'></div>
+
+            <div className='flex items-start gap-3'>
+                <div className='flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100'>
+                    <svg className='h-4 w-4 text-blue-600' fill='currentColor' viewBox='0 0 20 20'>
+                        <path d='M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z'></path>
+                    </svg>
+                </div>
+
+                <div className='w-full'>
+                    <div className='mb-1 flex flex-wrap items-center gap-2'>
+                        <span className='text-sm font-bold text-gray-900'>
+                            {reply.user?.username}
+                        </span>
+
+                        {reply.isAdminReply && (
+                            <span className='rounded bg-yellow-400/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-yellow-600'>
+                                Admin
+                            </span>
+                        )}
+
+                        <span className='text-[10px] text-gray-400'>
+                            {new Date(reply.createdAt).toLocaleString()}
+                        </span>
+                    </div>
+
+                    <p className='break-words whitespace-pre-wrap text-sm leading-relaxed text-gray-600'>
+                        {reply.content}
+                    </p>
+
+                    {childReplies.length > 0 && (
+                        <div className='mt-4 space-y-4 border-l-2 border-gray-100 pl-4'>
+                            {visibleReplies.map((childReply) => (
+                                <ReplyItem
+                                    key={childReply.id}
+                                    reply={childReply}
+                                    level={level + 1}
+                                    focusCommentId={focusCommentId}
+                                />
+                            ))}
+
+                            {hasManyReplies && (
+                                <button
+                                    type='button'
+                                    onClick={() => setExpanded((prev) => !prev)}
+                                    className='text-xs font-bold text-blue-600 hover:underline'
+                                >
+                                    {expanded
+                                        ? 'Thu gọn'
+                                        : `Xem thêm ${childReplies.length - DEFAULT_VISIBLE_REPLIES} phản hồi`}
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function QuestionAnswerSection({ productId, focusCommentId = null }) {
     const [comments, setComments] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -15,6 +99,9 @@ export default function QuestionAnswerSection({ productId }) {
         type: 'error'
     });
 
+    const [expandedRootComments, setExpandedRootComments] = useState({});
+    const [visibleCommentsCount, setVisibleCommentsCount] = useState(DEFAULT_VISIBLE_COMMENTS);
+
     const getToken = () => localStorage.getItem('token');
 
     const currentUsername = useMemo(() => {
@@ -26,7 +113,6 @@ export default function QuestionAnswerSection({ productId }) {
             const payloadJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
             const payload = JSON.parse(payloadJson);
 
-            // thường username nằm ở sub
             return payload?.sub || payload?.username || null;
         } catch (error) {
             console.error('Cannot decode token:', error);
@@ -37,6 +123,55 @@ export default function QuestionAnswerSection({ productId }) {
     useEffect(() => {
         fetchComments();
     }, [productId]);
+
+    useEffect(() => {
+        if (!focusCommentId || comments.length === 0) return;
+
+        const findCommentPath = (items, targetId, path = []) => {
+            for (const item of items) {
+                const nextPath = [...path, item.id];
+
+                if (String(item.id) === String(targetId)) {
+                    return nextPath;
+                }
+
+                if (Array.isArray(item.replies) && item.replies.length > 0) {
+                    const found = findCommentPath(item.replies, targetId, nextPath);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+
+        const path = findCommentPath(comments, focusCommentId);
+
+        if (path && path.length > 0) {
+            const rootId = path[0];
+
+            const rootIndex = comments.findIndex((item) => String(item.id) === String(rootId));
+
+            if (rootIndex >= 0) {
+                setVisibleCommentsCount((prev) => Math.max(prev, rootIndex + 1));
+            }
+
+            setExpandedRootComments((prev) => ({
+                ...prev,
+                [rootId]: true
+            }));
+        }
+
+        const timer = setTimeout(() => {
+            const el = document.getElementById(`comment-${focusCommentId}`);
+            if (el) {
+                el.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        }, 400);
+
+        return () => clearTimeout(timer);
+    }, [focusCommentId, comments]);
 
     const showPopup = (message, type = 'error') => {
         setPopup({ show: true, message, type });
@@ -75,7 +210,10 @@ export default function QuestionAnswerSection({ productId }) {
         try {
             setLoading(true);
             const res = await axios.get(`http://localhost:8080/api/comments/product/${productId}`);
-            setComments(res.data || []);
+
+            setComments(Array.isArray(res.data) ? res.data : []);
+            setVisibleCommentsCount(DEFAULT_VISIBLE_COMMENTS);
+            setExpandedRootComments({});
         } catch (error) {
             console.error('Error fetching comments:', error);
             showPopup('Không tải được danh sách bình luận');
@@ -157,27 +295,43 @@ export default function QuestionAnswerSection({ productId }) {
         }
     };
 
+    const toggleRootReplies = (commentId) => {
+        setExpandedRootComments((prev) => ({
+            ...prev,
+            [commentId]: !prev[commentId]
+        }));
+    };
+
+    const handleLoadMoreComments = () => {
+        setVisibleCommentsCount((prev) =>
+            Math.min(prev + LOAD_MORE_COMMENTS_STEP, comments.length)
+        );
+    };
+
+    const visibleComments = comments.slice(0, visibleCommentsCount);
+    const remainingComments = Math.max(comments.length - visibleCommentsCount, 0);
+
     if (loading) {
         return <p className='text-gray-500'>Loading comments...</p>;
     }
 
     return (
-        <section className='mb-16 relative'>
+        <section className='relative mb-16'>
             {popup.show && (
                 <div
-                    className={`fixed top-5 right-5 z-[9999] px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium
+                    className={`fixed right-5 top-5 z-[9999] rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg
                     ${popup.type === 'success' ? 'bg-green-600' : 'bg-red-500'}`}
                 >
                     {popup.message}
                 </div>
             )}
 
-            <h2 className='text-2xl font-bold mb-8 border-b pb-4'>Questions &amp; Answers</h2>
+            <h2 className='mb-8 border-b pb-4 text-2xl font-bold'>Questions &amp; Answers</h2>
 
-            <div className='mb-12 bg-white p-6 rounded-xl border border-gray-200 shadow-sm'>
+            <div className='mb-12 rounded-xl border border-gray-200 bg-white p-6 shadow-sm'>
                 <label
                     htmlFor='question-input'
-                    className='block text-sm font-semibold text-gray-700 mb-2'
+                    className='mb-2 block text-sm font-semibold text-gray-700'
                 >
                     Have a question? We&apos;re here to help.
                 </label>
@@ -187,13 +341,13 @@ export default function QuestionAnswerSection({ productId }) {
                     value={newQuestion}
                     onChange={(e) => setNewQuestion(e.target.value)}
                     placeholder='Ask a question about this product...'
-                    className='w-full p-4 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent min-h-[100px] mb-4'
+                    className='mb-4 min-h-[100px] w-full rounded-lg border border-gray-300 p-4 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-600'
                 />
 
                 <div className='flex justify-end'>
                     <button
                         onClick={handlePostQuestion}
-                        className='bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-all shadow-md shadow-blue-100 text-sm'
+                        className='rounded-lg bg-blue-600 px-8 py-3 text-sm font-bold text-white shadow-md shadow-blue-100 transition-all hover:bg-blue-700'
                     >
                         Post Question
                     </button>
@@ -202,131 +356,144 @@ export default function QuestionAnswerSection({ productId }) {
 
             <div className='space-y-6'>
                 {comments.length === 0 ? (
-                    <div className='bg-white p-6 rounded-xl border border-gray-200 text-gray-500'>
+                    <div className='rounded-xl border border-gray-200 bg-white p-6 text-gray-500'>
                         No questions yet.
                     </div>
                 ) : (
-                    comments.map((comment) => {
-                        const isMyComment =
-                            currentUsername && comment.user?.username === currentUsername;
+                    <>
+                        {visibleComments.map((comment) => {
+                            const isMyComment =
+                                currentUsername && comment.user?.username === currentUsername;
 
-                        return (
-                            <div
-                                key={comment.id}
-                                className='bg-white p-6 rounded-xl border border-gray-100 shadow-sm'
-                            >
-                                <div className='flex justify-between items-start mb-3'>
-                                    <div className='w-full'>
-                                        <span className='inline-block bg-blue-50 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2'>
-                                            Question
-                                        </span>
+                            const isFocusedComment = String(comment.id) === String(focusCommentId);
 
-                                        <h4 className='font-bold text-gray-900 text-lg'>
-                                            {comment.content}
-                                        </h4>
+                            const rootReplies = Array.isArray(comment?.replies)
+                                ? comment.replies
+                                : [];
+                            const rootExpanded = !!expandedRootComments[comment.id];
+                            const rootHasManyReplies = rootReplies.length > DEFAULT_VISIBLE_REPLIES;
 
-                                        <div className='text-xs text-gray-400 flex items-center gap-2 mt-1 flex-wrap'>
-                                            <span>Asked by {comment.user?.username}</span>
-                                            <span className='w-1 h-1 bg-gray-300 rounded-full'></span>
-                                            <span>
-                                                {new Date(comment.createdAt).toLocaleString()}
+                            const visibleRootReplies = rootExpanded
+                                ? rootReplies
+                                : rootReplies.slice(0, DEFAULT_VISIBLE_REPLIES);
+
+                            return (
+                                <div
+                                    id={`comment-${comment.id}`}
+                                    key={comment.id}
+                                    className={`rounded-xl border bg-white p-6 shadow-sm transition-all ${
+                                        isFocusedComment
+                                            ? 'border-blue-400 ring-2 ring-blue-100'
+                                            : 'border-gray-100'
+                                    }`}
+                                >
+                                    <div className='mb-3 flex items-start justify-between'>
+                                        <div className='w-full'>
+                                            <span className='mb-2 inline-block rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-600'>
+                                                Question
                                             </span>
-                                        </div>
 
-                                        {/* Chỉ hiện Reply cho comment của chính mình */}
-                                        {isMyComment && (
-                                            <div className='mt-3'>
-                                                <button
-                                                    onClick={() => handleOpenReplyBox(comment.id)}
-                                                    className='text-sm text-blue-600 hover:text-blue-700 font-medium'
-                                                >
-                                                    {replyingCommentId === comment.id
-                                                        ? 'Cancel'
-                                                        : 'Reply'}
-                                                </button>
+                                            <h4 className='text-lg font-bold text-gray-900'>
+                                                {comment.content}
+                                            </h4>
+
+                                            <div className='mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-400'>
+                                                <span>Asked by {comment.user?.username}</span>
+                                                <span className='h-1 w-1 rounded-full bg-gray-300'></span>
+                                                <span>
+                                                    {new Date(comment.createdAt).toLocaleString()}
+                                                </span>
                                             </div>
-                                        )}
 
-                                        {isMyComment && replyingCommentId === comment.id && (
-                                            <div className='mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4'>
-                                                <textarea
-                                                    value={replyContent}
-                                                    onChange={(e) =>
-                                                        setReplyContent(e.target.value)
-                                                    }
-                                                    placeholder='Write your reply...'
-                                                    className='w-full p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 min-h-[90px]'
-                                                />
-
-                                                <div className='flex justify-end gap-2 mt-3'>
+                                            {isMyComment && (
+                                                <div className='mt-3'>
                                                     <button
-                                                        onClick={() => {
-                                                            setReplyingCommentId(null);
-                                                            setReplyContent('');
-                                                        }}
-                                                        className='px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm'
+                                                        onClick={() =>
+                                                            handleOpenReplyBox(comment.id)
+                                                        }
+                                                        className='text-sm font-medium text-blue-600 hover:text-blue-700'
                                                     >
-                                                        Cancel
-                                                    </button>
-
-                                                    <button
-                                                        onClick={() => handlePostReply(comment.id)}
-                                                        className='px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium'
-                                                    >
-                                                        Send Reply
+                                                        {replyingCommentId === comment.id
+                                                            ? 'Cancel'
+                                                            : 'Reply'}
                                                     </button>
                                                 </div>
-                                            </div>
+                                            )}
+
+                                            {isMyComment && replyingCommentId === comment.id && (
+                                                <div className='mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4'>
+                                                    <textarea
+                                                        value={replyContent}
+                                                        onChange={(e) =>
+                                                            setReplyContent(e.target.value)
+                                                        }
+                                                        placeholder='Write your reply...'
+                                                        className='min-h-[90px] w-full rounded-lg border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600'
+                                                    />
+
+                                                    <div className='mt-3 flex justify-end gap-2'>
+                                                        <button
+                                                            onClick={() => {
+                                                                setReplyingCommentId(null);
+                                                                setReplyContent('');
+                                                            }}
+                                                            className='rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100'
+                                                        >
+                                                            Cancel
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() =>
+                                                                handlePostReply(comment.id)
+                                                            }
+                                                            className='rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700'
+                                                        >
+                                                            Send Reply
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className='mt-6 ml-4 space-y-4 border-l-2 border-gray-100 pl-4 sm:ml-8'>
+                                        {visibleRootReplies.map((reply) => (
+                                            <ReplyItem
+                                                key={reply.id}
+                                                reply={reply}
+                                                level={1}
+                                                focusCommentId={focusCommentId}
+                                            />
+                                        ))}
+
+                                        {rootHasManyReplies && (
+                                            <button
+                                                type='button'
+                                                onClick={() => toggleRootReplies(comment.id)}
+                                                className='text-xs font-bold text-blue-600 hover:underline'
+                                            >
+                                                {rootExpanded
+                                                    ? 'Thu gọn'
+                                                    : `Xem thêm ${rootReplies.length - DEFAULT_VISIBLE_REPLIES} phản hồi`}
+                                            </button>
                                         )}
                                     </div>
                                 </div>
+                            );
+                        })}
 
-                                <div className='mt-6 ml-4 sm:ml-8 pl-4 border-l-2 border-gray-100 space-y-4'>
-                                    {(comment.replies || []).map((reply) => (
-                                        <div key={reply.id} className='relative'>
-                                            <div className='absolute -left-[21px] top-3 w-4 h-[2px] bg-gray-100'></div>
-
-                                            <div className='flex items-start gap-3'>
-                                                <div className='w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0'>
-                                                    <svg
-                                                        className='w-4 h-4 text-blue-600'
-                                                        fill='currentColor'
-                                                        viewBox='0 0 20 20'
-                                                    >
-                                                        <path d='M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z'></path>
-                                                    </svg>
-                                                </div>
-
-                                                <div>
-                                                    <div className='flex items-center gap-2 mb-1 flex-wrap'>
-                                                        <span className='font-bold text-sm text-gray-900'>
-                                                            {reply.user?.username}
-                                                        </span>
-
-                                                        {reply.isAdminReply && (
-                                                            <span className='bg-yellow-400/10 text-yellow-600 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase'>
-                                                                Admin
-                                                            </span>
-                                                        )}
-
-                                                        <span className='text-[10px] text-gray-400'>
-                                                            {new Date(
-                                                                reply.createdAt
-                                                            ).toLocaleString()}
-                                                        </span>
-                                                    </div>
-
-                                                    <p className='text-sm text-gray-600 leading-relaxed'>
-                                                        {reply.content}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                        {remainingComments > 0 && (
+                            <div className='flex justify-center pt-2'>
+                                <button
+                                    type='button'
+                                    onClick={handleLoadMoreComments}
+                                    className='rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-100'
+                                >
+                                    Xem thêm {remainingComments} bình luận
+                                </button>
                             </div>
-                        );
-                    })
+                        )}
+                    </>
                 )}
             </div>
         </section>
