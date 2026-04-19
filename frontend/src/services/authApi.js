@@ -41,6 +41,16 @@ export const authApi = {
 		}
 	},
 
+	googleLogin: async (data) => {
+        try {
+            // data ở đây chính là object { token: googleToken } mà ta truyền từ Login.jsx
+            const response = await api.post('/auth/google-login', data);
+            return response.data; // Backend sẽ trả về { token: "...", refreshToken: "..." }
+        } catch (error) {
+            throw handleAuthError(error);
+        }
+    },
+
 	// HÀM ĐĂNG NHẬP (Chuẩn bị sẵn luôn cho trang Login)
 	login: async (credentials) => {
 		try {

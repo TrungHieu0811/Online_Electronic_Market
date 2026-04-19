@@ -2,10 +2,12 @@ package fpt.demo.service;
 
 import fpt.demo.dto.AdminCreationDto;
 import fpt.demo.dto.ChangePasswordDto;
+import fpt.demo.dto.GoogleLoginRequestDto;
 import fpt.demo.dto.LoginRequestDto;
 import fpt.demo.dto.UserRegistrationDto;
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -34,4 +36,5 @@ public interface AuthService {
     String createAdmin(AdminCreationDto request);
 
     public void changePassword(String username, String newPassword);
+    public Map<String, String> loginWithGoogle(GoogleLoginRequestDto requestDto) throws Exception;
 }
