@@ -40,35 +40,33 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDto request) {
         try {
-            // Lấy mảng 2 token từ AuthServiceImpl
             String[] tokens = authService.login(request);
             
-            // Đóng gói thành dạng JSON chuẩn xác để Flutter/Web dễ đọc
             Map<String, String> response = new HashMap<>();
-            response.put("accessToken", tokens[0]);
+            // Đổi "accessToken" thành "token" để khớp với logic bóc tách ở Frontend
+            response.put("token", tokens[0]); 
             response.put("refreshToken", tokens[1]);
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(401).body(Map.of("error", "Incorrect account, password, or account locked.!"));
+            return ResponseEntity.status(401).body(Map.of("error", "Incorrect account, password, or account locked!"));
         }
     }
 
-    // 👉 THÊM MỚI: API Refresh Token
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
         
         try {
-            String[] tokens = authService.refreshAccessToken(refreshToken); // Gọi hàm mới trong Service
+            String[] tokens = authService.refreshAccessToken(refreshToken);
             
             Map<String, String> response = new HashMap<>();
-            response.put("accessToken", tokens[0]);
+            // Tương tự, dùng "token" cho đồng nhất
+            response.put("token", tokens[0]); 
             response.put("refreshToken", tokens[1]);
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            // Trả về lỗi 401 để Frontend biết đường đá ra trang Login
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
         }
     }

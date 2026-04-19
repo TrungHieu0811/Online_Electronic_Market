@@ -70,7 +70,7 @@ public class ShippingServiceImpl implements ShippingService {
     }
 
     @Override
-    public double getShippingFee(Integer districtId, String wardCode, double totalAmount) {
+    public double getShippingFee(Integer districtId, String wardCode, double totalAmount, int weight) {
         if (districtId == null || wardCode == null) {
             return 0.0;
         }
@@ -85,8 +85,9 @@ public class ShippingServiceImpl implements ShippingService {
                     GHNFeeRequest.ServiceType.STANDARD,
                     districtId,
                     wardCode,
-                    (int) totalAmount // Giá trị bảo hiểm đơn hàng
+                    (int) totalAmount
             );
+            request.setWeight(weight);
 
             HttpEntity<GHNFeeRequest> entity = new HttpEntity<>(request, headers);
 
@@ -96,12 +97,67 @@ public class ShippingServiceImpl implements ShippingService {
             );
 
             if (response.getBody() != null && response.getBody().getCode() == 200) {
-                // Giả sử hệ thống dùng USD, chia cho 25000 để đổi từ VNĐ (tùy tỷ giá của bạn)
-                return (double) response.getBody().getData().getTotal() / 25000;
+                return (double) response.getBody().getData().getTotal();
             }
         } catch (Exception e) {
             System.err.println("GHN Fee Error: " + e.getMessage());
         }
         return 2.0; // Phí mặc định nếu API lỗi
+    }
+
+    @Override
+    public double getActualDistance(Integer districtId, String wardCode, int weight) {
+        if (districtId == null || wardCode == null) {
+            return 0.0;
+        }
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Token", TOKEN);
+            headers.set("ShopId", SHOP_ID);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            // GHN cần giá trị bảo hiểm, mình để mặc định 100.000đ để lấy distance
+            GHNFeeRequest request = new GHNFeeRequest();
+            request.setFromDistrictId(1452); // ID Quận Tân Bình của Shop
+            request.setToDistrictId(districtId); // Quận của khách
+            request.setToWardCode(wardCode); // Phường của khách
+            request.setServiceTypeId(2); // Dùng mã 2 cho gói Standard
+            request.setWeight(weight); // Cân nặng thật của đơn hàng
+            request.setInsuranceValue(100000); // Bảo hiểm 100k
+
+            request.setLength(20);
+            request.setWidth(20);
+            request.setHeight(10);
+
+            HttpEntity<GHNFeeRequest> entity = new HttpEntity<>(request, headers);
+
+            ResponseEntity<GHNResponse<GHNFeeData>> response = restTemplate.exchange(
+                    GHN_URL, HttpMethod.POST, entity, new ParameterizedTypeReference<>() {
+            }
+            );
+
+            if (response.getBody() != null && response.getBody().getCode() == 200) {
+                int dist = response.getBody().getData().getDistance();
+
+                // NẾU GHN TRẢ VỀ 0 (Lỗi dữ liệu Sandbox)
+                if (dist <= 0) {
+                    // Nếu không phải Quận Tân Bình (ShopId mặc định ở Tân Bình)
+                    if (districtId != null && !districtId.equals(1452)) {
+                        // Dùng mã Quận chia lấy dư để tạo số ngẫu nhiên từ 5km - 15km
+                        dist = (districtId % 10 + 6) * 1000;
+                        System.out.println("FIX SANDBOX: Tự sinh khoảng cách giả lập: " + dist + " mét");
+                    } else {
+                        dist = 2000; // Cùng quận Tân Bình thì mặc định 2km
+                    }
+                }
+                System.out.println("KHOẢNG CÁCH THẬT TỪ GHN: " + dist + " mét");
+                System.out.println("GHN RESPONSE: " + response.getBody());
+                return (double) dist;
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi lấy khoảng cách GHN: " + e.getMessage());
+        }
+        return 0.0;
     }
 }

@@ -45,7 +45,7 @@ public class CartItemController {
     @GetMapping
     public ResponseEntity<?> getMyCart(Principal principal) {
         if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Please log in to continue!");
+            return ResponseEntity.ok(java.util.Collections.emptyList());
         }
         // Sử dụng hàm getFullCartDetails mới tạo
         return ResponseEntity.ok(cartItemService.getFullCartDetails(principal.getName()));

@@ -1,4 +1,6 @@
 import 'package:electromart_flutter/screens/forgot_password_screen.dart';
+import 'package:electromart_flutter/screens/home_page.dart';
+import 'package:electromart_flutter/screens/main_page.dart';
 import 'package:electromart_flutter/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/login_request.dart';
@@ -48,9 +50,11 @@ class _LoginScreenState extends State<LoginScreen> {
           );
           print("=== [KÉT SẮT] TOKEN CỦA BẠN LÀ: $savedToken ===");
           // -------------------------------------------
-          Navigator.pushReplacement(
+          // 👉 ĐỔI THÀNH MainPage CỦA BẠN NHÉ
+          Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            MaterialPageRoute(builder: (context) => const MainPage()),
+            (Route<dynamic> route) => false,
           );
         } else {
           _showSnackBar('Login failed', Colors.orange);

@@ -56,13 +56,15 @@ public class OrderManagementController {
         return ResponseEntity.ok(order);
     }
 
-    @GetMapping("/all")
+    @GetMapping("")
     public ResponseEntity<Page<Order>> getAllOrders(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "createdAt") String sortField,
+            @RequestParam(defaultValue = "desc") String sortDir) {
 
-        return ResponseEntity.ok(managementService.findAllOrders(page, size, status));
+        return ResponseEntity.ok(managementService.findAllOrders(page, size, status, sortField, sortDir));
     }
 
     @GetMapping("/{orderId}/items")
