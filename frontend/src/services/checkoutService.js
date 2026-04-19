@@ -41,9 +41,10 @@ export const checkoutService = {
 		return response.data;
 	},
 
-	getShippingDistance: async (districtId, wardCode) => {
+	getShippingDistance: async (provinceId, districtId, wardCode) => {
     const response = await api.get('/distance', {
       params: {
+				provinceId: provinceId,
         districtId: districtId,
         wardCode: wardCode,
       },

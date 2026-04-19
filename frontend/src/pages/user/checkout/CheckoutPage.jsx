@@ -24,6 +24,13 @@ const CheckoutPage = () => {
 		address: '',
 	});
 
+	const [errors, setErrors] = useState({
+		fullName: '',
+		email: '',
+		phone: '',
+		address: ''
+	});
+
 	// 3. State địa chỉ GHN và phí ship
 	const [provinces, setProvinces] = useState([]);
 	const [districts, setDistricts] = useState([]);
@@ -91,6 +98,7 @@ const CheckoutPage = () => {
 						email: profile.email || '',
 						address: profile.address || '',
 					});
+					setErrors({ fullName: '', email: '', phone: '', address: '' });
 				} catch (error) {
 					Swal.fire('Error', 'Could not load your profile information. Please enter manually.', 'error');
 				}
@@ -251,7 +259,7 @@ const CheckoutPage = () => {
 			// Dùng selectedAddress.districtId hiện có trong state
 			const [fee, dist] = await Promise.all([
             checkoutService.previewShippingFee(selectedAddress.districtId, wCode, subtotal),
-            checkoutService.getShippingDistance(selectedAddress.districtId, wCode)
+            checkoutService.getShippingDistance(selectedAddress.provinceId,selectedAddress.districtId, wCode)
         ]);
 			console.log('Tiền ship:', fee, 'Khoảng cách:', dist);
 			setShippingFee(typeof fee === 'number' ? fee : 0);
@@ -266,15 +274,87 @@ const CheckoutPage = () => {
 		}
 	};
 
+	const validateVietnamesePhone = (phone) => {
+		const vnf_regex = /((09|03|07|08|05)+([0-9]{8})\b)/g;
+		return vnf_regex.test(phone);
+	};
+
+	const validateEmail = (email) => {
+		return String(email)
+			.toLowerCase()
+			.match(/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/);
+	};
+
+	const handleFullNameChange = (e) => {
+  const value = e.target.value;
+  setFormData({ ...formData, fullName: value });
+  if (!value.trim()) {
+    setErrors(prev => ({ ...prev, fullName: 'Full name cannot be empty' }));
+  } else {
+    setErrors(prev => ({ ...prev, fullName: '' }));
+  }
+};
+
+const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setFormData({ ...formData, email: value });
+    
+    if (!value) {
+        setErrors(prev => ({ ...prev, email: 'Email cannot be empty' }));
+    } else if (!validateEmail(value)) { 
+        setErrors(prev => ({ ...prev, email: 'Invalid email format' }));
+    } else {
+        setErrors(prev => ({ ...prev, email: '' }));
+    }
+};
+
+const handlePhoneChange = (e) => {
+    // Chỉ lấy số và giới hạn 10 ký tự
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setFormData({ ...formData, phone: value });
+    
+    if (!value) {
+        setErrors(prev => ({ ...prev, phone: 'Phone number cannot be empty' }));
+    } else if (!validateVietnamesePhone(value)) { 
+        setErrors(prev => ({ ...prev, phone: 'Invalid VN phone (10 digits)' }));
+    } else {
+        setErrors(prev => ({ ...prev, phone: '' }));
+    }
+};
+
+const handleAddressChange = (e) => {
+  const value = e.target.value;
+  setFormData({ ...formData, address: value });
+  if (!value.trim()) {
+    setErrors(prev => ({ ...prev, address: 'Street address cannot be empty' }));
+  } else {
+    setErrors(prev => ({ ...prev, address: '' }));
+  }
+};
+
 	const handlePlaceOrder = async (e) => {
 		e.preventDefault();
 
-		// 1. Kiểm tra địa chỉ giao hàng
-		if (!selectedAddress.wardCode) {
-			Swal.fire('Warning', 'Please select a complete shipping area!', 'warning');
-			return;
-		}
+		// Validate tổng lực trước khi submit
+    const finalErrors = {
+      fullName: !formData.fullName.trim() ? 'Full name is required' : '',
+      email: !formData.email ? 'Email is required' : (!validateEmail(formData.email) ? 'Invalid email format' : ''),
+      phone: !formData.phone ? 'Phone is required' : (!validateVietnamesePhone(formData.phone) ? 'Invalid VN phone (10 digits)' : ''),
+      address: !formData.address.trim() ? 'Address is required' : ''
+    };
 
+    setErrors(finalErrors);
+
+    // Kiểm tra xem có lỗi nào không
+    if (Object.values(finalErrors).some(err => err !== '')) {
+      Swal.fire('Warning', 'Please correct the errors in the form!', 'warning');
+      return;
+    }
+
+    if (!selectedAddress.wardCode) {
+      Swal.fire('Warning', 'Please select a complete shipping area!', 'warning');
+      return;
+    }
 		const orderRequest = {
 			shipName: formData.fullName.trim(),
 			shipPhone: formData.phone,
@@ -393,40 +473,42 @@ const CheckoutPage = () => {
 								Shipping Information
 							</h3>
 							<div className="space-y-4">
-								<div>
+								<div className="space-y-1">
 									<label className="text-[10px] font-bold text-slate-400 ml-1">FULL NAME</label>
 									<input
 										value={formData.fullName}
-										onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-										// disabled={useProfileInfo}
+										onChange={handleFullNameChange}
+										className={`border ${errors.fullName ? 'border-red-500' : 'border-slate-200'} p-4 rounded-xl w-full outline-none transition-all`}
 										placeholder="Enter full name"
-										className="border border-slate-200 p-4 rounded-xl w-full focus:ring-2 focus:ring-orange-500 disabled:bg-slate-50 transition-all outline-none"
-										required
 									/>
+									{errors.fullName && <p className="text-red-500 text-[10px] ml-2 italic">*{errors.fullName}</p>}
 								</div>
-								<div>
+
+								{/* Email */}
+								<div className="space-y-1">
 									<label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Email Address</label>
 									<input
 										type="email"
 										value={formData.email}
-										onChange={(e) => setFormData({...formData, email: e.target.value})}
+										onChange={handleEmailChange}
+										className={`border ${errors.email ? 'border-red-500' : 'border-slate-200'} p-4 rounded-xl w-full outline-none transition-all`}
 										placeholder="example@email.com"
-										className="border border-slate-200 p-4 rounded-xl w-full focus:ring-2 focus:ring-orange-500 disabled:bg-slate-50 transition-all outline-none"
-										required
 									/>
+									{errors.email && <p className="text-red-500 text-[10px] ml-2 italic">*{errors.email}</p>}
 								</div>
-								<div>
+
+								{/* Phone */}
+								<div className="space-y-1">
 									<label className="text-[10px] font-bold text-slate-400 ml-1">PHONE NUMBER</label>
 									<input
+										type="text"
 										value={formData.phone}
-										onChange={(e) => setFormData({...formData, phone: e.target.value})}
-										// disabled={useProfileInfo}
-										placeholder="Enter phone number"
-										className="border border-slate-200 p-4 rounded-xl w-full focus:ring-2 focus:ring-orange-500 disabled:bg-slate-50 outline-none"
-										required
+										onChange={handlePhoneChange}
+										className={`border ${errors.phone ? 'border-red-500' : 'border-slate-200'} p-4 rounded-xl w-full outline-none transition-all`}
+										placeholder="0xxx xxx xxx"
 									/>
+									{errors.phone && <p className="text-red-500 text-[10px] ml-2 italic">*{errors.phone}</p>}
 								</div>
-								
 							</div>
 						</div>
 
@@ -436,17 +518,16 @@ const CheckoutPage = () => {
 								<span className="w-1.5 h-5 bg-blue-500 rounded-full"></span>
 								Shipping Area
 							</h3>
-							<div>
-									<label className="text-[10px] font-bold text-slate-400 ml-1">STREET ADDRESS</label>
-									<input
-										value={formData.address}
-										onChange={(e) => setFormData({...formData, address: e.target.value})}
-										// disabled={useProfileInfo}
-										placeholder="House number, Street name..."
-										className="border border-slate-200 p-4 rounded-xl w-full focus:ring-2 focus:ring-orange-500 disabled:bg-slate-50 outline-none"
-										required
-									/>
-								</div>
+							<div className="space-y-1">
+								<label className="text-[10px] font-bold text-slate-400 ml-1">STREET ADDRESS</label>
+								<input
+									value={formData.address}
+									onChange={handleAddressChange}
+									className={`border ${errors.address ? 'border-red-500' : 'border-slate-200'} p-4 rounded-xl w-full outline-none transition-all`}
+									placeholder="House number, Street name..."
+								/>
+								{errors.address && <p className="text-red-500 text-[10px] ml-2 italic">*{errors.address}</p>}
+							</div>
 							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 								<select onChange={handleProvinceChange} value={selectedAddress.provinceId} className="...">
 									<option value="">Select Province</option>
