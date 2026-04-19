@@ -42,6 +42,7 @@ public class SecurityConfig {
 
             // file upload tĩnh
             .requestMatchers("/uploads/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
 
             // callback payment public
             .requestMatchers("/api/users/payment/paypal-callback/**").permitAll()

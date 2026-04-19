@@ -15,4 +15,5 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GHNFeeData {
     private int total;
+    private int distance;
 }

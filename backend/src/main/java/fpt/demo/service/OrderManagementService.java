@@ -15,7 +15,7 @@ public interface OrderManagementService {
     
 //    List<OrderManagement> getHistoryByActionType(String actionType);
     
-    Page<Order> findAllOrders(int page, int size, String status);
+    Page<Order> findAllOrders(int page, int size, String status, String sortField, String sortDir);
     
     void processAIVerification(Integer orderId, String imageUrl, boolean isValid, String labels);
     

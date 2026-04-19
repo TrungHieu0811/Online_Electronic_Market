@@ -9,7 +9,9 @@ package fpt.demo.service;
  * @author hmn27
  */
 public interface ShippingService {
-    double getShippingFee(Integer districtId, String wardCode, double totalAmount);
+    double getShippingFee(Integer districtId, String wardCode, double totalAmount, int weight);
     
     Object getGHNProvinces();
+    
+    double getActualDistance(Integer districtId, String wardCode, int weight);
 }
