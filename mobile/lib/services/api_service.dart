@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:electromart_flutter/models/comment_model.dart';
+import 'package:electromart_flutter/models/order_review_page.dart';
 import 'package:electromart_flutter/models/review_model.dart';
 import 'package:electromart_flutter/models/review_summary_model.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -367,6 +368,24 @@ class ApiService {
         if (groupId != null) 'groupId': groupId,
         if (parentId != null) 'parentId': parentId,
       },
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+  }
+
+  Future<OrderReviewPage> getOrderForReview(int orderId) async {
+    final response = await _dio.get('/orders/$orderId/review');
+    return OrderReviewPage.fromJson(response.data);
+  }
+
+  Future<void> submitOrderReviews(
+    int orderId,
+    Map<String, dynamic> payload,
+  ) async {
+    final token = await _storage.read(key: 'jwt_token');
+
+    await _dio.post(
+      '/orders/$orderId/reviews',
+      data: payload,
       options: Options(headers: {'Authorization': 'Bearer $token'}),
     );
   }

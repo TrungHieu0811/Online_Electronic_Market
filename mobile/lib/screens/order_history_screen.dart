@@ -1,8 +1,12 @@
+import 'package:electromart_flutter/screens/order_review_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:intl/intl.dart';
+
 import '../services/order_service_user.dart';
 import '../models/order_model.dart';
 import '../models/order_item_model.dart';
-import 'package:intl/intl.dart';
 import 'order_detail_screen.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
@@ -14,10 +18,22 @@ class OrderHistoryScreen extends StatefulWidget {
 
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   final OrderServiceUser _orderService = OrderServiceUser();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  // Quản lý dữ liệu và trạng thái tìm kiếm
+  final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: 'http://10.0.2.2:8080/api',
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+      headers: {'Content-Type': 'application/json'},
+    ),
+  );
+
   late Future<List<OrderModel>> _ordersFuture;
   final TextEditingController _searchController = TextEditingController();
+
+  final Map<int, bool> _reviewableMap = {};
+
   String _searchKeyword = "";
   bool _isSearching = false;
 
@@ -27,14 +43,97 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     _ordersFuture = _fetchOrders();
   }
 
-  // Hàm lấy dữ liệu và sửa lỗi subtype
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<List<OrderModel>> _fetchOrders() async {
     try {
       final response = await _orderService.getMyOrders();
       final List<dynamic> data = response['content'] ?? [];
-      return data.map((json) => OrderModel.fromJson(json)).toList();
+      final orders = data.map((json) => OrderModel.fromJson(json)).toList();
+
+      await _loadReviewableMap(orders);
+
+      return orders;
     } catch (e) {
-      throw Exception("Không thể tải danh sách đơn hàng: $e");
+      throw Exception("Failed to load order history: $e");
+    }
+  }
+
+  Future<void> _loadReviewableMap(List<OrderModel> orders) async {
+    _reviewableMap.clear();
+
+    final deliveredOrders = orders
+        .where((order) => order.orderStatus.toUpperCase() == 'DELIVERED')
+        .toList();
+
+    if (deliveredOrders.isEmpty) return;
+
+    final results = await Future.wait(
+      deliveredOrders.map((order) async {
+        final needsReview = await _checkOrderNeedsReview(order.id);
+        return MapEntry(order.id, needsReview);
+      }),
+    );
+
+    for (final entry in results) {
+      _reviewableMap[entry.key] = entry.value;
+    }
+  }
+
+  Future<bool> _checkOrderNeedsReview(int orderId) async {
+    try {
+      final token = await _storage.read(key: 'jwt_token');
+
+      if (token == null || token.isEmpty) {
+        return false;
+      }
+
+      final response = await _dio.get(
+        '/orders/$orderId/review',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      final data = response.data;
+      final items = data is Map<String, dynamic> ? data['items'] : null;
+
+      return items is List && items.isNotEmpty;
+    } catch (e) {
+      debugPrint('Failed to check review status for order $orderId: $e');
+      return false;
+    }
+  }
+
+  Future<void> _refreshOrders() async {
+    setState(() {
+      _ordersFuture = _fetchOrders();
+    });
+  }
+
+  Future<void> _openOrderDetail(OrderModel order) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => OrderDetailScreen(order: order)),
+    );
+
+    if (result == true) {
+      await _refreshOrders();
+    }
+  }
+
+  Future<void> _openReviewPlaceholder(OrderModel order) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OrderReviewScreen(orderId: order.id),
+      ),
+    );
+
+    if (result == true) {
+      await _refreshOrders();
     }
   }
 
@@ -55,10 +154,15 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     }
   }
 
+  bool _hasPendingReview(OrderModel order) {
+    if (order.orderStatus.toUpperCase() != 'DELIVERED') return false;
+    return _reviewableMap[order.id] == true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4, // Gồm: All, In Progress, Completed, Cancelled
+      length: 5,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FB),
         appBar: AppBar(
@@ -86,7 +190,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   controller: _searchController,
                   autofocus: true,
                   decoration: const InputDecoration(
-                    hintText: "Tìm theo tên sản phẩm...",
+                    hintText: "Search by product name...",
                     border: InputBorder.none,
                   ),
                   onChanged: (value) =>
@@ -116,6 +220,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               Tab(text: "In Progress"),
               Tab(text: "Completed"),
               Tab(text: "Cancelled"),
+              Tab(text: "Need Review"),
             ],
           ),
         ),
@@ -125,6 +230,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             _buildOrderList('PENDING'),
             _buildOrderList('DELIVERED'),
             _buildOrderList('CANCELLED'),
+            _buildOrderList('NEED_REVIEW'),
           ],
         ),
       ),
@@ -138,12 +244,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (snapshot.hasError)
+
+        if (snapshot.hasError) {
           return Center(child: Text("Error: ${snapshot.error}"));
+        }
 
         var orders = snapshot.data ?? [];
 
-        // 1. Lọc theo Tab trạng thái
         if (filterStatus == 'DELIVERED') {
           orders = orders.where((o) => o.orderStatus == 'DELIVERED').toList();
         } else if (filterStatus == 'PENDING') {
@@ -156,9 +263,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               .toList();
         } else if (filterStatus == 'CANCELLED') {
           orders = orders.where((o) => o.orderStatus == 'CANCELLED').toList();
+        } else if (filterStatus == 'NEED_REVIEW') {
+          orders = orders.where((o) => _hasPendingReview(o)).toList();
         }
 
-        // 2. Logic tìm kiếm sản phẩm trong đơn hàng
         if (_searchKeyword.isNotEmpty) {
           orders = orders.where((order) {
             return order.orderItems.any(
@@ -168,19 +276,28 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         }
 
         if (orders.isEmpty) {
-          return const Center(child: Text("No orders found."));
+          final emptyMessage = filterStatus == 'NEED_REVIEW'
+              ? "No orders need review yet."
+              : "No orders found.";
+
+          return Center(child: Text(emptyMessage));
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: orders.length,
-          itemBuilder: (context, index) => _buildOrderCard(orders[index]),
+        return RefreshIndicator(
+          onRefresh: _refreshOrders,
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: orders.length,
+            itemBuilder: (context, index) => _buildOrderCard(orders[index]),
+          ),
         );
       },
     );
   }
 
   Widget _buildOrderCard(OrderModel order) {
+    final bool hasPendingReview = _hasPendingReview(order);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -200,79 +317,99 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      order.orderStatus == 'DELIVERED'
-                          ? Icons.inventory_2
-                          : Icons.local_shipping,
-                      color: const Color(0xFF045fae),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Order #EM-${order.id}",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "${order.createdAt != null ? DateFormat('MMM dd, yyyy').format(order.createdAt!) : 'N/A'} • ${order.orderItems.length} Items",
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
+                      child: Icon(
+                        order.orderStatus == 'DELIVERED'
+                            ? Icons.inventory_2
+                            : Icons.local_shipping,
+                        color: const Color(0xFF045fae),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Order #EM-${order.id}",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "${order.createdAt != null ? DateFormat('MMM dd, yyyy').format(order.createdAt!) : 'N/A'} • ${order.orderItems.length} item(s)",
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               _buildStatusBadge(order.orderStatus),
             ],
           ),
           const SizedBox(height: 20),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Hiển thị giá tiền chính xác từ model
-              Text(
-                "\$${order.totalPayPrice.toStringAsFixed(2)}",
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1E293B),
+              Expanded(
+                child: Text(
+                  "\$${order.totalPayPrice.toStringAsFixed(2)}",
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1E293B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              ElevatedButton(
-                onPressed: () async {
-                  // 1. Chờ trang Detail đóng lại và nhận kết quả
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => OrderDetailScreen(order: order),
+              const SizedBox(width: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (hasPendingReview)
+                    OutlinedButton.icon(
+                      onPressed: () => _openReviewPlaceholder(order),
+                      icon: const Icon(Icons.rate_review_outlined, size: 18),
+                      label: const Text("Review"),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF045fae),
+                        side: const BorderSide(color: Color(0xFF045fae)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                     ),
-                  );
-
-                  // 2. Nếu kết quả trả về là true, load lại danh sách đơn hàng
-                  if (result == true) {
-                    setState(() {
-                      // SỬA TẠI ĐÂY: Thay _orderService.getMyOrders() bằng _fetchOrders()
-                      _ordersFuture = _fetchOrders();
-                    });
-                  }
-                },
-                child: const Text("View Details"),
+                  ElevatedButton(
+                    onPressed: () => _openOrderDetail(order),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF045fae),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text("View Details"),
+                  ),
+                ],
               ),
             ],
           ),
@@ -282,7 +419,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   }
 
   Widget _buildStatusBadge(String status) {
-    Color color = _getStatusColor(status);
+    final Color color = _getStatusColor(status);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -321,16 +459,16 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            Text(
+            const Text(
               "Order Items",
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
                 itemCount: order.orderItems.length,
                 itemBuilder: (context, i) {
-                  final item = order.orderItems[i];
+                  final OrderItemModel item = order.orderItems[i];
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(

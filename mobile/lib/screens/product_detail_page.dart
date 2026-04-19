@@ -43,20 +43,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   int? _currentUserId;
 
   String? _errorMessage;
-  int _currentImageIndex = 0; // Để làm chấm bi báo hiệu ảnh hiện tại
+  int _currentImageIndex = 0;
   String? _token;
   int _cartCount = 0;
 
   bool _showAllComments = false;
+  bool _showAllReviews = false;
   final Set<int> _expandedReplyThreads = {};
 
   final TextEditingController _commentController = TextEditingController();
 
   @override
-  /// Initializes the state of the widget.
-  ///
-  /// This function is called when the widget is first initialized.
-  /// It loads the product detail, loads the token, initializes the user, and fetches all data.
   void initState() {
     super.initState();
     _loadToken();
@@ -87,6 +84,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     try {
       final response = await _dio.get('/products/${widget.slug}');
       final product = ProductDetailModel.fromJson(response.data);
+
+      debugPrint('Current product slug: ${widget.slug}');
+      debugPrint('Current product id: ${product.id}');
+      debugPrint('Current product name: ${product.variantName}');
 
       setState(() {
         _product = product;
@@ -120,11 +121,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
       int count = 0;
       if (token != null) {
-        // Nếu đã login, gọi API lấy số lượng từ server
         final cartData = await CartService().getMyCart(token);
         count = cartData.length;
       } else {
-        // Nếu là khách, đọc từ local storage
         final guestData = await CartService().getGuestCart();
         count = guestData.length;
       }
@@ -138,7 +137,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   void _showQuantitySheet({required bool isBuyNow}) {
-    int localQuantity = 1; // Biến tạm để lưu số lượng trong sheet
+    int localQuantity = 1;
 
     showModalBottomSheet(
       context: context,
@@ -148,14 +147,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       ),
       builder: (context) {
         return StatefulBuilder(
-          // Dùng StatefulBuilder để update số lượng ngay trong BottomSheet
           builder: (context, setSheetState) {
             return Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 1. Hiển thị Ảnh và Tên sản phẩm
                   Row(
                     children: [
                       Container(
@@ -202,8 +199,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ],
                   ),
                   const Divider(height: 30),
-
-                  // 2. Ô thay đổi số lượng (Quantity Picker)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -214,8 +209,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       Row(
                         children: [
                           _buildQtyBtn(Icons.remove, () {
-                            if (localQuantity > 1)
+                            if (localQuantity > 1) {
                               setSheetState(() => localQuantity--);
+                            }
                           }),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -228,7 +224,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             ),
                           ),
                           _buildQtyBtn(Icons.add, () {
-                            // Backend của bé có stockQuantity nên bé có thể check ở đây
                             setSheetState(() => localQuantity++);
                           }),
                         ],
@@ -236,22 +231,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ],
                   ),
                   const SizedBox(height: 30),
-
-                  // 3. Nút xác nhận hành động
                   SizedBox(
                     width: double.infinity,
                     height: 54,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context); // Đóng sheet
+                        Navigator.pop(context);
                         if (isBuyNow) {
-                          _onConfirmBuyNow(
-                            localQuantity,
-                          ); // Gọi logic mua ngay với số lượng thực
+                          _onConfirmBuyNow(localQuantity);
                         } else {
-                          _onConfirmAddToCart(
-                            localQuantity,
-                          ); // Gọi logic thêm vào giỏ với số lượng thực
+                          _onConfirmAddToCart(localQuantity);
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -290,16 +279,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           "You need to login to use the 'Buy Now' feature. Do you want to login now?",
         ),
         actions: [
-          // Nút Hủy
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
           ),
-          // Nút Đăng nhập
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // Đóng Dialog
-              // Chuyển hướng sang trang Login của bé
+              Navigator.pop(context);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -315,20 +301,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   void _onConfirmAddToCart(int quantity) async {
     const storage = FlutterSecureStorage();
-    String? token = await storage.read(key: 'jwt_token'); // Đọc token mới nhất
+    String? token = await storage.read(key: 'jwt_token');
 
     bool success = false;
 
     if (token != null) {
-      // TRƯỜNG HỢP 1: Đã login -> Lưu lên Server
       success = await CartService().addToCart(_product!.id, quantity, token);
     } else {
-      // TRƯỜNG HỢP 2: Chưa login (Guest) -> Lưu vào máy
       success = await CartService().addToGuestCart(_product!, quantity);
     }
 
     if (success) {
-      // 1. Hiện thông báo cho khách vui
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Added $quantity item(s) to cart!"),
@@ -341,7 +324,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         context,
         MaterialPageRoute(
           builder: (context) => const MainPage(initialIndex: 4),
-        ), // Giả sử Profile là index 4
+        ),
         (route) => false,
       );
     }
@@ -353,9 +336,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return;
     }
 
-    setState(() => _isLoading = true); // Hiện loading cho chuyên nghiệp
+    setState(() => _isLoading = true);
 
-    // 1. Thêm vào giỏ trên Server (để giữ món hàng trong DB)
     bool success = await CartService().addToCart(
       _product!.id,
       quantity,
@@ -363,32 +345,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
 
     if (success) {
-      // 2. Tạo một Model ảo chỉ chứa duy nhất sản phẩm này để mang sang Checkout
       final buyNowItem = CartItemModel(
         id: 0,
         productId: _product!.id,
         variantName: _product!.variantName,
-        imageUrl: (_product!.images != null && _product!.images!.isNotEmpty)
-            ? _product!.images!.first
-            : '',
+        imageUrl: _product!.images.isNotEmpty ? _product!.images.first : '',
         price: _product!.salePrice ?? _product!.basePrice,
         quantity: quantity,
         isSelected: true,
       );
 
-      // 3. Tính toán nhanh các con số
       double subtotal = buyNowItem.price * quantity;
-      double shipping = subtotal >= 1500 ? 0.0 : 15.0; // Mốc freeship của bé
+      double shipping = subtotal >= 1500 ? 0.0 : 15.0;
       double tax = subtotal * 0.1;
       double total = subtotal + shipping + tax;
 
-      // 4. "Bay" thẳng sang Checkout, bỏ qua bước vào trang Cart
       if (mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => CheckoutPage(
-              selectedItems: [buyNowItem], // Truyền list chỉ 1 món
+              selectedItems: [buyNowItem],
               subtotal: subtotal,
               shippingFee: shipping,
               totalAmount: total,
@@ -400,7 +377,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     setState(() => _isLoading = false);
   }
 
-  // Widget phụ trợ làm nút + - cho đẹp
   Widget _buildQtyBtn(IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -425,6 +401,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _reviewSummary = summary;
         _reviews = reviews;
         _isReviewLoading = false;
+        _showAllReviews = false;
       });
     } catch (e) {
       debugPrint('Error loading reviews: $e');
@@ -703,7 +680,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ],
           ),
           const SizedBox(height: 16),
-
           Text(
             _product!.variantName,
             style: const TextStyle(
@@ -718,7 +694,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             style: const TextStyle(color: Colors.grey, fontSize: 14),
           ),
           const SizedBox(height: 20),
-
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
@@ -753,7 +728,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ],
           ),
           const SizedBox(height: 24),
-
           if (_product!.attributes.isNotEmpty) ...[
             const Text(
               "Key Features",
@@ -829,7 +803,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
             const SizedBox(height: 24),
           ],
-
           const Text(
             "Description",
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -843,7 +816,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               height: 1.6,
             ),
           ),
-
           const SizedBox(height: 28),
           _buildReviewSection(),
           const SizedBox(height: 28),
@@ -860,6 +832,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     final average = _reviewSummary?.averageRating ?? 0.0;
     final total = _reviewSummary?.totalReviews?.toInt() ?? _reviews.length;
+    final displayedReviews = _showAllReviews
+        ? _reviews
+        : _reviews.take(2).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -886,7 +861,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ],
         ),
         const SizedBox(height: 16),
-
         if (_reviews.isEmpty)
           Container(
             width: double.infinity,
@@ -901,31 +875,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               style: TextStyle(color: Colors.grey),
             ),
           )
-        else
-          ..._reviews.take(2).map(_buildReviewCard),
-
-        if (_reviews.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 48),
-                side: BorderSide(color: Colors.grey.shade300),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Text(
-                "See All Reviews",
-                style: TextStyle(
-                  color: primaryColor,
-                  fontWeight: FontWeight.bold,
+        else ...[
+          ...displayedReviews.map(_buildReviewCard),
+          if (_reviews.length > 2)
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    _showAllReviews = !_showAllReviews;
+                  });
+                },
+                child: Text(
+                  _showAllReviews ? 'Show less reviews' : 'Show more reviews',
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ],
     );
@@ -1041,7 +1009,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
         ),
         const SizedBox(height: 16),
-
         if (_isCommentLoading)
           const Center(child: CircularProgressIndicator())
         else if (_comments.isEmpty)
@@ -1080,7 +1047,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ),
         ],
-
         const SizedBox(height: 18),
         _buildCommentInputBox(),
       ],
