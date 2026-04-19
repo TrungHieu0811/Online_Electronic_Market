@@ -20,6 +20,7 @@ const CheckoutPage = () => {
 	const [formData, setFormData] = useState({
 		fullName: '',
 		phone: '',
+		email: '',
 		address: '',
 	});
 
@@ -87,13 +88,14 @@ const CheckoutPage = () => {
 					setFormData({
 						fullName: profile.fullName || '',
 						phone: profile.phone || '',
+						email: profile.email || '',
 						address: profile.address || '',
 					});
 				} catch (error) {
 					Swal.fire('Error', 'Could not load your profile information. Please enter manually.', 'error');
 				}
 			} else {
-				setFormData({fullName: '', phone: '', address: ''});
+				setFormData({fullName: '', phone: '', email: '', address: ''});
 			}
 		};
 		fetchUserProfile();
@@ -396,8 +398,19 @@ const CheckoutPage = () => {
 									<input
 										value={formData.fullName}
 										onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-										disabled={useProfileInfo}
+										// disabled={useProfileInfo}
 										placeholder="Enter full name"
+										className="border border-slate-200 p-4 rounded-xl w-full focus:ring-2 focus:ring-orange-500 disabled:bg-slate-50 transition-all outline-none"
+										required
+									/>
+								</div>
+								<div>
+									<label className="text-[10px] font-bold text-slate-400 ml-1 uppercase">Email Address</label>
+									<input
+										type="email"
+										value={formData.email}
+										onChange={(e) => setFormData({...formData, email: e.target.value})}
+										placeholder="example@email.com"
 										className="border border-slate-200 p-4 rounded-xl w-full focus:ring-2 focus:ring-orange-500 disabled:bg-slate-50 transition-all outline-none"
 										required
 									/>
@@ -649,6 +662,33 @@ const CheckoutPage = () => {
 									</div>
 								</div>
 							</div>
+
+							{/* Thông báo mua thêm để Free Ship */}
+							{subtotal >= 1400 && subtotal < 1500 && (
+								<div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl animate-pulse">
+									<p className="text-[11px] text-blue-400 font-medium text-center">
+										Your order is <strong>${subtotal.toFixed(2)}</strong>. 
+										Add <strong>${(1500 - subtotal).toFixed(2)}</strong> more to get 
+										<span className="text-blue-300 font-bold"> FREE SHIPPING!</span>
+									</p>
+									<button 
+										type="button"
+										onClick={() => navigate('/cart')}
+										className="w-full mt-2 text-[10px] font-bold text-blue-400 underline hover:text-blue-300"
+									>
+										Return to Cart to add more items
+									</button>
+								</div>
+							)}
+
+							{/* Nếu đã đạt ngưỡng Free Ship */}
+							{subtotal >= 1500 && (
+								<div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+									<p className="text-[11px] text-emerald-400 font-bold text-center flex items-center justify-center gap-2">
+										<span>🎉</span> YOU'VE UNLOCKED FREE SHIPPING!
+									</p>
+								</div>
+							)}
 
 							{/* Submit Button */}
 							<button

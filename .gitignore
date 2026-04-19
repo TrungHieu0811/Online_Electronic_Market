@@ -3,12 +3,15 @@ target/
 *.log
 *.class
 *.jar
+.mvn/
+bin/
 
 # ===== Node (React) =====
 node_modules/
 build/
 dist/
 .env
+.eslintcache
 
 # ===== Flutter =====
 .build/
@@ -17,14 +20,25 @@ dist/
 .flutter-plugins-dependencies
 .packages
 pubspec.lock
+**/build/
+**/generated_plugin_registrant.*
+**/generated_plugins.cmake
 
 # Android / iOS
 android/.gradle/
+android/local.properties
 ios/Pods/
+ios/.symlinks/
+ios/Flutter/Generated.xcconfig
 
 # ===== OS =====
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
 
 # ===== IDE =====
 .vscode/
