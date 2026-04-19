@@ -1,7 +1,12 @@
 import 'package:electromart_flutter/models/models.dart';
+import 'package:electromart_flutter/screens/checkout_page.dart';
+import 'package:electromart_flutter/screens/login_screen.dart';
+import 'package:electromart_flutter/screens/main_page.dart';
+import 'package:electromart_flutter/services/cart_service.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 // import 'models.dart'; // 👉 Nhớ import file Model của bạn
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final String slug; // Nhận slug từ HomePage truyền sang
@@ -23,11 +28,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   bool _isLoading = true;
   String? _errorMessage;
   int _currentImageIndex = 0; // Để làm chấm bi báo hiệu ảnh hiện tại
+  String? _token;
+  int _cartCount = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchProductDetail();
+    _loadToken();
   }
 
   Future<void> _fetchProductDetail() async {
@@ -44,6 +52,275 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       });
     }
   }
+
+  Future<void> _loadToken() async {
+  const storage = FlutterSecureStorage();
+  String? savedToken = await storage.read(key: 'jwt_token');
+  setState(() {
+    _token = savedToken;
+  });
+}
+
+Future<void> _loadCartCount() async {
+  try {
+    const storage = FlutterSecureStorage();
+    String? token = await storage.read(key: 'jwt_token');
+    
+    int count = 0;
+    if (token != null) {
+      // Nếu đã login, gọi API lấy số lượng từ server
+      final cartData = await CartService().getMyCart(token);
+      count = cartData.length;
+    } else {
+      // Nếu là khách, đọc từ local storage
+      final guestData = await CartService().getGuestCart();
+      count = guestData.length;
+    }
+
+    setState(() {
+      _cartCount = count; 
+    });
+  } catch (e) {
+    print("Lỗi load số lượng: $e");
+  }
+}
+
+  void _showQuantitySheet({required bool isBuyNow}) {
+  int localQuantity = 1; // Biến tạm để lưu số lượng trong sheet
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      return StatefulBuilder( // Dùng StatefulBuilder để update số lượng ngay trong BottomSheet
+        builder: (context, setSheetState) {
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 1. Hiển thị Ảnh và Tên sản phẩm
+                Row(
+                  children: [
+                    Container(
+                      width: 80, height: 80,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(_product!.images[0], fit: BoxFit.cover),
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _product!.variantName,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            maxLines: 2, overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            "\$${(_product!.salePrice ?? _product!.basePrice).toStringAsFixed(2)}",
+                            style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 30),
+
+                // 2. Ô thay đổi số lượng (Quantity Picker)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Select Quantity", style: TextStyle(fontWeight: FontWeight.w500)),
+                    Row(
+                      children: [
+                        _buildQtyBtn(Icons.remove, () {
+                          if (localQuantity > 1) setSheetState(() => localQuantity--);
+                        }),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 15),
+                          child: Text("$localQuantity", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ),
+                        _buildQtyBtn(Icons.add, () {
+                          // Backend của bé có stockQuantity nên bé có thể check ở đây
+                          setSheetState(() => localQuantity++);
+                        }),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 30),
+
+                // 3. Nút xác nhận hành động
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Đóng sheet
+                      if (isBuyNow) {
+                        _onConfirmBuyNow(localQuantity); // Gọi logic mua ngay với số lượng thực
+                      } else {
+                        _onConfirmAddToCart(localQuantity); // Gọi logic thêm vào giỏ với số lượng thực
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isBuyNow ? accentColor : primaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Text(
+                      isBuyNow ? "PROCEED TO CHECKOUT" : "CONFIRM ADD TO CART",
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+void _showLoginRequiredDialog() {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Login Required"),
+      content: const Text("You need to login to use the 'Buy Now' feature. Do you want to login now?"),
+      actions: [
+        // Nút Hủy
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+        ),
+        // Nút Đăng nhập
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context); // Đóng Dialog
+            // Chuyển hướng sang trang Login của bé
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: accentColor),
+          child: const Text("LOGIN NOW"),
+        ),
+      ],
+    ),
+  );
+}
+
+void _onConfirmAddToCart(int quantity) async {
+  const storage = FlutterSecureStorage();
+  String? token = await storage.read(key: 'jwt_token'); // Đọc token mới nhất
+
+  bool success = false;
+
+  if (token != null) {
+    // TRƯỜNG HỢP 1: Đã login -> Lưu lên Server
+    success = await CartService().addToCart(_product!.id, quantity, token);
+  } else {
+    // TRƯỜNG HỢP 2: Chưa login (Guest) -> Lưu vào máy
+    success = await CartService().addToGuestCart(_product!, quantity); 
+  }
+
+  if (success) {
+    // 1. Hiện thông báo cho khách vui
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Added $quantity item(s) to cart!"),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(builder: (context) => const MainPage(initialIndex: 4)), // Giả sử Profile là index 4
+    (route) => false,
+  );
+  }
+}
+
+void _onConfirmBuyNow(int quantity) async {
+  if (_token == null) {
+    _showLoginRequiredDialog();
+    return;
+  }
+
+  setState(() => _isLoading = true); // Hiện loading cho chuyên nghiệp
+
+  // 1. Thêm vào giỏ trên Server (để giữ món hàng trong DB)
+  bool success = await CartService().addToCart(_product!.id, quantity, _token!);
+
+  if (success) {
+    
+    // 2. Tạo một Model ảo chỉ chứa duy nhất sản phẩm này để mang sang Checkout
+    final buyNowItem = CartItemModel(
+      id: 0, 
+      productId: _product!.id, 
+      variantName: _product!.variantName,
+      imageUrl: (_product!.images != null && _product!.images!.isNotEmpty) 
+          ? _product!.images!.first 
+          : '',
+      price: _product!.salePrice ?? _product!.basePrice,
+      quantity: quantity, 
+      isSelected: true,
+    );
+
+    // 3. Tính toán nhanh các con số
+    double subtotal = buyNowItem.price * quantity;
+    double shipping = subtotal >= 1500 ? 0.0 : 15.0; // Mốc freeship của bé
+    double tax = subtotal * 0.1;
+    double total = subtotal + shipping + tax;
+
+    // 4. "Bay" thẳng sang Checkout, bỏ qua bước vào trang Cart
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CheckoutPage(
+            selectedItems: [buyNowItem], // Truyền list chỉ 1 món
+            subtotal: subtotal,
+            shippingFee: shipping,
+            totalAmount: total,
+          ),
+        ),
+      );
+    }
+  }
+  setState(() => _isLoading = false);
+}
+
+// Widget phụ trợ làm nút + - cho đẹp
+Widget _buildQtyBtn(IconData icon, VoidCallback onTap) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(icon, size: 18),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -390,7 +667,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => _showQuantitySheet(isBuyNow: false),
                 icon: const Icon(Icons.shopping_cart_outlined, size: 20),
                 label: const Text("Add to Cart"),
                 style: ElevatedButton.styleFrom(
@@ -407,7 +684,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () => _showQuantitySheet(isBuyNow: true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: accentColor,
                   foregroundColor: Colors.white,

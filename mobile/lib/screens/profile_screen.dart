@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'edit_profile_screen.dart'; // Import trang Edit
 import 'login_screen.dart';
+import 'order_history_screen.dart'; 
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -266,9 +267,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 8),
+
+                  // 👉 NÚT ORDER HISTORY MỚI ĐƯỢC THÊM VÀO ĐÂY
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const OrderHistoryScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.history_outlined, size: 18),
+                      label: const Text(
+                        'Order History',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF045fae), // Màu xanh đồng bộ với App
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
+
 
             const SizedBox(height: 24),
 
@@ -294,6 +324,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
+            
           ],
         ),
       ),
