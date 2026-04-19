@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'dart:io' show Platform;
+import 'package:electromart_flutter/models/comment_model.dart';
+import 'package:electromart_flutter/models/review_model.dart';
+import 'package:electromart_flutter/models/review_summary_model.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
 import '../models/register_request.dart';
@@ -284,19 +288,86 @@ class ApiService {
     }
   }
 
-  Future<dynamic> get(String endpoint, {Options? options}) async { // 👈 Thêm {Options? options}
-  try {
-    String? token = await _storage.read(key: 'jwt_token');
-    
-    // Nếu url bắt đầu bằng http (gọi GHN), ta dùng options truyền vào.
-    // Nếu không, ta dùng Header Authorization mặc định của mình.
-    final response = await _dio.get(
-      endpoint.startsWith('http') ? endpoint : endpoint,
-      options: options ?? Options(headers: {'Authorization': 'Bearer $token'}),
-    );
-    return response.data;
-  } on DioException catch (e) {
-    throw Exception("Lỗi: ${e.message}");
+  Future<dynamic> get(String endpoint, {Options? options}) async {
+    // 👈 Thêm {Options? options}
+    try {
+      String? token = await _storage.read(key: 'jwt_token');
+
+      // Nếu url bắt đầu bằng http (gọi GHN), ta dùng options truyền vào.
+      // Nếu không, ta dùng Header Authorization mặc định của mình.
+      final response = await _dio.get(
+        endpoint.startsWith('http') ? endpoint : endpoint,
+        options:
+            options ?? Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.data;
+    } on DioException catch (e) {
+      throw Exception("Lỗi: ${e.message}");
+    }
   }
-}
+
+  List<ReviewModel> parseReviewList(String responseBody) {
+    final List<dynamic> data = jsonDecode(responseBody);
+    return data.map((e) => ReviewModel.fromJson(e)).toList();
+  }
+
+  ReviewSummaryModel parseReviewSummary(String responseBody) {
+    final Map<String, dynamic> data = jsonDecode(responseBody);
+    return ReviewSummaryModel.fromJson(data);
+  }
+
+  List<CommentModel> parseCommentList(String responseBody) {
+    final List<dynamic> data = jsonDecode(responseBody);
+    return data.map((e) => CommentModel.fromJson(e)).toList();
+  }
+
+  // =======================
+  // GET REVIEWS BY PRODUCT
+  // =======================
+  Future<List<ReviewModel>> getReviewsByProduct(int productId) async {
+    final response = await _dio.get('/reviews/product/$productId');
+    return (response.data as List).map((e) => ReviewModel.fromJson(e)).toList();
+  }
+
+  // =======================
+  // GET REVIEW SUMMARY
+  // =======================
+  Future<ReviewSummaryModel> getReviewSummary(int productId) async {
+    final response = await _dio.get('/reviews/product/$productId/summary');
+    return ReviewSummaryModel.fromJson(response.data);
+  }
+
+  // =======================
+  // GET COMMENTS BY PRODUCT
+  // =======================
+  Future<List<CommentModel>> getCommentsByProduct(int productId) async {
+    final response = await _dio.get('/comments/product/$productId');
+    return (response.data as List)
+        .map((e) => CommentModel.fromJson(e))
+        .toList();
+  }
+
+  Future<void> postComment({
+    required int productId,
+    required String content,
+    int? parentId,
+    int? groupId,
+  }) async {
+    final token = await _storage.read(key: 'jwt_token');
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Bạn chưa đăng nhập.');
+    }
+
+    await _dio.post(
+      '/comments',
+      data: {
+        'productId': productId,
+        'content': content,
+        if (groupId != null) 'groupId': groupId,
+        if (parentId != null) 'parentId': parentId,
+      },
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+  }
 }
