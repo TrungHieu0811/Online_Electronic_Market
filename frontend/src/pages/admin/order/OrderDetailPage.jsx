@@ -14,57 +14,38 @@ const OrderDetailPage = () => {
 	const [data, setData] = useState({order: null, history: [], verify: [], payments: []});
 	const [loading, setLoading] = useState(true);
 
-	useEffect(() => {
-        const loadDetail = async () => {
-            setLoading(true);
-			// 1. Lấy thông tin đơn hàng TRƯỚC (Cái này quan trọng nhất)
-			try {
-                const o = await orderManagementService.getOrderById(orderId);
-				setData((prev) => ({...prev, order: o.data}));
-			} catch (e) {
-                console.error('Error fetching order:', e);
-			}
-            
-			// 2. Lấy các thông tin phụ sau (Lỗi cái nào thì cái đó trống, không sập trang)
-			try {
-                const h = await orderManagementService.getOrderHistory(orderId);
-				setData((prev) => ({...prev, history: h.data}));
-			} catch (e) {
-                console.error('Error fetching history:', e);
-			}
-            
-			try {
-				const v = await orderManagementService.getVerifyHistory(orderId);
-				setData((prev) => ({...prev, verify: v.data}));
-			} catch (e) {
-				console.error('Error fetching verify:', e);
-			}
 
-			try {
-				const p = await orderManagementService.getPaymentLogs(orderId);
-				setData((prev) => ({...prev, payments: p.data}));
-			} catch (e) {
-				console.error('Error fetching payments:', e);
-			}
+	const loadDetail = async () => {
+    setLoading(true);
+    try {
+        const [o, h, v, p, itemRes, evidences] = await Promise.all([
+            orderManagementService.getOrderById(orderId),
+            orderManagementService.getOrderHistory(orderId).catch(() => ({ data: [] })),
+            orderManagementService.getVerifyHistory(orderId).catch(() => ({ data: [] })),
+            orderManagementService.getPaymentLogs(orderId).catch(() => ({ data: [] })),
+            orderManagementService.getOrderItems(orderId).catch(() => ({ data: [] })),
+            orderManagementService.getOrderEvidences(orderId).catch(() => ({ data: [] }))
+        ]);
 
-			try {
-				const itemRes = await orderManagementService.getOrderItems(orderId);
-				setData((prev) => ({...prev, items: itemRes.data}));
-			} catch (e) {
-				console.log('Error fetching items:', itemsRes.data);
-			}
+        setData({
+            order: o.data,
+            history: h.data,
+            verify: v.data,
+            payments: p.data,
+            items: itemRes.data,
+            evidences: evidences.data
+        });
+    } catch (e) {
+        console.error('Error loading details:', e);
+        Swal.fire('Error', 'Could not refresh data', 'error');
+    } finally {
+        setLoading(false);
+    }
+};
 
-			try {
-				const evidences = await orderManagementService.getOrderEvidences(orderId);
-				setData((prev) => ({...prev, evidences: evidences.data}));
-			} catch (error) {
-				console.error('Error fetching evidences:', error);
-			}
-
-			setLoading(false);
-		};
-		loadDetail();
-	}, [orderId]);
+useEffect(() => {
+    loadDetail();
+}, [orderId]);
             console.log(data.items);
 
 	const onAction = async (status) => {
@@ -138,7 +119,8 @@ const OrderDetailPage = () => {
 			});
 
 			// Tải lại dữ liệu sau 1.5s
-			setTimeout(() => window.location.reload(), 1500);
+			// setTimeout(() => window.location.reload(), 1500);
+			await loadDetail();
 		} catch (e) {
 			console.error(e);
 			Swal.fire('Error', 'Failed to update order status.', 'error');
@@ -204,7 +186,8 @@ const OrderDetailPage = () => {
 				timer: 2000,
 			});
 
-			window.location.reload(); // Tải lại để thấy Stock và Status mới
+			// window.location.reload(); // Tải lại để thấy Stock và Status mới
+			await loadDetail();
 		} catch (e) {
 			console.error(e);
 			Swal.fire('Error', 'Failed to update order status.', 'error');
@@ -242,7 +225,8 @@ const OrderDetailPage = () => {
 						text: 'Package detected. Order status updated to DELIVERED.',
 						icon: 'success',
 					});
-					setTimeout(() => window.location.reload(), 2000);
+					// setTimeout(() => window.location.reload(), 2000);
+					loadDetail();
 				} catch (error) {
 					// THẤT BẠI (AI Reject hoặc Lỗi): Hiện cảnh báo đỏ, KHÔNG reload
 					const errorMsg = error.response?.data || 'Could not detect a package.';
@@ -279,7 +263,8 @@ const OrderDetailPage = () => {
 				await orderManagementService.refundPayPalOrder(orderId);
 
 				Swal.fire('Refunded!', 'Money has been sent back and stock restored.', 'success');
-				setTimeout(() => window.location.reload(), 1500);
+				// setTimeout(() => window.location.reload(), 1500);
+				await loadDetail();
 			} catch (error) {
 				Swal.fire('Error', error.response?.data?.message || 'Refund failed', 'error');
 			} finally {
@@ -374,7 +359,7 @@ const OrderDetailPage = () => {
 					{/* Chỉ hiện nút Simulate AI nếu đơn hàng đang SHIPPING */}
 					{data.order?.orderStatus === 'SHIPPING' && (
 						<div className="flex flex-col gap-2">
-							<label className="text-xs font-black text-slate-400 uppercase tracking-wider">AI Verification Simulation</label>
+							<label className="text-xs font-black text-slate-400 uppercase tracking-wider">AI Verification</label>
 							<div className="flex items-center gap-3">
 								<input
 									type="file"
@@ -387,17 +372,16 @@ const OrderDetailPage = () => {
 									onClick={() => document.getElementById('ai-upload').click()}
 									className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
 								>
-									<span className="animate-pulse">●</span> Upload Package Photo & Simulate
+									<span className="animate-pulse">●</span> Upload Package Photo
 								</button>
 
-								<div className="flex gap-3 mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+								
 									<button
 										onClick={onShipFailed}
 										className="bg-rose-100 hover:bg-rose-200 text-rose-600 px-6 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2"
 									>
 										⚠ Mark as Ship Failed
 									</button>
-								</div>
 							</div>
 							<p className="text-[10px] text-slate-400 italic">Select an image to trigger Cloudinary AI object detection.</p>
 						</div>

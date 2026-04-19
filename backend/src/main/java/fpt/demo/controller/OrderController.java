@@ -1,4 +1,4 @@
-    package fpt.demo.controller;
+package fpt.demo.controller;
 
 import fpt.demo.dto.OrderRequest;
 import fpt.demo.entity.Order;
@@ -110,7 +110,7 @@ public class OrderController {
         }
         return ResponseEntity.ok(json);
     }
-    
+
     @GetMapping("/{id}")
     public ResponseEntity<Order> getOrderDetail(Principal principal, @PathVariable Integer id) {
         Order order = orderService.getOrderDetail(id);
@@ -128,5 +128,12 @@ public class OrderController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @GetMapping("/distance")
+    public ResponseEntity<Double> getDistance(@RequestParam Integer districtId, @RequestParam String wardCode) {
+        // Gọi hàm bé vừa viết ở Service
+        double distance = orderService.getShippingDistance(districtId, wardCode);
+        return ResponseEntity.ok(distance);
     }
 }

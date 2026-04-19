@@ -3,7 +3,7 @@ import OrderTable from '../../../components/admin/order/OrderTable';
 import { orderManagementService } from '../../../services/orderManagementService';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
-import { Package, Search, PlayCircle } from 'lucide-react';
+import { Package, Search, PlayCircle, RotateCcw } from 'lucide-react';
 import Swal from 'sweetalert2';
 import OrderStats from '../../../components/admin/order/OrderStats';
 
@@ -14,7 +14,7 @@ const OrderManagementPage = () => {
     const [currentStatus, setCurrentStatus] = useState(''); // State cho Tab
     const [pagination, setPagination] = useState({ page: 0, size: 8, totalPages: 0 });
     const [stats, setStats] = useState(null);
-
+    const [sortConfig, setSortConfig] = useState({ field: 'createdAt', dir: 'desc' });
     
 
     const tabs = [
@@ -38,7 +38,13 @@ const OrderManagementPage = () => {
                 response = await orderManagementService.searchOrders(trimmedSearch, pagination.page, pagination.size);
             } else {
                 // Gọi API GetAll nếu ô search trống
-                response = await orderManagementService.getAllOrders(pagination.page, pagination.size, currentStatus);
+                response = await orderManagementService.getAllOrders(
+                pagination.page, 
+                pagination.size, 
+                currentStatus, 
+                sortConfig.field, 
+                sortConfig.dir
+            );
             }
 
             // Xử lý dữ liệu từ Page object của Spring
@@ -64,6 +70,14 @@ const OrderManagementPage = () => {
         }
     };
 
+    const handleReset = () => {
+        setSearchTerm(''); // Xóa ô search
+        setCurrentStatus(''); // Quay về tab "All Orders"
+        setSortConfig({ field: 'createdAt', dir: 'desc' }); // Reset Sort về Newest First
+        setPagination(prev => ({ ...prev, page: 0 })); // Quay về trang 1
+        // Hàm fetchOrders sẽ tự động chạy lại do useEffect theo dõi các biến này
+    };
+
    useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             // Khi người dùng gõ search, ta nên chủ động đưa về trang 0
@@ -71,7 +85,7 @@ const OrderManagementPage = () => {
         }, 500);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [currentStatus, pagination.page, searchTerm]);
+    }, [currentStatus, pagination.page, searchTerm, sortConfig]);
 
     const handlePageChange = (newPage) => {
         if (newPage >= 0 && newPage < pagination.totalPages) {
@@ -106,7 +120,7 @@ const OrderManagementPage = () => {
 
                     <OrderStats stats={stats} />
 
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
                         <div className="relative w-full md:w-96">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                             <input
@@ -117,6 +131,38 @@ const OrderManagementPage = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
+                        <div className="flex items-center gap-3 self-end md:self-center">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                SORT BY:
+                            </span>
+                            <div className="relative group">
+                                <select 
+                                    value={`${sortConfig.field},${sortConfig.dir}`}
+                                    onChange={(e) => {
+                                        const [field, dir] = e.target.value.split(',');
+                                        setSortConfig({ field, dir });
+                                    }}
+                                    className="appearance-none bg-transparent font-bold text-slate-700 pr-8 py-1 outline-none cursor-pointer border-b-2 border-transparent hover:border-blue-600 transition-all text-sm"
+                                >
+                                    <option value="createdAt,desc">Newest First</option>
+                                    <option value="createdAt,asc">Oldest First</option>
+                                    <option value="totalPayPrice,desc">Highest Amount</option>
+                                    <option value="totalPayPrice,asc">Lowest Amount</option>
+                                </select>
+                                {/* Icon mũi tên xuống */}
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleReset}
+                            className="flex items-center gap-2 text-slate-400 hover:text-rose-500 transition-colors text-xs font-bold uppercase tracking-tighter border-l pl-6 border-slate-100"
+                            title="Clear all filters"
+                        >
+                            <RotateCcw size={14} />
+                            Reset
+                        </button>
                     </div>
 
                      {/* Tabs Lọc Trạng Thái */}

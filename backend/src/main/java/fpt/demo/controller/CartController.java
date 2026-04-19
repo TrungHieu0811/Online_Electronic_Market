@@ -21,7 +21,8 @@ public class CartController {
     @GetMapping
     public ResponseEntity<Cart> getMyCart(Principal principal) {
         if (principal == null) {
-            return ResponseEntity.status(401).build();
+//            return ResponseEntity.status(401).build();
+            return ResponseEntity.ok(new Cart());
         }
         Cart cart = cartService.getOrCreateCart(principal.getName());
         return ResponseEntity.ok(cart);

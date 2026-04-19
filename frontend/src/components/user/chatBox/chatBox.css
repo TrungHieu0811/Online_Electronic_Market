@@ -1,0 +1,77 @@
+/* chatBox.css */
+
+/* Định dạng Bảng so sánh chuyên nghiệp */
+.msg-bubble.bot table {
+    width: 100%;
+    background-color: white; /* Khung trắng cho bảng */
+    border-collapse: collapse;
+    margin: 12px 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    display: block;
+    overflow-x: auto; /* Cho phép cuộn ngang nếu bảng quá rộng */
+}
+
+.msg-bubble.bot th {
+    background-color: #f7f9fc;
+    color: #333;
+    font-weight: 600;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.msg-bubble.bot td {
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    font-size: 13px;
+    color: #444;
+}
+
+.table-product-link {
+    color: #1a73e8;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.table-product-link:hover { text-decoration: underline; }
+
+/* Định dạng Card sản phẩm AI */
+.ai-product-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 8px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.ai-product-card img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.card-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #222;
+}
+
+.card-price {
+    color: #d32f2f;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.card-link {
+    font-size: 12px;
+    color: #1a73e8;
+    text-decoration: none;
+}

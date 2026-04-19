@@ -5,16 +5,17 @@ import {ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ScrollToTop from './components/layout/ScrollToTop';
 import {useEffect} from 'react';
-import ChatBox from './components/user/ChatBox';
+import ChatBox from './components/user/chatBox/ChatBox';
 
 const ConditionalChatBox = () => {
     const location = useLocation();
 
-    // Nếu đường dẫn bắt đầu bằng /admin thì không hiện Chatbot
+    // Không hiện ở trang admin
     if (location.pathname.startsWith('/admin')) {
         return null;
     }
 
+    // Trả về thẳng ChatBox, các class bên trong ChatBox.css sẽ lo việc hiển thị nổi lên hello 123
     return <ChatBox />;
 };
 
