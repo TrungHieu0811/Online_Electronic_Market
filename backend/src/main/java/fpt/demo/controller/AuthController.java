@@ -1,6 +1,7 @@
 package fpt.demo.controller;
 
 import fpt.demo.dto.ChangePasswordDto;
+import fpt.demo.dto.GoogleLoginRequestDto;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,6 +51,20 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(401).body(Map.of("error", "Incorrect account, password, or account locked!"));
+        }
+    }
+    
+    @PostMapping("/google-login")
+    public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequestDto requestDto) {
+        try {
+            // Nhận Map chứa token và refreshToken
+            Map<String, String> tokens = authService.loginWithGoogle(requestDto);
+            
+            // Trả về thẳng cho Frontend với HTTP Status 200 OK
+            return ResponseEntity.ok(tokens);
+        } catch (Exception e) {
+            // Trả về lỗi 400 nếu Token hỏng hoặc cấu hình sai
+            return ResponseEntity.badRequest().body("Đăng nhập Google thất bại: " + e.getMessage());
         }
     }
 

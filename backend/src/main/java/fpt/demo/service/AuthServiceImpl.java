@@ -1,6 +1,11 @@
 package fpt.demo.service;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import fpt.demo.dto.AdminCreationDto;
+import fpt.demo.dto.GoogleLoginRequestDto;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
@@ -24,11 +29,18 @@ import fpt.demo.jwt.JwtService;
 import fpt.demo.repository.RefreshTokenRepository;
 import fpt.demo.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+    
+    @Value("${google.client.id}")
+    private String googleClientId;
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -45,6 +57,70 @@ public class AuthServiceImpl implements AuthService {
         // Cập nhật và mã hóa mật khẩu mới
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+    
+    // 👉 Trả về Map<String, String> thay vì DTO
+    public Map<String, String> loginWithGoogle(GoogleLoginRequestDto requestDto) throws Exception {
+        // 1. Cấu hình công cụ xác minh của Google
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                .setAudience(Collections.singletonList(googleClientId))
+                .build();
+
+        // 2. Xác thực Token từ React gửi lên
+        GoogleIdToken idToken = verifier.verify(requestDto.getToken());
+        if (idToken == null) {
+            throw new RuntimeException("Token Google không hợp lệ hoặc đã hết hạn!");
+        }
+
+        // 3. Rút trích thông tin người dùng
+        GoogleIdToken.Payload payload = idToken.getPayload();
+        String email = payload.getEmail();
+        String name = (String) payload.get("name");
+        String pictureUrl = (String) payload.get("picture");
+
+        // 4. Tìm User trong DB
+        User user = userRepository.findByEmail(email).orElse(null);
+
+        if (user == null) {
+            // TẠO MỚI USER NẾU CHƯA TỒN TẠI
+            user = new User();
+            user.setEmail(email);
+            user.setUsername(email); 
+            user.setFullName(name);
+            user.setAvatarUrl(pictureUrl);
+            user.setStatus(true); // Kích hoạt tài khoản luôn
+            
+            // Encode một mật khẩu ngẫu nhiên (User Google không dùng mật khẩu này để đăng nhập)
+            user.setPassword(passwordEncoder.encode("GOOGLE_OAUTH_" + Math.random()));
+
+            // Nếu User entity của bạn có Role, set mặc định là USER ở đây nhé
+            // user.setRole(Role.USER); 
+
+            user = userRepository.save(user);
+
+            // Có thể dùng emailService để gửi mail Welcome ở đây nếu muốn
+            // emailService.sendWelcomeEmail(user.getEmail(), user.getFullName());
+        }
+
+        // 5. Cấp phát Token bằng JwtService của bạn
+        // (Giả định hàm generateToken nhận tham số là Entity User hoặc UserDetails)
+        String accessToken = jwtService.generateToken(user);
+        String refreshTokenString = jwtService.generateToken(user);
+
+        // 6. Lưu Refresh Token xuống Database
+        // (Sửa lại tên Class và hàm set cho khớp với Entity RefreshToken của bạn)
+        RefreshToken refreshTokenEntity = new RefreshToken();
+        refreshTokenEntity.setToken(refreshTokenString);
+        refreshTokenEntity.setUser(user);
+        // refreshTokenEntity.setExpiryDate(...); // Set hạn sử dụng nếu DB của bạn yêu cầu
+        refreshTokenRepository.save(refreshTokenEntity);
+
+        // 7. Đóng gói vào Map để trả về Frontend
+        Map<String, String> response = new HashMap<>();
+        response.put("token", accessToken);
+        response.put("refreshToken", refreshTokenString);
+        
+        return response;
     }
     
     @Override

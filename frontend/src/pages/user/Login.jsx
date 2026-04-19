@@ -9,7 +9,7 @@ import { cartService } from '../../services/cartService';
 import { useCart } from '../../context/CartContext';
 import Header from '@/components/layout/Header';
 import { jwtDecode } from "jwt-decode";
-
+import { GoogleLogin } from '@react-oauth/google';
 const Login = () => {
 	const navigate = useNavigate();
 	const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +26,58 @@ const Login = () => {
 		});
 	};
 
+	// 👉 Hàm xử lý khi Google trả về kết quả thành công
+    const handleGoogleSuccess = async (credentialResponse) => {
+        const googleToken = credentialResponse.credential;
+        console.log("=== ĐÃ LẤY ĐƯỢC TOKEN TỪ GOOGLE ===");
+        
+        try {
+            // Hiển thị loading (nếu bạn có state isLoading)
+            setIsLoading(true);
+
+            // GỌI API NÉM TOKEN XUỐNG SPRING BOOT
+            // Sửa lại đường dẫn API cho đúng với cấu hình của bạn nhé
+            const response = await authApi.googleLogin({ token: googleToken }); 
+            // Hoặc nếu dùng axios thuần: await axios.post('http://localhost:8080/api/auth/google-login', { token: googleToken });
+
+            // Lấy token nội bộ của hệ thống từ Backend trả về
+            const accessToken = response.token || response.data?.token;
+            const refreshToken = response.refreshToken || response.data?.refreshToken;
+
+            if (accessToken) {
+                // 1. Lưu vào LocalStorage
+                localStorage.setItem('token', accessToken);
+                if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+
+                // 2. Gộp Giỏ hàng (Merge Cart) - Bê nguyên logic cũ của bạn xuống đây
+                try {
+                    const localCart = JSON.parse(localStorage.getItem('guestCart')) || [];
+                    if (localCart.length > 0) {
+                        const dataToMerge = localCart.map(item => ({
+                                productId: item.productId,
+                                quantity: item.quantity,
+                                imageUrl: item.product?.imageList?.[0]?.imageUrl || item.imageUrl 
+                        }));
+                        await cartService.mergeCart(dataToMerge);
+                        localStorage.removeItem('guestCart');
+                    }
+                    await fetchCartCount();
+                } catch (mergeError) {
+                    console.error('Error merging cart:', mergeError);
+                }
+
+                toast.success('Login successful!');
+                
+                // 3. Chuyển hướng về trang chủ
+                navigate(location.state?.from || '/');
+            }
+        } catch (error) {
+            console.error("Error validating Backend:", error);
+            toast.error("Login failed due to Server Error!");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 	const { fetchCartCount } = useCart();
 
 	const handleSubmit = async (e) => {
@@ -256,24 +308,21 @@ const Login = () => {
 						</div>
 
 						{/* Social Login */}
-						{/* <div className="grid grid-cols-2 gap-4">
-							<button
-								className="h-12 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-								type="button"
-							>
-								<div className="w-5 h-5 bg-accent-blue rounded-full flex items-center justify-center">
-									<FcGoogle />
-								</div>
-								<span className="text-sm font-medium text-slate-700 dark:text-slate-300">Google</span>
-							</button>
-							<button
-								className="h-12 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-								type="button"
-							>
-								<FaApple />
-								<span className="text-sm font-medium text-slate-700 dark:text-slate-300">Apple</span>
-							</button>
-						</div> */}
+                        <div className="flex justify-center mt-2">
+                            <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={() => {
+                                    toast.error('Login Failed!');
+                                    console.error('Login Failed');
+                                }}
+                                // Các thuộc tính giúp nút Google bo góc đẹp và vừa vặn với giao diện của bạn
+                                shape="rectangular" 
+                                size="large"
+                                theme="outline"
+                                text="signin_with"
+                                useOneTap 
+                            />
+                        </div>
 					</form>
 
 					{/* Footer Link */}
