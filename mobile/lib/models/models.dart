@@ -1,3 +1,10 @@
+export 'cart_item_model.dart';
+export 'cart_model.dart';
+export 'login_request.dart';
+export 'register_request.dart';
+export 'order_item_model.dart';
+export 'order_model.dart';
+
 class CategoryModel {
   final int id;
   final String name;

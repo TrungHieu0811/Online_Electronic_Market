@@ -283,4 +283,20 @@ class ApiService {
       throw Exception('Error while changing password!');
     }
   }
+
+  Future<dynamic> get(String endpoint, {Options? options}) async { // 👈 Thêm {Options? options}
+  try {
+    String? token = await _storage.read(key: 'jwt_token');
+    
+    // Nếu url bắt đầu bằng http (gọi GHN), ta dùng options truyền vào.
+    // Nếu không, ta dùng Header Authorization mặc định của mình.
+    final response = await _dio.get(
+      endpoint.startsWith('http') ? endpoint : endpoint,
+      options: options ?? Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+    return response.data;
+  } on DioException catch (e) {
+    throw Exception("Lỗi: ${e.message}");
+  }
+}
 }

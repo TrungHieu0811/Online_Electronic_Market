@@ -1,12 +1,16 @@
+import 'dart:convert';
+
 import 'package:electromart_flutter/screens/forgot_password_screen.dart';
 import 'package:electromart_flutter/screens/home_page.dart';
 import 'package:electromart_flutter/screens/main_page.dart';
 import 'package:electromart_flutter/screens/profile_screen.dart';
+import 'package:electromart_flutter/services/cart_service.dart';
 import 'package:flutter/material.dart';
 import '../models/login_request.dart';
 import '../services/api_service.dart';
 import 'register_screen.dart'; // Dùng để bấm nút chuyển sang trang Đăng ký
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,6 +54,30 @@ class _LoginScreenState extends State<LoginScreen> {
           );
           print("=== [KÉT SẮT] TOKEN CỦA BẠN LÀ: $savedToken ===");
           // -------------------------------------------
+          // ✨ BƯỚC THÊM MỚI: LOGIC MERGE CART (Không đổi code cũ)
+          if (savedToken != null) {
+            try {
+              final prefs = await SharedPreferences.getInstance();
+              // Lấy giỏ hàng tạm của Guest từ SharedPreferences
+              String? guestCartJson = prefs.getString('guest_cart');
+              
+              if (guestCartJson != null && guestCartJson.isNotEmpty) {
+                List<dynamic> guestList = jsonDecode(guestCartJson);
+                List<Map<String, dynamic>> guestItems = 
+                    List<Map<String, dynamic>>.from(guestList);
+
+                // Gọi API merge đã viết ở CartService
+                await CartService().mergeGuestCart(savedToken, guestItems);
+                
+                // Xóa giỏ hàng tạm sau khi đã đẩy lên Server thành công
+                await prefs.remove('guest_cart');
+                print("=== [MERGE] Đồng bộ giỏ hàng thành công ===");
+              }
+            } catch (mergeError) {
+              // Chỉ in ra log nếu merge lỗi, không làm gián đoạn việc đăng nhập
+              print("=== [MERGE] Lỗi đồng bộ: $mergeError ===");
+            }
+          }
           // 👉 ĐỔI THÀNH MainPage CỦA BẠN NHÉ
           Navigator.pushAndRemoveUntil(
             context,
