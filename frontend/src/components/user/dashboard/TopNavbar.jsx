@@ -1,11 +1,12 @@
 import React from 'react';
 import {Link, useNavigate} from 'react-router-dom';
+import { useCart } from '@/context/CartContext';
 import {toast} from 'react-toastify';
 // Import thêm icon Logout (tùy thư viện bạn dùng)
 import {MdLogout} from 'react-icons/md';
 export default function TopNavbar() {
 	const navigate = useNavigate();
-
+	const { cartCount } = useCart();
 	return (
 		<nav className="fixed top-0 z-50 flex max-w-full w-full items-center justify-between bg-white/80 px-8 py-4 font-['Manrope'] tracking-tight shadow-[0_12px_32px_rgba(0,26,64,0.08)] backdrop-blur-md dark:bg-slate-900/80">
 			<div className="flex items-center gap-12">
@@ -45,12 +46,22 @@ export default function TopNavbar() {
 					/>
 				</div> */}
 
-				<button className="relative rounded-full p-2 transition-all active:scale-95 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-					<span className="material-symbols-outlined text-on-surface-variant">shopping_cart</span>
-					<span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
-						3
-					</span>
-				</button>
+				<button 
+    onClick={() => navigate('/cart')}
+    // Thêm cursor-pointer vào đây
+    className="relative p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-all cursor-pointer active:scale-90"
+>
+    <span className="material-symbols-outlined text-[28px]">
+        shopping_cart
+    </span>
+    
+    {/* Badge hiển thị số lượng */}
+    {cartCount > 0 && (
+        <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow-sm pointer-events-none">
+            {cartCount > 99 ? '99+' : cartCount}
+                        </span>
+    )}
+</button>
 
 				{/* <div className="flex items-center gap-3 border-l border-outline-variant/20 pl-4">
 					<img
