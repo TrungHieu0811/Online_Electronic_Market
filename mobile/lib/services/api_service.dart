@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
+import 'dart:io';
 import 'package:electromart_flutter/models/comment_model.dart';
 import 'package:electromart_flutter/models/order_review_page.dart';
 import 'package:electromart_flutter/models/review_model.dart';
@@ -161,23 +161,76 @@ class ApiService {
   }
 
   // --- HÀM CẬP NHẬT PROFILE ---
-  Future<String> updateUserProfile(Map<String, dynamic> updateData) async {
+  // --- HÀM CẬP NHẬT PROFILE (CÓ ẢNH AVATAR) ---
+  Future<String> updateUserProfile({
+    required Map<String, dynamic> data,
+    File? imageFile,
+  }) async {
     try {
+      // 1. Mở két lấy Token (Dùng đúng biến _storage của bạn)
       String? token = await _storage.read(key: 'jwt_token');
-      if (token == null) throw Exception('Did not login!');
 
+      if (token == null || token.isEmpty) {
+        throw Exception('You have not login yet!');
+      }
+
+      // 2. Tạo dữ liệu để gửi đi (Dùng kiểu Map cho chữ)
+      Map<String, dynamic> formDataMap = {
+        'fullName': data['fullName'],
+        'phone': data['phone'],
+        'address': data['address'],
+      };
+
+      if (data['gender'] != null) {
+        formDataMap['gender'] = data['gender'].toString();
+      }
+
+      // 3. Đính kèm File Ảnh bằng cú pháp MultipartFile của Dio (Nếu có ảnh)
+      if (imageFile != null) {
+        formDataMap['avatar'] = await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.path.split('/').last, // Lấy tên file gốc
+        );
+      }
+
+      // 4. Đóng gói tất cả vào FormData của Dio
+      FormData formData = FormData.fromMap(formDataMap);
+
+      // 5. Gửi Request
+      // LƯU Ý: Thay '/users/me/profile' bằng đúng tên Endpoint của bạn (ví dụ: '/user/update-profile')
+      // LƯU Ý 2: Thay _dio.put thành _dio.post nếu Spring Boot của bạn đang dùng @PostMapping
       final response = await _dio.put(
         '/users/me',
-        data: updateData,
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            // Dio sẽ tự động thêm Content-Type: multipart/form-data khi gửi FormData
+          },
+        ),
       );
 
-      return response.data; // Trả về câu thông báo "Cập nhật thành công"
-    } on DioException catch (e) {
-      if (e.response != null && e.response?.data is String) {
-        throw Exception(e.response?.data);
+      // 6. Xử lý kết quả trả về
+      if (response.data is Map && response.data['message'] != null) {
+        return response.data['message'];
+      } else if (response.data is String) {
+        return response.data;
       }
-      throw Exception('Error when try to update data!');
+      return "Profile updated successfully!";
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errData = e.response?.data;
+        if (errData is Map && errData['error'] != null) {
+          throw Exception(errData['error']);
+        }
+        if (errData is Map && errData['message'] != null) {
+          throw Exception(errData['message']);
+        }
+        if (errData is String) {
+          throw Exception(errData);
+        }
+      }
+      throw Exception('Cannot connect to server to update profile!');
     }
   }
 
@@ -275,15 +328,27 @@ class ApiService {
       String? token = await _storage.read(key: 'jwt_token');
       if (token == null) throw Exception('Did not login!');
 
+      // Nhớ đảm bảo đường dẫn này khớp với Spring Boot nhé
       final response = await _dio.put(
         '/users/me/password',
         data: data,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
+
+      // SỬA LỖI CAST TYPE Ở ĐÂY: Nếu trả về JSON (Map) thì bóc trường message ra
+      if (response.data is Map && response.data['message'] != null) {
+        return response.data['message'];
+      }
       return response.data;
     } on DioException catch (e) {
-      if (e.response != null && e.response?.data is String) {
-        throw Exception(e.response?.data);
+      if (e.response != null) {
+        final errData = e.response?.data;
+        // Bắt mọi thể loại lỗi JSON mà Spring Boot có thể ném ra
+        if (errData is Map && errData['error'] != null)
+          throw Exception(errData['error']);
+        if (errData is Map && errData['message'] != null)
+          throw Exception(errData['message']);
+        if (errData is String) throw Exception(errData);
       }
       throw Exception('Error while changing password!');
     }
