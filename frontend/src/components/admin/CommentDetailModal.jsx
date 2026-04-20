@@ -11,6 +11,11 @@ export default function CommentDetailModal({ group, onClose, onReplied }) {
     const [replyContent, setReplyContent] = useState('');
     const [replyingParentId, setReplyingParentId] = useState(null);
     const [sending, setSending] = useState(false);
+    const buildImageUrl = (path) => {
+        if (!path) return '';
+        if (path.startsWith('http')) return path;
+        return `http://localhost:8080/uploads${path}`;
+    };
 
     useEffect(() => {
         if (group?.productId) {
@@ -118,7 +123,7 @@ export default function CommentDetailModal({ group, onClose, onReplied }) {
                         <div className='flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl bg-gray-200'>
                             {group?.productThumbnail ? (
                                 <img
-                                    src={group.productThumbnail}
+                                    src={buildImageUrl(group.productThumbnail)}
                                     alt={group.productName || 'Product'}
                                     className='h-full w-full object-cover'
                                 />
