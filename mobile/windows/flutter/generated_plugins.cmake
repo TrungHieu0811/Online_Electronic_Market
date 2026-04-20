@@ -3,11 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-<<<<<<< HEAD
   app_links
-=======
   file_selector_windows
->>>>>>> 66e5b976a575a5c6e34d657fa5bc3fbd6521428e
   flutter_secure_storage_windows
   url_launcher_windows
 )
