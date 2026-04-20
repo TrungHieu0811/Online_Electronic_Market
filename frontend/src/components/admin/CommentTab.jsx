@@ -68,7 +68,7 @@ export default function CommentTab() {
             setLoading(false);
         }
     };
-console.log("groups: ",groups);
+    console.log('groups: ', groups);
     const startItem = useMemo(() => {
         if (totalElements === 0) return 0;
         return page * size + 1;
@@ -119,9 +119,9 @@ console.log("groups: ",groups);
                                 <th className='px-8 py-5 text-[11px] font-bold uppercase tracking-widest text-gray-500'>
                                     Product
                                 </th>
-                                <th className='px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-gray-500'>
+                                {/* <th className='px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-gray-500'>
                                     Category
-                                </th>
+                                </th> */}
                                 <th className='px-6 py-5 text-[11px] font-bold uppercase tracking-widest text-gray-500'>
                                     New Comments
                                 </th>
@@ -170,7 +170,13 @@ console.log("groups: ",groups);
                                                     <div className='flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-gray-200'>
                                                         {group.productThumbnail ? (
                                                             <img
-                                                                src={group.productThumbnail.startsWith('http') ? group.productThumbnail : `${'http://localhost:8080/uploads'+group.productThumbnail}`}
+                                                                src={
+                                                                    group.productThumbnail.startsWith(
+                                                                        'http'
+                                                                    )
+                                                                        ? group.productThumbnail
+                                                                        : `${'http://localhost:8080/uploads' + group.productThumbnail}`
+                                                                }
                                                                 alt={group.productName || 'Product'}
                                                                 className='h-full w-full object-cover'
                                                             />
@@ -193,11 +199,11 @@ console.log("groups: ",groups);
                                                 </div>
                                             </td>
 
-                                            <td className='px-6 py-6'>
+                                            {/* <td className='px-6 py-6'>
                                                 <span className='rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700'>
                                                     {group.categoryName || 'Uncategorized'}
                                                 </span>
-                                            </td>
+                                            </td> */}
 
                                             <td className='px-6 py-6'>
                                                 <div className='flex items-center gap-2'>
