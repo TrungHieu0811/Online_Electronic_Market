@@ -55,6 +55,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String? _token;
 
   double _currentShippingFee = 0.0;
+  double _currentDistance = 0.0;
 
  Future<void> _fetchProvinces() async {
   try {
@@ -175,11 +176,12 @@ void _onDistrictChanged(int? dId) async {
   "shipName": _fullNameController.text,
   "shipPhone": _phoneController.text,
   "shipAddress": _addressController.text,
+  "couponCode": _couponController.text,
   "note": "Order via Flutter Mobile App",
+  "shippingFee": _currentShippingFee,
   "paymentMethod": _selectedPayment,
   "districtId": _selectedDistrictId, // 👈 Dùng biến đã chọn từ Dropdown
   "wardCode": _selectedWardCode,     // 👈 Dùng biến đã chọn từ Dropdown
-  "couponCode": "", 
 };
 
   try {
@@ -216,16 +218,23 @@ void _onDistrictChanged(int? dId) async {
 
 
 Future<void> _updateShippingFee() async {
-  if (_selectedDistrictId != null && _selectedWardCode != null) {
+  if (_selectedDistrictId != null && _selectedWardCode != null && _token != null) {
     try {
+
+      double distance = await OrderService().getShippingDistance(
+        _selectedProvinceId!, _selectedDistrictId!, _selectedWardCode!, _token!
+      );
       // Gọi hàm previewShippingFee trong OrderService mình vừa tạo lúc nãy
       double fee = await OrderService().previewShippingFee(
         _selectedDistrictId!, 
         _selectedWardCode!, 
-        widget.subtotal
+        widget.subtotal,
+        _token!
       );
+
       
       setState(() {
+        _currentDistance = distance;
         // Cập nhật lại phí ship để giao diện nhảy số tiền mới
         _currentShippingFee = fee; 
       });
@@ -283,28 +292,26 @@ void _showCouponList() async {
 
 void _applyCoupon() async {
   String code = _couponController.text.trim();
-  // Gọi API validate để chắc chắn mã vẫn dùng được
-  bool isValid = await CouponService().validateCoupon(code, widget.subtotal);
+  if (code.isEmpty || _token == null) return;
 
-  if (isValid) {
-    // Lấy chi tiết mã để tính tiền giảm
-    final coupon = await CouponService().getCouponDetail(code, _token!);
-    
-    if (coupon != null) {
-      setState(() {
-        if (coupon.discountType == "PERCENTAGE") {
-          double calculated = (widget.subtotal * coupon.discountValue) / 100;
-          // Nếu có mức giảm tối đa (maxDiscountAmount), thì lấy mức đó
-          _discountAmount = (coupon.maxDiscountAmount != null && calculated > coupon.maxDiscountAmount!) 
-              ? coupon.maxDiscountAmount! : calculated;
-        } else {
-          _discountAmount = coupon.discountValue; // FIXED_AMOUNT
-        }
-      });
-    }
+  // Gọi hàm detail mới, truyền thêm subtotal để Server lọc
+  final coupon = await CouponService().getCouponDetail(code, widget.subtotal, _token!);
+  
+  if (coupon != null) {
+    setState(() {
+      if (coupon.discountType.toUpperCase().contains("PERCENTAGE")) {
+         // Tính toán %
+         double calculated = (widget.subtotal * coupon.discountValue) / 100;
+         _discountAmount = (coupon.maxDiscountAmount != null && calculated > coupon.maxDiscountAmount!) 
+             ? coupon.maxDiscountAmount! : calculated;
+      } else {
+         _discountAmount = coupon.discountValue; // Fixed Amount
+      }
+    });
   } else {
-    // Thông báo lỗi nếu mã không hợp lệ
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Invalid Coupon")));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Invalid Coupon or Not Eligible"), backgroundColor: Colors.red)
+    );
   }
 }
 
@@ -328,6 +335,7 @@ void _applyCoupon() async {
           children: [
             _buildSectionTitle("Shipping Information"),
             _buildShippingForm(),
+            const SizedBox(height: 24),
             _buildShippingArea(),
             const SizedBox(height: 24),
             _buildSectionTitle("Promo Code"),
@@ -519,7 +527,7 @@ Widget _buildPaymentOption(IconData icon, String label, {required bool isSelecte
   // Tóm tắt đơn hàng màu tối
   Widget _buildOrderSummaryCard() {
     double taxAmount = widget.subtotal * 0.1;
-    double totalPayPrice = widget.subtotal + taxAmount + _currentShippingFee;
+    double totalPayPrice = widget.subtotal + taxAmount + _currentShippingFee - _discountAmount;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -535,7 +543,13 @@ Widget _buildPaymentOption(IconData icon, String label, {required bool isSelecte
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(item.imageUrl ?? '', width: 50, height: 50, fit: BoxFit.cover),
+                  child: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                      ? Image.network(
+                          item.imageUrl!, 
+                          width: 50, height: 50, fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.image, color: Colors.grey), // Hiện icon nếu ảnh lỗi
+                        )
+                      : const Icon(Icons.image, color: Colors.grey), // Hiện icon nếu không có URL
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -553,12 +567,22 @@ Widget _buildPaymentOption(IconData icon, String label, {required bool isSelecte
           )).toList(),
           const Divider(color: Colors.grey),
           _summaryRow("Subtotal", "\$${widget.subtotal.toStringAsFixed(2)}"),
+          _summaryRow(
+            "Distance", 
+            "${(_currentDistance / 1000).toStringAsFixed(1)} km", // Chia 1000 để đổi sang km
+            color: Colors.grey.shade400
+          ),
          _summaryRow(
-              "Shipping", 
+              "Shipping Fee", 
               _currentShippingFee == 0 ? "FREE" : "\$${_currentShippingFee.toStringAsFixed(2)}", 
               color: Colors.blue
             ),
           _summaryRow("Tax (10%)", "\$${(widget.subtotal * 0.1).toStringAsFixed(2)}"),
+          _summaryRow(
+            "Discount", 
+            "-\$${_discountAmount.toStringAsFixed(2)}", 
+            color: Colors.redAccent // Màu đỏ để khách biết là được trừ tiền
+          ),
           const SizedBox(height: 16),
 
           Row(
