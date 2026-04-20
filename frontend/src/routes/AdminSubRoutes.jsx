@@ -23,50 +23,62 @@ import OrderDetailPage from '@/pages/admin/order/OrderDetailPage';
 import RequireSuperAdmin from '@/pages/admin/RequireSuperAdmin';
 import CreateAdmin from '@/pages/admin/CreateAdmin';
 import ChangePassword from '@/pages/admin/ChangePassword';
+import AdminInventoryAiDetailPage from '@/pages/admin/AdminInventoryAiDetailPage';
+import AdminInventoryAiPage from '@/pages/admin/AdminInventoryAiPage';
 
 export default function AdminSubRoutes() {
-	return (
-		<Routes>
-			<Route index element={<AdminDashboardPage />} /> {/* path: /admin */}
-			<Route path="change-password" element={<ChangePassword />} />
-			<Route path="dashboard" element={<AdminDashboardPage />} />
-			{/* Products group */}
-			<Route path="products/" element={<AdminProductsPage />} />
-			<Route path="products/edit/:slug" element={<AdminProductEditPage />} />
-			<Route path="products/groups" element={<AdminProductGroupPage />} />
-			<Route path="products/groups/create" element={<AdminProductGroupCreatePage />} />
-			<Route path="products/groups/:groupId" element={<AdminProductGroupDetailsPage />} />
-			<Route path="products/groups/edit/:groupId" element={<AdminProductGroupEditPage />} />
-			<Route path="products/groups/addVariant/:groupId" element={<AdminProductCreatePage />} />
-			{/* Categories group */}
-			<Route path="categories/" element={<AdminCategoryPage />} />
-			<Route path="categories/edit/:id" element={<AdminCategoryEditPage />} />
-			<Route path="categories/create" element={<AdminCategoryCreatePage />} />
-			<Route path="categories/config/:id" element={<AdminCategoryConfigPage />} />
-			<Route path="categories/manageConfig/:slug" element={<TestCateConfigManagementPage />} />
-			{/* Brands group */}
-			<Route path="brands/" element={<AdminBrandPage />} />
-			<Route path="brands/create" element={<CreateBrandPage />} />
-			<Route path="brands/edit/:id" element={<AdminBrandEditPage />} />
-			{/* Dashboard group */}
-			<Route path="dashboard" element={<AdminDashboardPage />} />
-			{/* User management group */}
-			<Route path="users" element={<UserManagementPage />} />Ơ{/* Reviews & Comments management group */}
-			<Route path="reviews-comments" element={<AdminReviewsCommentsPage />} />
-			{/* coupons management group */}
-			<Route path="coupons" element={<CouponManagementPage />} />
-			{/* Order management */}
-			<Route path="/orders" element={<OrderManagementPage />} />
-			<Route path="/orders/:orderId" element={<OrderDetailPage />} />
-			{/* 👉 TRANG ĐƯỢC BẢO VỆ NGHIÊM NGẶT BỞI SUPERADMIN */}
-			<Route
-				path="create-admin"
-				element={
-					<RequireSuperAdmin>
-						<CreateAdmin />
-					</RequireSuperAdmin>
-				}
-			/>
-		</Routes>
-	);
+    return (
+        <Routes>
+            <Route index element={<AdminDashboardPage />} /> {/* path: /admin */}
+            <Route path='change-password' element={<ChangePassword />} />
+            <Route path='dashboard' element={<AdminDashboardPage />} />
+            {/* Products group */}
+            <Route path='products/' element={<AdminProductsPage />} />
+            <Route path='products/edit/:slug' element={<AdminProductEditPage />} />
+            <Route path='products/groups' element={<AdminProductGroupPage />} />
+            <Route path='products/groups/create' element={<AdminProductGroupCreatePage />} />
+            <Route path='products/groups/:groupId' element={<AdminProductGroupDetailsPage />} />
+            <Route path='products/groups/edit/:groupId' element={<AdminProductGroupEditPage />} />
+            <Route
+                path='products/groups/addVariant/:groupId'
+                element={<AdminProductCreatePage />}
+            />
+            {/* Categories group */}
+            <Route path='categories/' element={<AdminCategoryPage />} />
+            <Route path='categories/edit/:id' element={<AdminCategoryEditPage />} />
+            <Route path='categories/create' element={<AdminCategoryCreatePage />} />
+            <Route path='categories/config/:id' element={<AdminCategoryConfigPage />} />
+            <Route
+                path='categories/manageConfig/:slug'
+                element={<TestCateConfigManagementPage />}
+            />
+            {/* Brands group */}
+            <Route path='brands/' element={<AdminBrandPage />} />
+            <Route path='brands/create' element={<CreateBrandPage />} />
+            <Route path='brands/edit/:id' element={<AdminBrandEditPage />} />
+            {/* Dashboard group */}
+            <Route path='dashboard' element={<AdminDashboardPage />} />
+            {/* User management group */}
+            <Route path='users' element={<UserManagementPage />} />Ơ
+            {/* Reviews & Comments management group */}
+            <Route path='reviews-comments' element={<AdminReviewsCommentsPage />} />
+            {/* coupons management group */}
+            <Route path='coupons' element={<CouponManagementPage />} />
+            {/* Order management */}
+            <Route path='/orders' element={<OrderManagementPage />} />
+            <Route path='/orders/:orderId' element={<OrderDetailPage />} />
+            {/* Inventory AI */}
+            <Route path='/inventory-ai' element={<AdminInventoryAiPage />} />
+            <Route path='/inventory-ai/:productId' element={<AdminInventoryAiDetailPage />} />
+            {/* 👉 TRANG ĐƯỢC BẢO VỆ NGHIÊM NGẶT BỞI SUPERADMIN */}
+            <Route
+                path='create-admin'
+                element={
+                    <RequireSuperAdmin>
+                        <CreateAdmin />
+                    </RequireSuperAdmin>
+                }
+            />
+        </Routes>
+    );
 }
