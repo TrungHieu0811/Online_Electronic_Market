@@ -23,41 +23,55 @@ class CouponService {
 
   // 2. Lấy danh sách Coupon khả dụng cho đơn hàng hiện tại
   Future<List<CouponModel>> getAvailableCoupons(double orderValue, String token) async {
-    try {
-      final response = await http.get(
-        Uri.parse("$baseUrl/available?orderValue=$orderValue"),
-        headers: {
-          'Authorization': 'Bearer $token', // Cần token vì Backend check theo UserID
-        },
-      );
+  try {
+    final response = await http.get(
+      Uri.parse("$baseUrl/available?orderValue=$orderValue"),
+      headers: {
+        'Authorization': 'Bearer $token', //
+      },
+    );
 
-      if (response.statusCode == 200) {
-        List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => CouponModel.fromJson(json)).toList();
-      }
-      return [];
-    } catch (e) {
-      return [];
+    if (response.statusCode == 200) {
+      // 1. Giải mã body thành dynamic list
+      final List<dynamic> data = jsonDecode(response.body);
+      
+      final List<CouponModel> list = data.map((json) => CouponModel.fromJson(json)).toList();
+      
+      return list;
     }
+    return [];
+  } catch (e) {
+    print("Lỗi lấy danh sách coupon: $e");
+    return [];
   }
+}
 
   // 3. Lấy thông tin chi tiết của 1 Coupon theo mã code
   // (Dùng để lấy số tiền giảm cụ thể sau khi khách nhập code thành công)
-  Future<CouponModel?> getCouponDetail(String code, String token) async {
-    try {
-      // tận dụng API lấy danh sách rồi filter, hoặc viết thêm API getByCode ở Backend
-      // Ở đây mình ví dụ gọi trực tiếp đến API Backend bé đã có (tương ứng CouponService.getCouponByCode)
-      final response = await http.get(
-        Uri.parse("http://10.0.2.2:8080/api/coupons/$code"), // Giả định endpoint này
-        headers: {'Authorization': 'Bearer $token'},
-      );
+ Future<CouponModel?> getCouponDetail(String code, double orderValue, String token) async {
+  try {
+    // Gọi API lấy danh sách coupon dùng được cho đơn hàng này
+    final response = await http.get(
+      Uri.parse("$baseUrl/available?orderValue=$orderValue"),
+      headers: {'Authorization': 'Bearer $token'},
+    );
 
-      if (response.statusCode == 200) {
-        return CouponModel.fromJson(jsonDecode(response.body));
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      // Chuyển JSON thành List CouponModel
+      final list = data.map((json) => CouponModel.fromJson(json)).toList();
+      
+      // Tìm mã khách đã nhập trong danh sách trả về (không phân biệt hoa thường)
+      try {
+        return list.firstWhere((c) => c.code.toUpperCase() == code.toUpperCase());
+      } catch (e) {
+        return null; // Không tìm thấy mã trong danh sách khả dụng
       }
-    } catch (e) {
-      print("Lỗi lấy thông tin Coupon: $e");
     }
     return null;
+  } catch (e) {
+    print("Lỗi lấy chi tiết Coupon: $e");
+    return null;
   }
+}
 }
