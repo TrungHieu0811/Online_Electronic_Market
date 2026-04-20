@@ -102,21 +102,24 @@ class OrderService {
 
   // 6. 🚚 XEM TRƯỚC PHÍ SHIP (Dành cho trang Checkout)
   // Backend: OrderController -> previewFee
-  Future<double> previewShippingFee(int districtId, String wardCode, double totalAmount) async {
-    try {
-      final response = await _dio.get(
-        '/users/orders/preview-fee',
-        queryParameters: {
-          'districtId': districtId,
-          'wardCode': wardCode,
-          'totalAmount': totalAmount,
-        },
-      );
-      return (response.data as num).toDouble(); // Trả về phí ship USD
-    } catch (e) {
-      return 2.0; // Phí mặc định nếu lỗi
-    }
+  Future<double> previewShippingFee(int districtId, String wardCode, double totalAmount, String token) async {
+  try {
+    final response = await _dio.get(
+      '/users/orders/preview-fee',
+      queryParameters: {
+        'districtId': districtId,
+        'wardCode': wardCode,
+        'totalAmount': totalAmount,
+      },
+      // Thêm Token vào đây để Server nhận diện nhé
+      options: Options(headers: {'Authorization': 'Bearer $token'}), 
+    );
+    return (response.data as num).toDouble();
+  } catch (e) {
+    print("Lỗi API Shipping: $e"); // In ra lỗi để bé biết tại sao nó lỗi
+    return 0.0; // Nên để 0.0 để bé dễ nhận biết khi có lỗi xảy ra
   }
+}
 
 Future<List<dynamic>> getProvinces() async {
   final response = await ApiService().get('/users/orders/provinces'); 
@@ -126,5 +129,23 @@ Future<List<dynamic>> getProvinces() async {
   
   // Trả về đúng danh sách 'data' của GHN
   return data['data']; 
+}
+
+Future<double> getShippingDistance(int provinceId, int districtId, String wardCode, String token) async {
+  try {
+    final response = await _dio.get(
+      '/users/orders/distance', 
+      queryParameters: {
+        'provinceId': provinceId,
+        'districtId': districtId,
+        'wardCode': wardCode,
+      },
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+    return (response.data as num).toDouble(); // Trả về mét
+  } catch (e) {
+    print("Lỗi lấy khoảng cách: $e");
+    return 0.0;
+  }
 }
 }
