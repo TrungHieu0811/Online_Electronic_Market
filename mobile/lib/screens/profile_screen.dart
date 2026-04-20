@@ -2,9 +2,9 @@ import 'package:electromart_flutter/screens/change_password_screen.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'edit_profile_screen.dart'; // Import trang Edit
+import 'edit_profile_screen.dart';
 import 'login_screen.dart';
-import 'order_history_screen.dart'; 
+import 'order_history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,10 +19,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
 
+  // Định nghĩa màu sắc theo theme của bạn (từ file HTML)
+  final Color primaryColor = const Color(0xFF045fae);
+  final Color secondaryColor = const Color(0xFFff6b00);
+  final Color bgColor = const Color(0xFFF5F7F8);
+
   @override
   void initState() {
     super.initState();
-    _fetchProfileData(); // Vừa vào màn hình là gọi API lấy dữ liệu ngay
+    _fetchProfileData();
   }
 
   Future<void> _fetchProfileData() async {
@@ -41,7 +46,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
-    // Xóa token khỏi két sắt
     await const FlutterSecureStorage().delete(key: 'jwt_token');
     if (mounted) {
       Navigator.pushReplacement(
@@ -54,11 +58,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: bgColor,
+        body: Center(child: CircularProgressIndicator(color: primaryColor)),
+      );
     }
 
     if (_errorMessage.isNotEmpty) {
       return Scaffold(
+        backgroundColor: bgColor,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -70,7 +78,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _logout,
-                child: const Text('Return to login'),
+                style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+                child: const Text(
+                  'Return to login',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -78,36 +90,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    // GIAO DIỆN KHI ĐÃ LẤY ĐƯỢC DỮ LIỆU
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: bgColor,
       appBar: AppBar(
         title: const Text(
-          'ElectroMart Profile',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          'Profile',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
+        centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.redAccent),
-            onPressed: _logout,
-            tooltip: 'Logout',
-          ),
-        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: Colors.grey.shade200, height: 1.0),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 24,
+          bottom: 40,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // THẺ THÔNG TIN CÁ NHÂN (Đã tích hợp nút Edit)
+            // 1. THẺ THÔNG TIN CÁ NHÂN (USER INFO CARD)
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.02),
@@ -118,99 +133,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               child: Column(
                 children: [
-                  // Phần trên: Avatar và thông tin
-                  Row(
+                  // Avatar & Badge Camera
+                  Stack(
                     children: [
-                      // ... bên trong children của Row ...
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundColor: Colors.blue.shade50,
-
-                        // 👉 SỬA ĐOẠN NÀY ĐỂ HIỂN THỊ ẢNH
-
-                        // 1. Dùng backgroundImage để load ảnh từ Url
-                        backgroundImage:
-                            (_userData?['avatarUrl'] != null &&
-                                _userData!['avatarUrl'].isNotEmpty)
-                            ? NetworkImage(_userData!['avatarUrl'])
-                            : null, // Nếu không có link ảnh thì để null
-                        // 2. Cấu hình child (Icon mặc định) đè lên ảnh
-                        // Nếu đã có ảnh (backgroundImage != null) thì child phải là null để không che mất ảnh
-                        child:
-                            (_userData?['avatarUrl'] == null ||
-                                _userData!['avatarUrl'].isEmpty)
-                            ? const Icon(
-                                Icons.person,
-                                size: 40,
-                                color: Colors.blue,
-                              )
-                            : null, // Đã có ảnh thì không hiện Icon nữa
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: primaryColor.withOpacity(0.1),
+                            width: 4,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.blue.shade50,
+                          backgroundImage:
+                              (_userData?['avatarUrl'] != null &&
+                                  _userData!['avatarUrl'].isNotEmpty)
+                              ? NetworkImage(_userData!['avatarUrl'])
+                              : null,
+                          child:
+                              (_userData?['avatarUrl'] == null ||
+                                  _userData!['avatarUrl'].isEmpty)
+                              ? Icon(
+                                  Icons.person,
+                                  size: 50,
+                                  color: primaryColor,
+                                )
+                              : null,
+                        ),
                       ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _userData?['fullName'] ?? 'Have not up',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E293B),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.email_outlined,
-                                  size: 16,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _userData?['email'] ?? 'Have not updated',
-                                    style: const TextStyle(color: Colors.grey),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.phone_outlined,
-                                  size: 16,
-                                  color: Colors.grey,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _userData?['phone'] ?? 'Have not updated',
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                          ],
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: secondaryColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 16),
-                  const Divider(
-                    color: Color(0xFFF1F5F9),
-                    thickness: 1.5,
-                  ), // Đường kẻ mờ
-                  const SizedBox(height: 4),
 
-                  // Phần dưới: Nút bấm Edit Profile Full Width
+                  // Tên & Email
+                  Text(
+                    _userData?['fullName'] ?? 'Have not updated',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _userData?['email'] ?? 'Have not updated',
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Platinum Member Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.verified, color: primaryColor, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Platinum Member', // Bạn có thể map theo rewardPoints sau
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Nút Edit Profile
                   SizedBox(
                     width: double.infinity,
-                    child: TextButton.icon(
+                    height: 48,
+                    child: ElevatedButton.icon(
                       onPressed: () async {
-                        // Chuyển sang trang Edit và chờ kết quả trả về
                         final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -218,79 +244,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 EditProfileScreen(currentData: _userData!),
                           ),
                         );
-
-                        // Tải lại trang Profile nếu cập nhật thành công
-                        if (result == true) {
-                          _fetchProfileData();
-                        }
+                        if (result == true) _fetchProfileData();
                       },
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                      label: const Text(
-                        'Edit Profile Information',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                      icon: const Icon(
+                        Icons.edit,
+                        size: 18,
+                        color: Colors.white,
                       ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.blue,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      label: const Text(
+                        'Edit Profile',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // 👉 THÊM NÚT ĐỔI MẬT KHẨU
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ChangePasswordScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.password_outlined, size: 18),
-                      label: const Text(
-                        'Change Password',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor:
-                            Colors.orange, // Màu cam cho nó phân biệt
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // 👉 NÚT ORDER HISTORY MỚI ĐƯỢC THÊM VÀO ĐÂY
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const OrderHistoryScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.history_outlined, size: 18),
-                      label: const Text(
-                        'Order History',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF045fae), // Màu xanh đồng bộ với App
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                     ),
@@ -299,88 +272,236 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
+            const SizedBox(height: 32),
+
+            // 2. KHU VỰC: MY ACCOUNT
+            _buildSectionTitle('My Account'),
+            const SizedBox(height: 8),
+            _buildActionTile(
+              icon: Icons.shopping_bag_outlined,
+              iconColor: primaryColor,
+              iconBgColor: primaryColor.withOpacity(0.1),
+              title: 'Order History',
+              subtitle: 'View your past tech purchases',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OrderHistoryScreen()),
+                );
+              },
+            ),
+            _buildActionTile(
+              icon: Icons.password_outlined,
+              iconColor: primaryColor,
+              iconBgColor: primaryColor.withOpacity(0.1),
+              title: 'Change Password',
+              subtitle: 'Update your security credentials',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ChangePasswordScreen(),
+                  ),
+                );
+              },
+            ),
+            _buildActionTile(
+              icon: Icons.location_on_outlined,
+              iconColor: primaryColor,
+              iconBgColor: primaryColor.withOpacity(0.1),
+              title: 'Saved Addresses',
+              subtitle: 'Manage delivery locations',
+              onTap: () {}, // Bổ sung tính năng sau
+            ),
+            _buildActionTile(
+              icon: Icons.payment_outlined,
+              iconColor: primaryColor,
+              iconBgColor: primaryColor.withOpacity(0.1),
+              title: 'Payment Methods',
+              subtitle: 'Cards and digital wallets',
+              onTap: () {}, // Bổ sung tính năng sau
+            ),
+            _buildActionTile(
+              icon: Icons.favorite_border,
+              iconColor: primaryColor,
+              iconBgColor: primaryColor.withOpacity(0.1),
+              title: 'Wishlist',
+              subtitle: "Items you've saved for later",
+              onTap: () {}, // Bổ sung tính năng sau
+            ),
 
             const SizedBox(height: 24),
 
-            // CÁC THẺ THỐNG KÊ
-            Row(
+            // 3. KHU VỰC: SUPPORT & SAFETY
+            _buildSectionTitle('Support & Safety'),
+            const SizedBox(height: 8),
+            _buildActionTile(
+              icon: Icons.help_outline,
+              iconColor: Colors.grey.shade700,
+              iconBgColor: Colors.grey.shade200,
+              title: 'Customer Support',
+              onTap: () {}, // Bổ sung tính năng sau
+            ),
+            _buildActionTile(
+              icon: Icons.logout,
+              iconColor: Colors.red,
+              iconBgColor: Colors.red.withOpacity(0.1),
+              title: 'Logout',
+              isDestructive: true,
+              onTap: _logout,
+            ),
+            const SizedBox(height: 20), // Dành chỗ cho Bottom Nav
+          ],
+        ),
+      ),
+
+      // BOTTOM NAVIGATION BAR (Giống giao diện Web)
+      // Lưu ý: Nếu App của bạn đã có màn hình MainScreen quản lý BottomNav thì bạn có thể xóa phần này.
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Expanded(
-                  child: _buildStatCard(
-                    'Reward Points',
-                    '${_userData?['rewardPoints'] ?? 0}',
-                    Icons.star_rounded,
-                    Colors.orange,
-                  ),
+                _buildBottomNavItem(Icons.home_outlined, 'Home', false),
+                _buildBottomNavItem(
+                  Icons.category_outlined,
+                  'Categories',
+                  false,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildStatCard(
-                    'Total Orders',
-                    '0',
-                    Icons.shopping_bag_outlined,
-                    Colors.blue,
-                  ),
+                _buildBottomNavItem(
+                  Icons.shopping_cart_outlined,
+                  'Cart',
+                  false,
                 ),
+                _buildBottomNavItem(Icons.favorite_outline, 'Wishlist', false),
+                _buildBottomNavItem(Icons.person, 'Profile', true),
               ],
             ),
-            
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
+  // Widget tạo tiêu đề khu vực (MY ACCOUNT, SUPPORT & SAFETY)
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8.0, bottom: 4.0),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  // Widget tạo các hàng menu giống thiết kế HTML
+  Widget _buildActionTile({
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: Colors.grey.shade100),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: iconBgColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 20),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: isDestructive ? Colors.red : Colors.black87,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (!isDestructive)
+                  Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              ],
             ),
-            child: Icon(icon, color: color, size: 24),
           ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-        ],
+        ),
       ),
+    );
+  }
+
+  // Hàm phụ trợ tạo Bottom Navigation Item
+  Widget _buildBottomNavItem(IconData icon, String label, bool isActive) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          color: isActive ? primaryColor : Colors.grey.shade400,
+          size: 26,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: isActive ? primaryColor : Colors.grey.shade400,
+          ),
+        ),
+      ],
     );
   }
 }

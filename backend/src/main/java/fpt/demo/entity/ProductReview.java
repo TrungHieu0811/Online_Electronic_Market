@@ -45,7 +45,7 @@ public class ProductReview {
     private Order order;
 
     @ManyToOne
-    private OrderItem orderItem; 
+    private OrderItem orderItem;
 
     @Column(nullable = false)
     private Integer ratingScore;
@@ -65,4 +65,10 @@ public class ProductReview {
     private ReviewStatus status = ReviewStatus.PENDING;
 
     private LocalDateTime createdAt;
+
+    @Column(length = 20)
+    private String sentiment;
+
+    @Column(columnDefinition = "NVARCHAR(MAX)")
+    private String sentimentExplanation;
 }

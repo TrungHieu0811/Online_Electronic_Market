@@ -24,4 +24,7 @@ public class ReviewResponseDto {
     private LocalDateTime createdAt;
 
     private UserSimpleDto user;
+
+    private String sentiment;
+    private String sentimentExplanation;
 }

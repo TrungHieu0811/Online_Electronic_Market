@@ -131,9 +131,9 @@ public class OrderController {
     }
 
     @GetMapping("/distance")
-    public ResponseEntity<Double> getDistance(@RequestParam Integer districtId, @RequestParam String wardCode) {
+    public ResponseEntity<Double> getDistance(@RequestParam Integer provinceId, @RequestParam Integer districtId, @RequestParam String wardCode) {
         // Gọi hàm bé vừa viết ở Service
-        double distance = orderService.getShippingDistance(districtId, wardCode);
+        double distance = orderService.getShippingDistance(provinceId, districtId, wardCode);
         return ResponseEntity.ok(distance);
     }
 }

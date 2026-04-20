@@ -24,67 +24,59 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-  private final JwtAuthenticationFilter jwtAuthFilter;
-  private final AuthenticationProvider authenticationProvider;
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final AuthenticationProvider authenticationProvider;
 
-  @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http
-        .csrf(AbstractHttpConfigurer::disable)
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // public
+                .requestMatchers("/api/auth/**", "/error").permitAll()
+                .requestMatchers("/api/public/**").permitAll()
+                // file upload tĩnh
+                .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+                // callback payment public
+                .requestMatchers("/api/users/payment/paypal-callback/**").permitAll()
+                .requestMatchers("/api/users/payment/cancel/**").permitAll()
+                // comment: ai cũng xem được
+                .requestMatchers(HttpMethod.GET, "/api/comments/product/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/comments/replies/**").permitAll()
+                // admin area
+                .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_STAFF", "ROLE_SUPERADMIN")
+                // user area
+                .requestMatchers("/api/users/**").hasAnyAuthority("ROLE_USER", "ROLE_STAFF", "ROLE_SUPERADMIN")
+                // user comment actions
+                .requestMatchers(HttpMethod.POST, "/api/comments/**").hasAuthority("ROLE_USER")
+                .requestMatchers(HttpMethod.PUT, "/api/comments/**").hasAuthority("ROLE_USER")
+                .requestMatchers(HttpMethod.DELETE, "/api/comments/**").hasAuthority("ROLE_USER")
+                //review 
+                .requestMatchers(HttpMethod.GET, "/api/reviews/product/**").permitAll()
+                        
+                .anyRequest().authenticated())
+                .sessionManagement(session
+                        -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+        return http.build();
+    }
 
-            // public
-            .requestMatchers("/api/auth/**", "/error").permitAll()
-            .requestMatchers("/api/public/**").permitAll()
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
 
-            // file upload tĩnh
-            .requestMatchers("/uploads/**").permitAll()
-            .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowCredentials(true);
 
-            // callback payment public
-            .requestMatchers("/api/users/payment/paypal-callback/**").permitAll()
-            .requestMatchers("/api/users/payment/cancel/**").permitAll()
-
-            // comment: ai cũng xem được
-            .requestMatchers(HttpMethod.GET, "/api/comments/product/**").permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/comments/replies/**").permitAll()
-
-            // admin area
-            .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_STAFF", "ROLE_SUPERADMIN")
-
-            // user area
-            .requestMatchers("/api/users/**").hasAnyAuthority("ROLE_USER", "ROLE_STAFF", "ROLE_SUPERADMIN")
-
-            // user comment actions
-            .requestMatchers(HttpMethod.POST, "/api/comments/**").hasAuthority("ROLE_USER")
-            .requestMatchers(HttpMethod.PUT, "/api/comments/**").hasAuthority("ROLE_USER")
-            .requestMatchers(HttpMethod.DELETE, "/api/comments/**").hasAuthority("ROLE_USER")
-
-            .anyRequest().authenticated())
-
-        .sessionManagement(session ->
-          session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))   
-
-        .authenticationProvider(authenticationProvider)
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
-    return http.build();
-  }
-
-  @Bean
-  public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
-
-    configuration.setAllowedOriginPatterns(List.of("*"));
-    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-    configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-    configuration.setAllowCredentials(true);
-
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", configuration);
-    return source;
-  }
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 }

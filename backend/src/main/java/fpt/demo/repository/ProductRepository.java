@@ -77,4 +77,6 @@ public interface ProductRepository extends JpaRepository<Product, Integer>, JpaS
   long countByStockQuantityLessThan(Integer threshold);
 
   long countByIsFeaturedTrue();
+  
+
 }

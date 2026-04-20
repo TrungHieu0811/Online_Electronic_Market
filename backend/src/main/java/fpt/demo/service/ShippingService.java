@@ -13,5 +13,5 @@ public interface ShippingService {
     
     Object getGHNProvinces();
     
-    double getActualDistance(Integer districtId, String wardCode, int weight);
+    double getActualDistance(Integer provinceId, Integer districtId, String wardCode, int weight);
 }

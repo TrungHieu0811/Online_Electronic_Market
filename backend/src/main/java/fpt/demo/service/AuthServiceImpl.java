@@ -7,6 +7,9 @@ import com.google.api.client.json.gson.GsonFactory;
 import fpt.demo.dto.AdminCreationDto;
 import fpt.demo.dto.GoogleLoginRequestDto;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
@@ -29,16 +32,13 @@ import fpt.demo.jwt.JwtService;
 import fpt.demo.repository.RefreshTokenRepository;
 import fpt.demo.repository.UserRepository;
 import jakarta.transaction.Transactional;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
-    
+
     @Value("${google.client.id}")
     private String googleClientId;
 
@@ -48,18 +48,17 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final EmailService emailService;
-    
+
     @Transactional
     public void changePassword(String username, String newPassword) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Admin not found!"));
-        
+
         // Cập nhật và mã hóa mật khẩu mới
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
-    
-    // 👉 Trả về Map<String, String> thay vì DTO
+
     public Map<String, String> loginWithGoogle(GoogleLoginRequestDto requestDto) throws Exception {
         // 1. Cấu hình công cụ xác minh của Google
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
@@ -85,17 +84,16 @@ public class AuthServiceImpl implements AuthService {
             // TẠO MỚI USER NẾU CHƯA TỒN TẠI
             user = new User();
             user.setEmail(email);
-            user.setUsername(email); 
+            user.setUsername(email);
             user.setFullName(name);
             user.setAvatarUrl(pictureUrl);
             user.setStatus(true); // Kích hoạt tài khoản luôn
-            
+
             // Encode một mật khẩu ngẫu nhiên (User Google không dùng mật khẩu này để đăng nhập)
             user.setPassword(passwordEncoder.encode("GOOGLE_OAUTH_" + Math.random()));
 
             // Nếu User entity của bạn có Role, set mặc định là USER ở đây nhé
             // user.setRole(Role.USER); 
-
             user = userRepository.save(user);
 
             // Có thể dùng emailService để gửi mail Welcome ở đây nếu muốn
@@ -119,10 +117,10 @@ public class AuthServiceImpl implements AuthService {
         Map<String, String> response = new HashMap<>();
         response.put("token", accessToken);
         response.put("refreshToken", refreshTokenString);
-        
+
         return response;
     }
-    
+
     @Override
     @Transactional
     public String register(UserRegistrationDto request) {
@@ -220,7 +218,7 @@ public class AuthServiceImpl implements AuthService {
                     .body("Error sending email: " + e.getMessage());
         }
     }
-    
+
     @Override
     @Transactional
     public String createAdmin(AdminCreationDto request) {
@@ -231,33 +229,33 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email has already existed!");
         }
-        if (request.getPhone() != null && !request.getPhone().isEmpty() && userRepository.existsByPhone(request.getPhone())) {
-            throw new IllegalArgumentException("Số điện thoại has already existed!");
+        
+        // 👉 XỬ LÝ CHUỖI RỖNG CHO SỐ ĐIỆN THOẠI
+        String finalPhone = request.getPhone();
+        if (finalPhone != null && finalPhone.trim().isEmpty()) {
+            finalPhone = null; // Chuyển chuỗi rỗng thành NULL
+        }
+
+        if (finalPhone != null && userRepository.existsByPhone(finalPhone)) {
+            throw new IllegalArgumentException("Phone number has already existed!");
         }
 
         // 2. Tạo tài khoản Admin mới
         User newAdmin = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
-                // 👉 TỰ ĐỘNG GÁN MẬT KHẨU MẶC ĐỊNH LÀ "123"
                 .password(passwordEncoder.encode("123"))
                 .fullName(request.getFullName())
-                .phone(request.getPhone())
-                
-                // 👉 LƯU Ý QUAN TRỌNG: Thiết lập quyền cho tài khoản này là ADMIN
-                // (Tùy thuộc vào Database của bạn lưu Role là số hay chữ. 
-                // Ví dụ: .userRole("ROLE_ADMIN") hoặc .roleId(2)... bạn sửa dòng này cho khớp nhé!)
-                .userRole(Role.ROLE_STAFF)
-                
-                // Admin tạo ra là xài được luôn, không cần OTP
-                .status(true) 
+                .phone(finalPhone) // 👉 DÙNG BIẾN ĐÃ XỬ LÝ Ở ĐÂY
+                .userRole(Role.ROLE_STAFF) 
+                .status(true)
                 .emailConfirmed(true)
                 .build();
 
         // 3. Lưu xuống Database
         userRepository.save(newAdmin);
 
-        return "Tạo tài khoản Admin thành công!";
+        return "Create admin successfully!";
     }
 
     @Override
@@ -278,7 +276,7 @@ public class AuthServiceImpl implements AuthService {
         String jwtAccessToken = jwtService.generateToken(user);
         RefreshToken refreshToken = createRefreshToken(user);
 
-        return new String[] { jwtAccessToken, refreshToken.getToken() };
+        return new String[]{jwtAccessToken, refreshToken.getToken()};
     }
 
     // Hàm private giữ nguyên, không cần @Override vì không có trong Interface
@@ -318,7 +316,7 @@ public class AuthServiceImpl implements AuthService {
         String newAccessToken = jwtService.generateToken(user);
 
         // Trả về một mảng chứa: [AccessToken Mới, RefreshToken Cũ (vẫn còn hạn)]
-        return new String[] { newAccessToken, refreshTokenOpt.getToken() };
+        return new String[]{newAccessToken, refreshTokenOpt.getToken()};
     }
 
     @Override

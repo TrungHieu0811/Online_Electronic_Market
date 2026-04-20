@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 
 import fpt.demo.dto.CreateReviewDto;
 import fpt.demo.dto.ReviewResponseDto;
+import fpt.demo.dto.ReviewSummaryDto;
 import fpt.demo.entity.ProductReview;
 
 public interface ProductReviewService {
@@ -25,4 +26,6 @@ public interface ProductReviewService {
     Page<ReviewResponseDto> getAdminReviews(int page, int size, String status);
 
     Object getAdminReviewStats();
+
+    ReviewSummaryDto getReviewSummary(Integer productId);
 }

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
-// Bạn nhớ import file api gọi xuống Backend nhé, ví dụ:
-// import adminApi from '@/services/adminApi';
-
-// 👉 THÊM DÒNG NÀY VÀO: Gọi bác bảo vệ api.js vào để làm việc
 import api from '../../services/api';
+
+// 👉 1. NHỚ IMPORT BỘ KHUNG LAYOUT VÀO NHÉ (Sửa lại đường dẫn nếu project bạn để thư mục khác)
+import AdminSidebar from '../../components/admin/AdminSidebar'; 
+import AdminHeader from '../../components/admin/AdminHeader';
 
 export default function CreateAdmin() {
     const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +34,6 @@ export default function CreateAdmin() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validate cơ bản
         if (!formData.username || !formData.email) {
             toast.warning("Please fill in all required fields!");
             return;
@@ -42,26 +41,16 @@ export default function CreateAdmin() {
 
         setIsLoading(true);
         try {
-            // Nhớ dùng file api.js có gắn sẵn interceptors để nó tự nhét Access Token của SuperAdmin vào header nhé
             const response = await api.post('/admin/users/create-admin', formData);
-
             toast.success(response.data.message || "Admin account created successfully!");
             setFormData({ username: '', email: '', password: '', fullName: '', phone: '' });
         } catch (error) {
-            // 👉 KIỂM TRA VÀ HIỂN THỊ LỖI
-            // console.log("CHI TIẾT LỖI:", error);
-            // alert("LỖI GỐC LÀ: " + error.message);
             if (error.response && error.response.status === 400) {
                 const data = error.response.data;
-                // alert("CHI TIẾT LỖI TỪ BACKEND: " + JSON.stringify(data));
-
-                // Nếu là lỗi chung (generalError) như Trùng email, Trùng username...
                 if (data.generalError || data.error || data.message) {
                     toast.error(data.generalError || data.error || data.message);
-                }
-                // Nếu là lỗi của từng ô (Validation)
-                else {
-                    setFieldErrors(data); // Cập nhật state lỗi để in xuống dưới các input
+                } else {
+                    setFieldErrors(data);
                     toast.error("Please check your input!");
                 }
             } else {
@@ -72,62 +61,82 @@ export default function CreateAdmin() {
         }
     };
 
+    // 👉 2. CẤU TRÚC GIAO DIỆN MỚI
     return (
-        <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 max-w-2xl mx-auto mt-8">
-            <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-800">Create New Admin</h2>
-            </div>
+        <div className="flex min-h-screen bg-slate-50">
+            {/* Sidebar Cố Định Bên Trái */}
+            <AdminSidebar />
+            
+            <main className="flex-1 flex flex-col min-w-0">
+                {/* Header Cố Định Phía Trên */}
+                <AdminHeader />
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {/* Username */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">Username *</label>
-                        <input
-                            type="text" name="username" value={formData.username} onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#045fae] focus:border-[#045fae] outline-none"
-                            placeholder="Enter username"
-                        />
-                        {/* 👉 In chữ đỏ báo lỗi ở đây */}
-                        {fieldErrors.username && <p className="text-red-500 text-xs mt-1 font-medium">{fieldErrors.username}</p>}
-                    </div>
-
+                {/* Vùng Chứa Nội Dung Chính */}
+                <div className="p-8 space-y-6 max-w-6xl mx-auto w-full">
                     
-
-                    {/* Email */}
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">Email Address *</label>
-                        <input
-                            type="email" name="email" value={formData.email} onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#045fae] focus:border-[#045fae] outline-none"
-                            placeholder="admin@electromart.com"
-                        />
-                        {fieldErrors.email && <p className="text-red-500 text-xs mt-1 font-medium">{fieldErrors.email}</p>}
+                    {/* Tiêu đề trang (Làm giống hệt trang Order) */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800 italic uppercase">Account Management</h1>
+                            <p className="text-slate-500 text-sm">Create a new system administrator</p>
+                        </div>
                     </div>
 
-                    {/* Full Name */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">Full Name</label>
-                        <input
-                            type="text" name="fullName" value={formData.fullName} onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#045fae] focus:border-[#045fae] outline-none"
-                            placeholder="Enter full name"
-                        />
+                    {/* Cái form cũ của bạn được bọc vào đây */}
+                    <div className="p-8 bg-white rounded-2xl shadow-sm border border-slate-200 max-w-2xl mt-4">
+                        <div className="mb-8 border-b border-slate-100 pb-4">
+                            <h2 className="text-xl font-bold text-slate-800">Admin Information</h2>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {/* Username */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Username <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text" name="username" value={formData.username} onChange={handleChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#045fae] focus:border-[#045fae] outline-none transition-all"
+                                        placeholder="Enter username"
+                                    />
+                                    {fieldErrors.username && <p className="text-red-500 text-xs mt-1 font-medium">{fieldErrors.username}</p>}
+                                </div>
+
+                                {/* Full Name */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Full Name</label>
+                                    <input
+                                        type="text" name="fullName" value={formData.fullName} onChange={handleChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#045fae] focus:border-[#045fae] outline-none transition-all"
+                                        placeholder="Enter full name"
+                                    />
+                                </div>
+
+                                {/* Email */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Email Address <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="email" name="email" value={formData.email} onChange={handleChange}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#045fae] focus:border-[#045fae] outline-none transition-all"
+                                        placeholder="admin@electromart.com"
+                                    />
+                                    {fieldErrors.email && <p className="text-red-500 text-xs mt-1 font-medium">{fieldErrors.email}</p>}
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100 mt-6 flex justify-end">
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="px-6 py-2.5 bg-[#045fae] text-white font-bold rounded-xl hover:bg-blue-800 transition-all shadow-lg shadow-blue-200 disabled:opacity-60 disabled:shadow-none"
+                                >
+                                    {isLoading ? 'Creating...' : 'Create Admin Account'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-
-                
+                    
                 </div>
-
-                <div className="pt-4 border-t border-gray-100 mt-6 flex justify-end">
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="px-6 py-2.5 bg-[#045fae] text-white font-bold rounded-lg hover:bg-blue-800 transition disabled:opacity-60"
-                    >
-                        {isLoading ? 'Creating...' : 'Create Admin Account'}
-                    </button>
-                </div>
-            </form>
+            </main>
         </div>
     );
 }

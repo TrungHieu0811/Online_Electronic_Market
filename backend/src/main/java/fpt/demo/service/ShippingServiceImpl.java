@@ -106,7 +106,7 @@ public class ShippingServiceImpl implements ShippingService {
     }
 
     @Override
-    public double getActualDistance(Integer districtId, String wardCode, int weight) {
+    public double getActualDistance(Integer provinceId, Integer districtId, String wardCode, int weight) {
         if (districtId == null || wardCode == null) {
             return 0.0;
         }
@@ -140,19 +140,33 @@ public class ShippingServiceImpl implements ShippingService {
             if (response.getBody() != null && response.getBody().getCode() == 200) {
                 int dist = response.getBody().getData().getDistance();
 
-                // NẾU GHN TRẢ VỀ 0 (Lỗi dữ liệu Sandbox)
-                if (dist <= 0) {
-                    // Nếu không phải Quận Tân Bình (ShopId mặc định ở Tân Bình)
-                    if (districtId != null && !districtId.equals(1452)) {
-                        // Dùng mã Quận chia lấy dư để tạo số ngẫu nhiên từ 5km - 15km
-                        dist = (districtId % 10 + 6) * 1000;
-                        System.out.println("FIX SANDBOX: Tự sinh khoảng cách giả lập: " + dist + " mét");
-                    } else {
-                        dist = 2000; // Cùng quận Tân Bình thì mặc định 2km
+                // XỬ LÝ GIẢ LẬP KHI DATA SANDBOX SAI (Trả về 0 hoặc quá nhỏ)
+                if (dist <= 300000) {
+                    final Integer SHOP_PROVINCE_ID = 202; // TP.HCM
+                    final Integer SHOP_DISTRICT_ID = 1452; // Quận Tân Bình
+                    String regionPrefix = (wardCode != null && wardCode.length() > 0) ? wardCode.substring(0, 1) : "";
+
+                    // 1. ƯU TIÊN SỐ 1: KIỂM TRA NỘI THÀNH (CÙNG TỈNH HCM)
+                    if (provinceId != null && provinceId.equals(SHOP_PROVINCE_ID)) {
+                        if (districtId.equals(SHOP_DISTRICT_ID)) {
+                            dist = 2000; // Cùng quận Tân Bình: 2km
+                        } else {
+                            // Khác quận trong nội thành: giả lập 5km - 15km cho thực tế
+                            dist = (districtId % 10 + 6) * 1000;
+                        }
+                    } // 2. ƯU TIÊN SỐ 2: MIỀN BẮC (Đầu số phường 1, 2, 3)
+                    else if (regionPrefix.equals("1") || regionPrefix.equals("2") || regionPrefix.equals("3")) {
+                        dist = (1700 + (provinceId % 50)) * 1000;
+                    } // 3. ƯU TIÊN SỐ 3: MIỀN TRUNG (Xử lý riêng Đà Nẵng hoặc đầu số 4)
+                    else if (provinceId == 202 || regionPrefix.equals("4")) {
+                        dist = 950000; // Mặc định Đà Nẵng/Miền Trung tầm 950km
+                    } // 4. ƯU TIÊN SỐ 4: MIỀN NAM & CÁC TỈNH CÒN LẠI (Đầu số 5, 7, 8, 9...)
+                    else {
+                        // Các tỉnh lân cận như Vũng Tàu, Đồng Nai...
+                        dist = (100 + (provinceId % 50)) * 1000;
                     }
                 }
-                System.out.println("KHOẢNG CÁCH THẬT TỪ GHN: " + dist + " mét");
-                System.out.println("GHN RESPONSE: " + response.getBody());
+                System.out.println("KHOẢNG CÁCH SAU XỬ LÝ: " + dist + " mét");
                 return (double) dist;
             }
         } catch (Exception e) {
