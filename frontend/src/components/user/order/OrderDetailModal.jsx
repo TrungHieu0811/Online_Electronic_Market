@@ -80,7 +80,7 @@ const OrderDetailModal = ({ isOpen, onClose, orderId }) => {
 					`http://localhost:8080/api/users/orders/${orderId}/cancel`,
 					{},
 					{
-						headers: {Authorization: `Bearer ${token}`},
+						headers: { Authorization: `Bearer ${token}` },
 					},
 				);
 				await Swal.fire('Success', 'Order has been successfully cancelled.', 'success');
@@ -155,13 +155,13 @@ const OrderDetailModal = ({ isOpen, onClose, orderId }) => {
 											</div>
 											<div>
 												<h4 className="font-bold text-slate-900 text-lg leading-tight mb-1">{item.product?.variantName || 'Product'}</h4>
-												
+
 											</div>
 										</div>
 										<div className="col-span-2 text-center font-black text-slate-900">
 											{item.quantity}
 										</div>
-										
+
 										<div className="col-span-4 text-right font-black text-slate-900 text-lg">
 											${(item.priceAtPurchase * item.quantity).toFixed(2)}
 											<p className="text-[10px] text-slate-400 font-bold uppercase">${item.priceAtPurchase?.toFixed(2)} / unit</p>
@@ -200,6 +200,23 @@ const OrderDetailModal = ({ isOpen, onClose, orderId }) => {
 									</span>
 								</div>
 
+								<div className="flex justify-between opacity-50 text-[10px] font-black uppercase tracking-widest">
+									<span>Payment Method</span>
+									<span className="text-orange-400">
+										{(() => {
+											
+											const method = order.paymentMethod?.toUpperCase();
+											switch (method) {
+												case 'PAYPAL': return 'PayPal / Credit Card';
+												case 'VNPAY': return 'VNPay Wallet';
+												case 'MOMO': return 'MoMo Wallet';
+												case 'COD': return 'Cash on Delivery (COD)';
+												default: return order.paymentMethod || 'N/A';
+											}
+										})()}
+									</span>
+								</div>
+
 								{/* Discount Amount - Chỉ hiện nếu có giảm giá */}
 								{order.discountAmount > 0 && (
 									<div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-red-400">
@@ -218,13 +235,13 @@ const OrderDetailModal = ({ isOpen, onClose, orderId }) => {
 							</div>
 						</div>
 						{(order.orderStatus === 'CONFIRMED' || order.orderStatus === 'PENDING') && (
-                            <button
-                                onClick={handleCancel}
-                                className="w-full mt-10 py-5 bg-red-50 text-red-600 font-black rounded-[30px] border-2 border-red-100 hover:bg-red-600 hover:text-white transition-all uppercase tracking-[0.2em] shadow-sm active:scale-[0.98]"
-                            >
-                                {isPayPalPaid ? 'Cancel Order & Refund' : 'Cancel Order'}
-                            </button>
-                        )}	
+							<button
+								onClick={handleCancel}
+								className="w-full mt-10 py-5 bg-red-50 text-red-600 font-black rounded-[30px] border-2 border-red-100 hover:bg-red-600 hover:text-white transition-all uppercase tracking-[0.2em] shadow-sm active:scale-[0.98]"
+							>
+								{isPayPalPaid ? 'Cancel Order & Refund' : 'Cancel Order'}
+							</button>
+						)}
 					</div>
 				)}
 			</div>

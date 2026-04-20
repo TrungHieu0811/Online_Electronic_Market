@@ -73,56 +73,80 @@ const ChatBox = () => {
     const renderMessageContent = (text, sender) => {
         if (sender === 'user') return <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>;
 
-        // Regex cải tiến để bắt chính xác thẻ [ID:...]
         const productRegex = /\[ID:([\w-]+)\|([^|]+)\|([^|]+)\|([^\]]+)\]/g;
+        const orderRegex = /\[ORDER:([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^\]]+)\]/g;
+
         const elements = [];
         let lastIndex = 0;
-        let match;
 
-        while ((match = productRegex.exec(text)) !== null) {
-            // Render văn bản trước card
-            if (match.index > lastIndex) {
+        // Hàm xử lý văn bản xen kẽ
+        const pushText = (endIndex) => {
+            if (endIndex > lastIndex) {
                 elements.push(
-                    <ReactMarkdown key={`text-${match.index}`} remarkPlugins={[remarkGfm]}>
-                        {text.substring(lastIndex, match.index)}
-                    </ReactMarkdown>
+                    <div className="markdown-body" key={`text-${lastIndex}`}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {text.substring(lastIndex, endIndex)}
+                        </ReactMarkdown>
+                    </div>
                 );
             }
+        };
 
-            const [full, slug, imageUrl, name, price] = match;
+        // Tìm tất cả các thẻ (cả Product và Order)
+        const allMatches = [];
+        let match;
+        while ((match = productRegex.exec(text)) !== null) allMatches.push({ type: 'product', data: match });
+        productRegex.lastIndex = 0; // Reset index
+        while ((match = orderRegex.exec(text)) !== null) allMatches.push({ type: 'order', data: match });
 
-            // Render Card sản phẩm
-            elements.push(
-                <div key={`card-${slug}-${match.index}`}
-                    style={{ border: '1px solid #eee', borderRadius: '10px', padding: '15px', margin: '10px 0', background: 'white', display: 'flex', alignItems: 'center', gap: '15px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                    <img src={imageUrl === "no image" ? "https://via.placeholder.com/150" : imageUrl}
-                        alt={name}
-                        style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#333' }}>{name}</div>
-                        <div style={{ color: '#d32f2f', fontWeight: 'bold', margin: '5px 0' }}>{price}</div>
-                        <button
-                            onClick={() => window.location.href = `/products/${slug}`}
-                            style={{ background: '#1a73e8', color: 'white', border: 'none', padding: '5px 12px', borderRadius: '15px', cursor: 'pointer', fontSize: '12px' }}
-                        >
-                            View Details
-                        </button>
+        // Sắp xếp các thẻ theo thứ tự xuất hiện trong văn bản
+        allMatches.sort((a, b) => a.data.index - b.data.index);
+
+        allMatches.forEach((m, idx) => {
+            pushText(m.data.index);
+
+            if (m.type === 'product') {
+                const [full, slug, imageUrl, name, price] = m.data;
+                elements.push(
+                    <div key={`prod-${idx}`} style={cardStyle}>
+                        <img src={imageUrl === "no image" ? "https://via.placeholder.com/150" : imageUrl} alt={name} style={imgStyle} />
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{name}</div>
+                            <div style={{ color: '#d32f2f', fontWeight: 'bold' }}>{price}</div>
+                            <button onClick={() => window.location.href = `/products/${slug}`} style={btnStyle}>View Details</button>
+                        </div>
                     </div>
-                </div>
-            );
-            lastIndex = productRegex.lastIndex;
-        }
+                );
+            } else {
+                // Render Order Card
+                const [full, id, status, date, total, items] = m.data;
+                elements.push(
+                    <div key={`order-${idx}`} style={{ border: '1px solid #e0e0e0', borderRadius: '10px', padding: '12px', margin: '10px 0', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '5px', marginBottom: '8px' }}>
+                            <span style={{ fontWeight: 'bold', color: '#1a73e8' }}>Order {id}</span>
+                            <span style={{ fontSize: '11px', color: '#666' }}>{date}</span>
+                        </div>
+                        <div style={{ fontSize: '13px', marginBottom: '4px' }}>
+                            <strong>Status:</strong> <span style={{ color: status.includes('DELIVERED') ? 'green' : status.includes('CANCEL') ? 'red' : '#f39c12' }}>{status}</span>
+                        </div>
+                        <div style={{ fontSize: '13px', marginBottom: '4px' }}><strong>Items:</strong> {items}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 'bold', textAlign: 'right', color: '#333', borderTop: '1px dashed #eee', paddingTop: '5px' }}>
+                            Total: <span style={{ color: '#d32f2f' }}>{total}</span>
+                        </div>
+                    </div>
+                );
+            }
+            lastIndex = m.data.index + m.data[0].length;
+        });
 
-        // Render văn bản còn lại
-        if (lastIndex < text.length) {
-            elements.push(
-                <ReactMarkdown key="text-end" remarkPlugins={[remarkGfm]}>
-                    {text.substring(lastIndex)}
-                </ReactMarkdown>
-            );
-        }
+        pushText(text.length);
         return elements;
     };
+
+    // Các style phụ trợ
+    const cardStyle = { border: '1px solid #eee', borderRadius: '10px', padding: '12px', margin: '8px 0', background: 'white', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' };
+    const imgStyle = { width: '65px', height: '65px', objectFit: 'contain' };
+    const btnStyle = { background: '#1a73e8', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '12px', cursor: 'pointer', fontSize: '11px' };
 
     useEffect(() => {
         if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -140,39 +164,45 @@ const ChatBox = () => {
         <div style={{ position: 'fixed', bottom: '20px', right: '20px', width: '350px', height: '500px', background: 'white', borderRadius: '15px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', zIndex: 999999, overflow: 'hidden', border: '1px solid #e0e0e0', fontFamily: 'sans-serif' }}>
             {/* CSS ĐỊNH DẠNG BẢNG SO SÁNH TRONG KHUNG TRẮNG */}
             <style>{`
-                table {
-                    border-collapse: separate;
-                    border-spacing: 0;
-                    width: 100%;
-                    margin: 10px 0;
-                    background-color: white;
-                    border-radius: 8px;
-                    border: 1px solid #dee2e6;
-                    overflow: hidden;
-                }
-                table th, table td {
-                    border-bottom: 1px solid #dee2e6;
-                    border-right: 1px solid #dee2e6;
-                    padding: 10px;
-                    text-align: left;
-                    font-size: 12px;
-                }
-                table th {
-                    background-color: #f8f9fa;
-                    color: #333;
-                    font-weight: bold;
-                }
-                table td:last-child, table th:last-child {
-                    border-right: none;
-                }
-                table tr:last-child td {
-                    border-bottom: none;
-                }
-                @keyframes typingAnimation {
-                    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-                    40% { opacity: 1; transform: scale(1.2); }
-                }
-            `}</style>
+    .markdown-body {
+        overflow-x: auto;
+        width: 100%;
+        background-color: transparent !important;
+        margin: 0;
+        padding: 0;
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        min-width: 320px; /* Tăng nhẹ min-width để bảng có không gian */
+        margin: 8px 0;
+        background-color: white;
+        border: 1px solid #dee2e6;
+    }
+    table th, table td {
+        border: 1px solid #dee2e6;
+        padding: 8px 6px;
+        text-align: left;
+        font-size: 11px;
+        word-break: break-word;
+    }
+    /* CSS CẢI TIẾN: Ép cột Price không được xuống dòng */
+    table th:last-child, 
+    table td:last-child {
+        white-space: nowrap; /* Không cho phép ngắt dòng */
+        width: 1%;           /* Ép cột co lại vừa khít nội dung */
+        min-width: 60px;     /* Đảm bảo đủ chỗ cho con số và ký hiệu $ */
+        text-align: right;   /* Căn lề phải cho giá tiền nhìn sẽ chuyên nghiệp hơn */
+    }
+    table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    @keyframes typingAnimation {
+        0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+        40% { opacity: 1; transform: scale(1.2); }
+    }
+`}</style>
 
             <div style={{ background: '#1a73e8', color: 'white', padding: '15px', textAlign: 'center', fontWeight: 'bold', position: 'relative' }}>
                 ELECTROMART AI
