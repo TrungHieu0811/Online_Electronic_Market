@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'ElectroMart Test',
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const LoginScreen(), // Gọi màn hình Register
+      home: const MainPage(), // Gọi màn hình Register
       debugShowCheckedModeBanner: false,
     );
   }

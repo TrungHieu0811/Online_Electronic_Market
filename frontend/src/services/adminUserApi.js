@@ -3,12 +3,13 @@ import api from './api';
 // ==============================
 // GET USERS: search + filter + pagination
 // ==============================
-export const getAdminUsers = async ({ keyword = '', status, role, page = 0, size = 10 } = {}) => {
+export const getAdminUsers = async ({ keyword = '', status, role, roleType = 'USER', page = 0, size = 10 } = {}) => {
     try {
         const params = {
             keyword,
             page,
-            size
+            size,
+            roleType // 👉 Bổ sung thêm dòng này để gửi chữ "ADMIN" hoặc "USER" xuống Spring Boot
         };
 
         if (status !== undefined && status !== null && status !== '') {
