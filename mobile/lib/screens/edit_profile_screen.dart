@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final Map<String, dynamic> currentData; // Nhận dữ liệu cũ từ trang Profile
+  final Map<String, dynamic> currentData;
 
   const EditProfileScreen({super.key, required this.currentData});
 
@@ -14,16 +16,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
-  late TextEditingController _avatarController;
 
   int? _selectedGender;
   bool _isLoading = false;
   final ApiService _apiService = ApiService();
 
+  // 👉 THÊM: Biến lưu trữ file ảnh được chọn từ thiết bị
+  File? _selectedImageFile;
+  String? _currentAvatarUrl;
+
   @override
   void initState() {
     super.initState();
-    // Đổ dữ liệu cũ vào các ô nhập liệu
     _nameController = TextEditingController(
       text: widget.currentData['fullName'],
     );
@@ -32,9 +36,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       text: widget.currentData['address'] ?? '',
     );
     _selectedGender = widget.currentData['gender'];
-    _avatarController = TextEditingController(
-      text: widget.currentData['avatarUrl'] ?? '',
-    );
+
+    // Lưu lại URL cũ để hiển thị nếu user không chọn ảnh mới
+    _currentAvatarUrl = widget.currentData['avatarUrl'] ?? '';
+  }
+
+  // 👉 HÀM GỌI THƯ VIỆN ẢNH ĐÃ ĐƯỢC BỌC TRY-CATCH
+  Future<void> _pickImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      // Mở thư viện ảnh
+      final XFile? pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      print("=== [DEBUG] LỖI CHỌN ẢNH: $e ===");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không thể mở thư viện ảnh: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _handleUpdate() async {
@@ -42,25 +73,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Đóng gói dữ liệu mới
+      // Đóng gói các dữ liệu dạng Text
       Map<String, dynamic> updateData = {
         "fullName": _nameController.text.trim(),
         "phone": _phoneController.text.trim(),
         "address": _addressController.text.trim(),
         "gender": _selectedGender,
-        "avatarUrl": _avatarController.text.trim(),
       };
 
-      final message = await _apiService.updateUserProfile(updateData);
+      // GỌI API:
+      // LƯU Ý: Nếu có _selectedImageFile, bạn cần sử dụng MultipartRequest
+      // trong ApiService thay vì gửi JSON thông thường.
+      final message = await _apiService.updateUserProfile(
+        data: updateData,
+        imageFile:
+            _selectedImageFile, // 👉 Truyền thêm file ảnh vào API Service
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(message), backgroundColor: Colors.green),
         );
-        Navigator.pop(
-          context,
-          true,
-        ); // Trả về true để báo cho trang Profile biết cần tải lại dữ liệu
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
@@ -81,7 +115,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
-    _avatarController.dispose();
     super.dispose();
   }
 
@@ -109,50 +142,84 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Center(
                 child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.blue.shade50,
-                      // Hiển thị ảnh preview nếu có link, không thì hiện icon person
-                      backgroundImage: _avatarController.text.isNotEmpty
-                          ? NetworkImage(_avatarController.text)
-                          : null,
-                      child: _avatarController.text.isEmpty
-                          ? const Icon(
-                              Icons.person,
-                              size: 50,
-                              color: Colors.blue,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildLabel('Avatar Image URL'),
-                    TextField(
-                      controller: _avatarController,
-                      decoration: InputDecoration(
-                        hintText: 'https://example.com/image.jpg',
-                        prefixIcon: const Icon(
-                          Icons.link,
-                          size: 20,
-                          color: Colors.grey,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 16,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                    // 👉 KHU VỰC AVATAR ĐÃ ĐƯỢC NÂNG CẤP
+                    GestureDetector(
+                      onTap: _pickImage, // Bấm vào để chọn ảnh
+                      child: Stack(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.blue.withOpacity(0.2),
+                                width: 3,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.blue.shade50,
+                              // Ưu tiên hiển thị file ảnh cục bộ, nếu không có mới load URL mạng
+                              // Ưu tiên hiển thị file ảnh cục bộ, nếu không có mới load URL mạng
+                              backgroundImage: _selectedImageFile != null
+                                  ? FileImage(_selectedImageFile!)
+                                        as ImageProvider
+                                  : (_currentAvatarUrl!.isNotEmpty
+                                        ? NetworkImage(
+                                            _currentAvatarUrl!.startsWith(
+                                                  'http',
+                                                )
+                                                ? _currentAvatarUrl!
+                                                : '${ApiService.getBaseUrl.replaceAll('/api', '')}/uploads$_currentAvatarUrl',
+                                          )
+                                        : null),
+                              child:
+                                  _selectedImageFile == null &&
+                                      _currentAvatarUrl!.isEmpty
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: Colors.blue,
+                                    )
+                                  : null,
+                            ),
+                          ),
+
+                          // Icon máy ảnh nổi lên trên góc dưới cùng bên phải
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFff6b00), // Màu cam
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      // Khi user gõ xong link, bấm enter thì cập nhật hình preview
-                      onSubmitted: (val) => setState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Tap to change photo',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24), // Ngăn cách với các ô dưới
+              const SizedBox(height: 32),
 
-              _buildLabel('Full Name'),
-              _buildTextField(_nameController, Icons.person_outline),
-              const SizedBox(height: 16),
+              // Các TextField còn lại giữ nguyên
               _buildLabel('Full Name'),
               _buildTextField(_nameController, Icons.person_outline),
               const SizedBox(height: 16),

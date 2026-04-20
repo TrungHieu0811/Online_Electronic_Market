@@ -60,15 +60,15 @@ class _LoginScreenState extends State<LoginScreen> {
               final prefs = await SharedPreferences.getInstance();
               // Lấy giỏ hàng tạm của Guest từ SharedPreferences
               String? guestCartJson = prefs.getString('guest_cart');
-              
+
               if (guestCartJson != null && guestCartJson.isNotEmpty) {
                 List<dynamic> guestList = jsonDecode(guestCartJson);
-                List<Map<String, dynamic>> guestItems = 
+                List<Map<String, dynamic>> guestItems =
                     List<Map<String, dynamic>>.from(guestList);
 
                 // Gọi API merge đã viết ở CartService
                 await CartService().mergeGuestCart(savedToken, guestItems);
-                
+
                 // Xóa giỏ hàng tạm sau khi đã đẩy lên Server thành công
                 await prefs.remove('guest_cart');
                 print("=== [MERGE] Đồng bộ giỏ hàng thành công ===");
@@ -204,28 +204,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
 
                   // Remember me
-                  Row(
-                    children: [
-                      SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: Checkbox(
-                          value: _rememberMe,
-                          onChanged: (val) =>
-                              setState(() => _rememberMe = val!),
-                          activeColor: const Color(0xFF4F46E5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Remember me for 30 days',
-                        style: TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                    ],
-                  ),
+                  // Row(
+                  //   children: [
+                  //     SizedBox(
+                  //       height: 24,
+                  //       width: 24,
+                  //       child: Checkbox(
+                  //         value: _rememberMe,
+                  //         onChanged: (val) =>
+                  //             setState(() => _rememberMe = val!),
+                  //         activeColor: const Color(0xFF4F46E5),
+                  //         shape: RoundedRectangleBorder(
+                  //           borderRadius: BorderRadius.circular(4),
+                  //         ),
+                  //       ),
+                  //     ),
+                  //     const SizedBox(width: 8),
+                  //     const Text(
+                  //       'Remember me for 30 days',
+                  //       style: TextStyle(color: Colors.grey, fontSize: 13),
+                  //     ),
+                  //   ],
+                  // ),
                   const SizedBox(height: 24),
 
                   // Nút Login màu xanh tím
@@ -258,26 +258,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
+                  // const SizedBox(height: 24),
+                  // const Center(
+                  //   child: Text(
+                  //     'OR CONTINUE WITH',
+                  //     style: TextStyle(color: Colors.grey, fontSize: 12),
+                  //   ),
+                  // ),
+                  // const SizedBox(height: 16),
                   const SizedBox(height: 24),
-                  const Center(
-                    child: Text(
-                      'OR CONTINUE WITH',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: _buildSocialButton('Google', Icons.g_mobiledata),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(child: _buildSocialButton('Apple', Icons.apple)),
-                    ],
-                  ),
-
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -305,6 +294,32 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ],
+                  ),
+
+                  // 👉 NÚT CONTINUE WITH INCOGNITO THÊM MỚI Ở ĐÂY
+                  Center(
+                    child: TextButton(
+                      onPressed: () {
+                        // Dùng pushReplacement để xóa trang Login khỏi lịch sử điều hướng
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            // ⚠️ NHỚ THAY 'MainScreen()' BẰNG TÊN TRANG CHÍNH CỦA BẠN NHÉ
+                            builder: (_) => const MainPage(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Continue with incognito',
+                        style: TextStyle(
+                          color: Colors
+                              .grey, // Cho màu xám để nhìn phụ hơn nút chính
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration
+                              .underline, // Gạch chân nhìn cho giống link web
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),

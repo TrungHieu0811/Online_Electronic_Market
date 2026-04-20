@@ -148,10 +148,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: CircleAvatar(
                           radius: 50,
                           backgroundColor: Colors.blue.shade50,
+                          // 👉 SỬA ĐOẠN NÀY ĐỂ NỐI THÊM BASE URL
                           backgroundImage:
                               (_userData?['avatarUrl'] != null &&
-                                  _userData!['avatarUrl'].isNotEmpty)
-                              ? NetworkImage(_userData!['avatarUrl'])
+                                  _userData!['avatarUrl'].toString().isNotEmpty)
+                              ? NetworkImage(
+                                  // Kiểm tra xem link có chữ http chưa, nếu chưa thì ghép thêm domain của Backend vào
+                                  _userData!['avatarUrl'].toString().startsWith(
+                                        'http',
+                                      )
+                                      ? _userData!['avatarUrl']
+                                      : '${ApiService.getBaseUrl.replaceAll('/api', '')}/uploads${_userData!['avatarUrl']}',
+                                )
                               : null,
                           child:
                               (_userData?['avatarUrl'] == null ||
@@ -305,43 +313,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               },
             ),
-            _buildActionTile(
-              icon: Icons.location_on_outlined,
-              iconColor: primaryColor,
-              iconBgColor: primaryColor.withOpacity(0.1),
-              title: 'Saved Addresses',
-              subtitle: 'Manage delivery locations',
-              onTap: () {}, // Bổ sung tính năng sau
-            ),
-            _buildActionTile(
-              icon: Icons.payment_outlined,
-              iconColor: primaryColor,
-              iconBgColor: primaryColor.withOpacity(0.1),
-              title: 'Payment Methods',
-              subtitle: 'Cards and digital wallets',
-              onTap: () {}, // Bổ sung tính năng sau
-            ),
-            _buildActionTile(
-              icon: Icons.favorite_border,
-              iconColor: primaryColor,
-              iconBgColor: primaryColor.withOpacity(0.1),
-              title: 'Wishlist',
-              subtitle: "Items you've saved for later",
-              onTap: () {}, // Bổ sung tính năng sau
-            ),
 
+            // _buildActionTile(
+            //   icon: Icons.location_on_outlined,
+            //   iconColor: primaryColor,
+            //   iconBgColor: primaryColor.withOpacity(0.1),
+            //   title: 'Saved Addresses',
+            //   subtitle: 'Manage delivery locations',
+            //   onTap: () {}, // Bổ sung tính năng sau
+            // ),
+            // _buildActionTile(
+            //   icon: Icons.payment_outlined,
+            //   iconColor: primaryColor,
+            //   iconBgColor: primaryColor.withOpacity(0.1),
+            //   title: 'Payment Methods',
+            //   subtitle: 'Cards and digital wallets',
+            //   onTap: () {}, // Bổ sung tính năng sau
+            // ),
+            // _buildActionTile(
+            //   icon: Icons.favorite_border,
+            //   iconColor: primaryColor,
+            //   iconBgColor: primaryColor.withOpacity(0.1),
+            //   title: 'Wishlist',
+            //   subtitle: "Items you've saved for later",
+            //   onTap: () {}, // Bổ sung tính năng sau
+            // ),
             const SizedBox(height: 24),
 
             // 3. KHU VỰC: SUPPORT & SAFETY
             _buildSectionTitle('Support & Safety'),
             const SizedBox(height: 8),
-            _buildActionTile(
-              icon: Icons.help_outline,
-              iconColor: Colors.grey.shade700,
-              iconBgColor: Colors.grey.shade200,
-              title: 'Customer Support',
-              onTap: () {}, // Bổ sung tính năng sau
-            ),
+            // _buildActionTile(
+            //   icon: Icons.help_outline,
+            //   iconColor: Colors.grey.shade700,
+            //   iconBgColor: Colors.grey.shade200,
+            //   title: 'Customer Support',
+            //   onTap: () {}, // Bổ sung tính năng sau
+            // ),
             _buildActionTile(
               icon: Icons.logout,
               iconColor: Colors.red,
@@ -373,21 +381,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildBottomNavItem(Icons.home_outlined, 'Home', false),
-                _buildBottomNavItem(
-                  Icons.category_outlined,
-                  'Categories',
-                  false,
-                ),
-                _buildBottomNavItem(
-                  Icons.shopping_cart_outlined,
-                  'Cart',
-                  false,
-                ),
-                _buildBottomNavItem(Icons.favorite_outline, 'Wishlist', false),
-                _buildBottomNavItem(Icons.person, 'Profile', true),
-              ],
+
+              // children: [
+              //   _buildBottomNavItem(Icons.home_outlined, 'Home', false),
+              //   _buildBottomNavItem(
+              //     Icons.category_outlined,
+              //     'Categories',
+              //     false,
+              //   ),
+              //   _buildBottomNavItem(
+              //     Icons.shopping_cart_outlined,
+              //     'Cart',
+              //     false,
+              //   ),
+              //   _buildBottomNavItem(Icons.favorite_outline, 'Wishlist', false),
+              //   _buildBottomNavItem(Icons.person, 'Profile', true),
+              // ],
             ),
           ),
         ),
