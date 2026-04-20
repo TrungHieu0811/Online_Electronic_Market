@@ -170,11 +170,10 @@ class _HomePageState extends State<HomePage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Thông báo bình luận',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                          Expanded(
+                            child: Text(
+                              'Notice of comments',
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           TextButton(
