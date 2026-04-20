@@ -90,31 +90,60 @@ class _ChatAIScreenState extends State<ChatAIScreen> with TickerProviderStateMix
     );
   }
 
-  Widget _renderMessage(String text, bool isUser) {
+Widget _renderMessage(String text, bool isUser) {
+    // 1. Định nghĩa Regex cho Sản phẩm và Đơn hàng
     final RegExp productRegex = RegExp(r'\[ID:([^|]+)\|([^|]+)\|([^|]+)\|([^\]]+)\]');
+    final RegExp orderRegex = RegExp(r'\[ORDER:([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^\]]+)\]');
+    
     final List<Widget> children = [];
     int lastIndex = 0;
 
-    for (final Match match in productRegex.allMatches(text)) {
+    // Tìm tất cả các khớp (matches) của cả 2 loại thẻ
+    List<Map<String, dynamic>> allMatches = [];
+    for (var m in productRegex.allMatches(text)) {
+      allMatches.add({'type': 'product', 'match': m, 'start': m.start});
+    }
+    for (var m in orderRegex.allMatches(text)) {
+      allMatches.add({'type': 'order', 'match': m, 'start': m.start});
+    }
+    
+    // Sắp xếp theo thứ tự xuất hiện trong text
+    allMatches.sort((a, b) => a['start'].compareTo(b['start']));
+
+    for (var item in allMatches) {
+      final Match match = item['match'];
+      
+      // Thêm đoạn text bình thường trước thẻ
       if (match.start > lastIndex) {
         children.add(_buildChatBubble(text.substring(lastIndex, match.start), isUser));
       }
 
-      final String slug = match.group(1)!;
-      String imageUrl = match.group(2)!;
-      final String name = match.group(3)!;
-      final String price = match.group(4)!;
-
-      if (imageUrl == "no image" || imageUrl.isEmpty) {
-        imageUrl = "https://via.placeholder.com/150";
-      } else if (!imageUrl.startsWith("http")) {
-        imageUrl = "http://10.0.2.2:8080/uploads$imageUrl";
+      if (item['type'] == 'product') {
+        final String slug = match.group(1)!;
+        String imageUrl = match.group(2)!;
+        final String name = match.group(3)!;
+        final String price = match.group(4)!;
+        
+        if (imageUrl == "no image" || imageUrl.isEmpty) {
+          imageUrl = "https://via.placeholder.com/150";
+        } else if (!imageUrl.startsWith("http")) {
+          imageUrl = "http://10.0.2.2:8080/uploads$imageUrl";
+        }
+        children.add(_buildProductCard(slug, imageUrl, name, price));
+      } else {
+        // Render Order Card
+        children.add(_buildOrderCard(
+          match.group(1)!, // ID
+          match.group(2)!, // Status
+          match.group(3)!, // Date
+          match.group(4)!, // Total
+          match.group(5)!, // Items
+        ));
       }
-
-      children.add(_buildProductCard(slug, imageUrl, name, price));
       lastIndex = match.end;
     }
 
+    // Thêm đoạn text còn lại sau thẻ cuối cùng
     if (lastIndex < text.length) {
       children.add(_buildChatBubble(text.substring(lastIndex), isUser));
     }
@@ -130,6 +159,8 @@ class _ChatAIScreenState extends State<ChatAIScreen> with TickerProviderStateMix
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      // Giới hạn chiều ngang để bảng có thể kích hoạt scroll ngang nếu cần
+      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
       decoration: BoxDecoration(
         color: isUser ? const Color(0xFF045fae) : Colors.white,
         borderRadius: BorderRadius.circular(15),
@@ -137,13 +168,60 @@ class _ChatAIScreenState extends State<ChatAIScreen> with TickerProviderStateMix
       ),
       child: isUser 
         ? Text(text.trim(), style: const TextStyle(color: Colors.white, fontSize: 14))
-        : MarkdownBody( // Fix lỗi 'MarkdownBody' is not defined
-            data: text.trim(),
-            styleSheet: MarkdownStyleSheet(
-              tableBody: const TextStyle(fontSize: 12),
-              p: const TextStyle(color: Colors.black87, fontSize: 14),
+        : SingleChildScrollView( // Cho phép bảng cuộn ngang
+            scrollDirection: Axis.horizontal,
+            child: MarkdownBody(
+              data: text.trim(),
+              styleSheet: MarkdownStyleSheet(
+                p: const TextStyle(color: Colors.black87, fontSize: 14),
+                // Ép cỡ chữ bảng nhỏ lại và không ngắt dòng Price
+                tableBody: const TextStyle(fontSize: 11),
+                tableCellsPadding: const EdgeInsets.all(4),
+                tableBorder: TableBorder.all(color: Colors.grey.shade300, width: 0.5),
+              ),
             ),
           ),
+    );
+  }
+
+  // Widget hiển thị thẻ Đơn hàng mới
+  Widget _buildOrderCard(String id, String status, String date, String total, String items) {
+    Color statusColor = status.contains('DELIVERED') ? Colors.green : (status.contains('CANCEL') ? Colors.red : Colors.orange);
+    
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Order $id", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF045fae))),
+              Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            ],
+          ),
+          const Divider(height: 16),
+          Text.rich(TextSpan(children: [
+            const TextSpan(text: "Status: ", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+            TextSpan(text: status, style: TextStyle(fontSize: 12, color: statusColor, fontWeight: FontWeight.bold)),
+          ])),
+          const SizedBox(height: 4),
+          Text("Items: $items", style: const TextStyle(fontSize: 12, color: Colors.black87), maxLines: 2, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text("Total: $total", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 
