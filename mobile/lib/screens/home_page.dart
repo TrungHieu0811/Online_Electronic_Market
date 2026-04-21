@@ -49,43 +49,60 @@ class _HomePageState extends State<HomePage> {
   final Dio _dio = Dio(BaseOptions(baseUrl: 'http://10.0.2.2:8080/api/public'));
 
   // Hàm gọi API lấy danh mục
+  // Hàm gọi API lấy danh mục
   Future<List<CategoryModel>> _fetchCategories() async {
     final response = await _dio.get('/categories');
+
+    // 👉 THÊM DÒNG NÀY ĐỂ XEM BACKEND THỰC SỰ TRẢ VỀ CÁI GÌ:
+    debugPrint('DỮ LIỆU CATEGORY: ${response.data}');
+
     List data = response.data;
     return data.map((json) => CategoryModel.fromJson(json)).toList();
   }
+  // Future<List<CategoryModel>> _fetchCategories() async {
+  //   final response = await _dio.get('/categories');
+  //   List data = response.data;
+  //   return data.map((json) => CategoryModel.fromJson(json)).toList();
+  // }
 
   // Hàm gọi API lấy sản phẩm nổi bật
-  Future<List<ProductModel>> _fetchFeaturedProducts() async {
-    final response = await _dio.get('/products/featured');
-    List data = response.data;
+  // Hàm gọi API lấy TOÀN BỘ sản phẩm thay vì chỉ featured
+  Future<List<ProductModel>> _fetchAllProducts() async {
+    // Gọi thẳng vào /products kèm size=50
+    final response = await _dio.get('/products?size=50');
+
+    // ĐIỂM KHÁC BIỆT: Phải lấy từ response.data['content'] vì đây là API phân trang
+    List data = response.data['content'] ?? [];
+
     return data.map((json) => ProductModel.fromJson(json)).toList();
   }
+  // Future<List<ProductModel>> _fetchFeaturedProducts() async {
+  //   final response = await _dio.get('/products/featured');
+  //   List data = response.data;
+  //   return data.map((json) => ProductModel.fromJson(json)).toList();
+  // }
 
-  // 👉 Sửa hàm này để nhận thêm categoryId (nếu có)
-  Future<void> _handleSearch({String? keyword, int? categoryId}) async {
+  // 👉 SỬA: Đổi kiểu dữ liệu sang dynamic và tên sang categoryIds
+  Future<void> _handleSearch({String? keyword, dynamic categoryIds}) async {
     setState(() {
       _isSearching = true;
       _isSearchLoading = true;
     });
 
     try {
-      // Tạo map params để gửi lên Spring Boot
       Map<String, dynamic> params = {};
 
       if (keyword != null && keyword.isNotEmpty) {
-        params['keyword'] = keyword; // Hoặc 'name' tùy DTO của bạn
-        _searchController.text =
-            keyword; // Hiển thị chữ lên thanh search cho user biết
+        params['keyword'] = keyword;
+        _searchController.text = keyword;
       }
 
-      if (categoryId != null) {
-        params['categoryId'] = categoryId;
+      // 👉 SỬA: Dùng tham số categoryIds mới
+      if (categoryIds != null) {
+        params['categoryIds'] = categoryIds;
       }
 
-      // Gọi API lấy sản phẩm kèm filter
       final response = await _dio.get('/products', queryParameters: params);
-
       List data = response.data['content'] ?? [];
 
       setState(() {
@@ -95,7 +112,6 @@ class _HomePageState extends State<HomePage> {
         _isSearchLoading = false;
       });
     } catch (e) {
-      print("Lỗi filter: $e");
       setState(() {
         _isSearchLoading = false;
         _searchResults = [];
@@ -367,7 +383,7 @@ class _HomePageState extends State<HomePage> {
               else ...[
                 // Nếu không search thì hiện bình thường
                 _buildCategories(),
-                _buildHeroBanner(),
+                // _buildHeroBanner(),
                 _buildFeaturedProducts(),
                 // _buildBestSellers(),
               ],
@@ -422,6 +438,7 @@ class _HomePageState extends State<HomePage> {
             itemCount: _searchResults.length,
             itemBuilder: (context, index) {
               final product = _searchResults[index];
+
               // Tái sử dụng logic tính toán giá và discount như cũ
               String? discountBadge;
               if (product.salePrice != null &&
@@ -436,14 +453,20 @@ class _HomePageState extends State<HomePage> {
 
               return GestureDetector(
                 onTap: () {
-                  // Bạn có thể import và điều hướng tới ProductDetailPage tại đây
+                  // 👉 ĐÃ THÊM: Điều hướng sang trang ProductDetailPage và truyền slug
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          ProductDetailPage(slug: product.slug),
+                    ),
+                  );
                 },
                 child: _buildProductCard(
                   brand: product.brandName,
                   name: product.variantName,
                   price: displayPrice,
                   rating: product.averageRating.toStringAsFixed(1),
-                  // reviews: "(${product.viewCount ?? 0})",
                   reviews: "(${3})",
                   imageUrl: product.imageUrl,
                   discount: discountBadge,
@@ -586,10 +609,10 @@ class _HomePageState extends State<HomePage> {
               color: primaryColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: IconButton(
-              icon: Icon(Icons.tune, color: primaryColor),
-              onPressed: () {},
-            ),
+            // child: IconButton(
+            //   icon: Icon(Icons.tune, color: primaryColor),
+            //   onPressed: () {},
+            // ),
           ),
         ],
       ),
@@ -620,22 +643,39 @@ class _HomePageState extends State<HomePage> {
             child: FutureBuilder<List<CategoryModel>>(
               future: _fetchCategories(),
               builder: (context, snapshot) {
-                // ... (Các đoạn check loading/error giữ nguyên) ...
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                final categories = snapshot.data!;
+                final allCategories = snapshot.data ?? [];
+
+                // 1. 👉 LỌC DANH MỤC GỐC: Những category có parentId == null
+                final rootCategories = allCategories
+                    .where((cat) => cat.parentId == null)
+                    .toList();
+
                 return ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: categories.length,
+                  itemCount: rootCategories
+                      .length, // Dùng danh sách đã lọc (Chỉ hiện Cha)
                   itemBuilder: (context, index) {
-                    final cat = categories[index];
+                    final cat = rootCategories[index];
                     return Padding(
                       padding: const EdgeInsets.only(right: 20.0),
                       child: GestureDetector(
-                        // 👉 BẮT SỰ KIỆN CLICK VÀO CATEGORY TẠI ĐÂY
-                        onTap: () => _handleSearch(
-                          categoryId: cat.id,
-                          keyword: cat.name,
-                        ),
+                        onTap: () {
+                          _searchController.text = cat.name;
+
+                          // 2. 👉 GỘP ID: Lấy ID của Cha và ID của tất cả đám Con
+                          List<int> idsToSearch = [cat.id];
+                          final children = allCategories.where(
+                            (c) => c.parentId == cat.id,
+                          );
+                          idsToSearch.addAll(children.map((c) => c.id));
+
+                          // Gọi API với chuỗi gộp ID (ví dụ: "1,2,3")
+                          _handleSearch(categoryIds: idsToSearch.join(','));
+                        },
                         child: Column(
                           children: [
                             Container(
@@ -673,97 +713,97 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // 4. HERO BANNER (ĐÃ FIX LỖI OVERFLOW BẰNG CÁCH NỚI CHIỀU CAO)
-  Widget _buildHeroBanner() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Container(
-        width: double.infinity,
-        height: 220, // 👉 Tăng chiều cao lên 220 để không bị lòi nút bấm
-        decoration: BoxDecoration(
-          color: primaryColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Stack(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  colors: [Colors.black.withOpacity(0.6), Colors.transparent],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: secondaryColor,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      "NEW ARRIVAL",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "iPhone 15 Pro",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    "Upgrade to the latest titanium\ndesign starting at \$999",
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
-                  const SizedBox(height: 16), // Tăng khoảng cách chút cho đẹp
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: primaryColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                    ),
-                    child: const Text(
-                      "Shop Now",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // // 4. HERO BANNER (ĐÃ FIX LỖI OVERFLOW BẰNG CÁCH NỚI CHIỀU CAO)
+  // Widget _buildHeroBanner() {
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+  //     child: Container(
+  //       width: double.infinity,
+  //       height: 220, // 👉 Tăng chiều cao lên 220 để không bị lòi nút bấm
+  //       decoration: BoxDecoration(
+  //         color: primaryColor,
+  //         borderRadius: BorderRadius.circular(16),
+  //       ),
+  //       child: Stack(
+  //         children: [
+  //           Container(
+  //             decoration: BoxDecoration(
+  //               borderRadius: BorderRadius.circular(16),
+  //               gradient: LinearGradient(
+  //                 colors: [Colors.black.withOpacity(0.6), Colors.transparent],
+  //                 begin: Alignment.centerLeft,
+  //                 end: Alignment.centerRight,
+  //               ),
+  //             ),
+  //           ),
+  //           Padding(
+  //             padding: const EdgeInsets.all(20.0),
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               mainAxisAlignment: MainAxisAlignment.center,
+  //               children: [
+  //                 // Container(
+  //                 //   padding: const EdgeInsets.symmetric(
+  //                 //     horizontal: 8,
+  //                 //     vertical: 4,
+  //                 //   ),
+  //                 //   decoration: BoxDecoration(
+  //                 //     color: secondaryColor,
+  //                 //     borderRadius: BorderRadius.circular(4),
+  //                 //   ),
+  //                 //   child: const Text(
+  //                 //     "NEW ARRIVAL",
+  //                 //     style: TextStyle(
+  //                 //       color: Colors.white,
+  //                 //       fontSize: 10,
+  //                 //       fontWeight: FontWeight.bold,
+  //                 //     ),
+  //                 //   ),
+  //                 // ),
+  //                 // const SizedBox(height: 8),
+  //                 // const Text(
+  //                 //   "iPhone 15 Pro",
+  //                 //   style: TextStyle(
+  //                 //     color: Colors.white,
+  //                 //     fontSize: 24,
+  //                 //     fontWeight: FontWeight.w900,
+  //                 //   ),
+  //                 // ),
+  //                 // const SizedBox(height: 4),
+  //                 // const Text(
+  //                 //   "Upgrade to the latest titanium\ndesign starting at \$999",
+  //                 //   style: TextStyle(color: Colors.white70, fontSize: 12),
+  //                 // ),
+  //                 const SizedBox(height: 16), // Tăng khoảng cách chút cho đẹp
+  //                 ElevatedButton(
+  //                   onPressed: () {},
+  //                   style: ElevatedButton.styleFrom(
+  //                     backgroundColor: Colors.white,
+  //                     foregroundColor: primaryColor,
+  //                     shape: RoundedRectangleBorder(
+  //                       borderRadius: BorderRadius.circular(8),
+  //                     ),
+  //                     padding: const EdgeInsets.symmetric(
+  //                       horizontal: 20,
+  //                       vertical: 10,
+  //                     ),
+  //                   ),
+  //                   child: const Text(
+  //                     "Shop Now",
+  //                     style: TextStyle(
+  //                       fontWeight: FontWeight.bold,
+  //                       fontSize: 12,
+  //                     ),
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   // 5. FEATURED PRODUCTS TỪ DATABASE
   Widget _buildFeaturedProducts() {
@@ -775,22 +815,14 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                "Featured Products",
+                "Products",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-              Text(
-                "Explore",
-                style: TextStyle(
-                  color: primaryColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
           FutureBuilder<List<ProductModel>>(
-            future: _fetchFeaturedProducts(),
+            future: _fetchAllProducts(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
