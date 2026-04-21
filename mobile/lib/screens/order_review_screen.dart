@@ -17,8 +17,8 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: 'http://10.0.2.2:8080/api',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(seconds: 60),
       headers: {'Content-Type': 'application/json'},
     ),
   );
@@ -121,9 +121,8 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
       final payload = {
         'reviews': _items.map((item) {
           return {
-            'orderItemId': item.id,
             'productId': item.productId,
-            'image': item.image,
+            'orderItemId': item.id,
             'rating': _ratings[item.id] ?? 0,
             'comment': _commentControllers[item.id]?.text.trim() ?? '',
           };
@@ -143,21 +142,33 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
       );
 
       Navigator.pop(context, true);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      });
+    } on DioException catch (e) {
+      String userMessage = 'Something went wrong. Please try again.';
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _errorMessage.isNotEmpty
-                ? _errorMessage
-                : 'Failed to submit reviews.',
-          ),
-        ),
-      );
+      if (e.response != null) {
+        final statusCode = e.response?.statusCode;
+
+        if (statusCode == 400) {
+          // 👇 CASE CỦA BẠN (AI lag lần đầu)
+          userMessage = 'Processing review... please try again.';
+        } else if (statusCode == 401) {
+          userMessage = 'Session expired. Please login again.';
+        } else if (statusCode == 403) {
+          userMessage = 'You are not allowed to do this.';
+        } else if (statusCode == 500) {
+          userMessage = 'Server is busy. Please try again later.';
+        }
+      } else {
+        userMessage = 'No internet connection.';
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(userMessage)));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Something went wrong.')));
     } finally {
       if (!mounted) return;
       setState(() {

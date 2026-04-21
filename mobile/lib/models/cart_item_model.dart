@@ -4,6 +4,8 @@ class CartItemModel {
   final String variantName;
   final String? imageUrl;
   final double price; // Backend dùng salePrice
+  final String? slug;
+  final int? stockQuantity;
   int quantity;
   bool isSelected;
 
@@ -12,6 +14,8 @@ class CartItemModel {
     required this.productId,
     required this.variantName,
     this.imageUrl,
+    this.slug,
+    this.stockQuantity,
     required this.price,
     required this.quantity,
     required this.isSelected,
@@ -29,7 +33,9 @@ class CartItemModel {
       imageUrl: json['imageUrl'], // Ưu tiên imageUrl lưu trong CartItem
       price: (product['salePrice'] as num?)?.toDouble() ?? 0.0,
       quantity: json['quantity'] ?? 1,
+      slug: json['slug'] ?? (json['product'] != null ? json['product']['slug'] : null),
       isSelected: json['isSelected'] ?? true, // Khớp với trường is_selected
+      stockQuantity: json['product'] != null ? json['product']['stockQuantity'] : json['stockQuantity'],
     );
   }
 

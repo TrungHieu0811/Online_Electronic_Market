@@ -256,9 +256,16 @@ const CheckoutPage = () => {
 		try {
 			// const currentSubtotal = checkoutItems.reduce((sum, item) => sum + item.product.salePrice * item.quantity, 0);
 
+			// Kiểm tra xem đây có phải là đơn hàng Buy Now không
+        const buyNowData = location.state;
+        const isBuyNow = buyNowData && buyNowData.isBuyNow;
+        const productId = isBuyNow ? buyNowData.items[0].productId : null;
+        const quantity = isBuyNow ? buyNowData.items[0].quantity : null;
+
 			// Dùng selectedAddress.districtId hiện có trong state
 			const [fee, dist] = await Promise.all([
-            checkoutService.previewShippingFee(selectedAddress.districtId, wCode, subtotal),
+            checkoutService.previewShippingFee(selectedAddress.districtId, wCode, subtotal, productId, // 👈 Thêm productId
+                quantity),
             checkoutService.getShippingDistance(selectedAddress.provinceId,selectedAddress.districtId, wCode)
         ]);
 			console.log('Tiền ship:', fee, 'Khoảng cách:', dist);
@@ -335,6 +342,9 @@ const handleAddressChange = (e) => {
 	const handlePlaceOrder = async (e) => {
 		e.preventDefault();
 
+		const buyNowData = location.state;
+    const isBuyNow = buyNowData && buyNowData.isBuyNow;
+
 		// Validate tổng lực trước khi submit
     const finalErrors = {
       fullName: !formData.fullName.trim() ? 'Full name is required' : '',
@@ -364,6 +374,8 @@ const handleAddressChange = (e) => {
 			paymentMethod: paymentMethod, // 'COD' hoặc 'PAYPAL'
 			selectedCartItemIds: checkoutItems.map((item) => item.id),
 			couponCode: selectedCoupon ? selectedCoupon.code : null,
+			productId: isBuyNow ? buyNowData.items[0].productId : null,
+        quantity: isBuyNow ? buyNowData.items[0].quantity : null,
 		};
 
 		try {
@@ -375,7 +387,7 @@ const handleAddressChange = (e) => {
 
 			// 2. KIỂM TRA NGUỒN GỐC ĐƠN HÀNG
 			// Logic Buy Now chỉ chạy nếu location.state có cờ isBuyNow từ ProductDetail truyền sang
-			if (location.state?.isBuyNow && location.state?.items?.length > 0) {
+			if (isBuyNow) {
 				const item = location.state.items[0];
 
 				// Gọi API buyNow: Truyền productId, quantity vào Params và orderRequest vào Body

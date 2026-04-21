@@ -99,13 +99,9 @@ const CartPage = () => {
 
     // Đảm bảo newQty là số nguyên hợp lệ trước khi xử lý tiếp
     let parsedQty = parseInt(newQty);
-   if (isNaN(parsedQty) || parsedQty < 0) return;
+   if (isNaN(parsedQty)) return;
 
-    if (parsedQty === 0) {
-        handleRemove(id);
-        return;
-    }
-    if (parsedQty === 0) {
+    if (parsedQty <= 0) {
         handleRemove(id);
         return;
     }
@@ -180,9 +176,11 @@ const CartPage = () => {
   };
 
    const handleDeleteSelected = async () => {
-        const selectedIds = cartItems.filter(item => item.isSelected).map(i => i.id);
-        // const selectedItems = cartItems.filter(item => item.isSelected);
-        // if (selectedIds.length === 0) return;
+        // const selectedIds = cartItems.filter(item => item.isSelected).map(i => i.id);
+        const selectedItems = cartItems.filter(item => item.isSelected); 
+        const selectedIds = selectedItems.map(i => i.id);
+        
+        if (selectedIds.length === 0) return;
 
         const result = await Swal.fire({
             title: 'Confirm Delete',

@@ -57,24 +57,29 @@ class _LoginScreenState extends State<LoginScreen> {
           // ✨ BƯỚC THÊM MỚI: LOGIC MERGE CART (Không đổi code cũ)
           if (savedToken != null) {
             try {
-              final prefs = await SharedPreferences.getInstance();
-              // Lấy giỏ hàng tạm của Guest từ SharedPreferences
-              String? guestCartJson = prefs.getString('guest_cart');
+              // 1. Lấy dữ liệu Guest từ "Két sắt" (SecureStorage)
+              const storage = FlutterSecureStorage();
+              String? guestCartJson = await storage.read(key: 'guest_cart');
 
               if (guestCartJson != null && guestCartJson.isNotEmpty) {
                 List<dynamic> guestList = jsonDecode(guestCartJson);
-                List<Map<String, dynamic>> guestItems =
-                    List<Map<String, dynamic>>.from(guestList);
+                
+                // 2. Chuyển đổi sang định dạng Map mà hàm mergeGuestCart yêu cầu
+                List<Map<String, dynamic>> guestItems = guestList.map((item) => {
+                  "productId": item['productId'],
+                  "quantity": item['quantity'],
+                  "imageUrl": item['imageUrl']
+                }).toList();
 
-                // Gọi API merge đã viết ở CartService
-                await CartService().mergeGuestCart(savedToken, guestItems);
+                // 3. Gọi hàm merge trong CartService
+                await CartService().mergeGuestCart(savedToken);
 
-                // Xóa giỏ hàng tạm sau khi đã đẩy lên Server thành công
-                await prefs.remove('guest_cart');
-                print("=== [MERGE] Đồng bộ giỏ hàng thành công ===");
+                // 4. Xóa sạch giỏ hàng tạm sau khi đã đẩy lên Server thành công
+                await storage.delete(key: 'guest_cart');
+                print("=== [MERGE] Đồng bộ giỏ hàng thành công từ SecureStorage ===");
               }
             } catch (mergeError) {
-              // Chỉ in ra log nếu merge lỗi, không làm gián đoạn việc đăng nhập
+              // In ra lỗi để bé dễ debug trên màn hình đen (Console)
               print("=== [MERGE] Lỗi đồng bộ: $mergeError ===");
             }
           }

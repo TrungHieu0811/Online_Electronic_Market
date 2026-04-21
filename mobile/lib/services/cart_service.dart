@@ -30,27 +30,46 @@ class CartService {
     }
   }
 
-  // 2. 🔄 MERGE GIỎ HÀNG GUEST VÀO USER (Gọi sau khi Login thành công)
-  // Backend: CartItemController -> mergeCart
-  Future<bool> mergeGuestCart(String token, List<Map<String, dynamic>> guestItems) async {
-    if (guestItems.isEmpty) return true;
-    try {
-      final response = await _dio.post(
-        "$baseUrl/merge",
-        data: jsonEncode(guestItems), // Biến List Map thành JSON String
-        options: Options(
-          headers: {
-            "Authorization": "Bearer $token",
-            "Content-Type": "application/json",
-          },
-        ),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      print("Lỗi Merge Cart: $e");
-      return false;
+
+Future<bool> mergeGuestCart(String token) async {
+  try {
+    const storage = FlutterSecureStorage();
+    // 1. Lấy dữ liệu Guest từ máy ra
+    String? jsonStr = await storage.read(key: 'guest_cart');
+    if (jsonStr == null || jsonStr.isEmpty) return true;
+
+    List<dynamic> localItems = jsonDecode(jsonStr);
+    
+    // 2. Map lại đúng định dạng CartItemRequest DTO bên Java
+    List<Map<String, dynamic>> guestItemsDto = localItems.map((item) => {
+      "productId": item['productId'],
+      "quantity": item['quantity'],
+      "imageUrl": item['imageUrl']
+    }).toList();
+
+    // 3. Gửi lên Server
+    final response = await _dio.post(
+      "$baseUrl/merge",
+      data: guestItemsDto, // Dio sẽ tự encode sang JSON
+      options: Options(
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      // 4. QUAN TRỌNG: Merge xong thì XÓA sạch giỏ tạm trên máy đi
+      await clearGuestCart();
+      return true;
     }
+    return false;
+  } catch (e) {
+    print("Lỗi Merge Cart: $e");
+    return false;
   }
+}
 
   // 3. 📄 LẤY TOÀN BỘ GIỎ HÀNG
   // Backend: getFullCartDetails
@@ -141,18 +160,23 @@ class CartService {
     // 2. Kiểm tra xem sản phẩm đã có trong giỏ chưa
     int index = cartList.indexWhere((item) => item['id'] == product.id);
 
-    if (index != null && index >= 0) {
+    if (index >= 0) {
       // Nếu có rồi thì tăng số lượng
       cartList[index]['quantity'] += quantity;
     } else {
       // Nếu chưa có thì thêm mới vào list
       cartList.add({
-        'id': product.id,
+        'id': DateTime.now().millisecondsSinceEpoch, // Tạo 1 ID tạm thay vì để 0
+        'productId': product.id,
         'variantName': product.variantName,
-        'price': product.salePrice,
-        'imageUrl': product.imageUrl,
+        'price': (product.salePrice != null && product.salePrice > 0) 
+         ? product.salePrice 
+         : product.basePrice,
+        'imageUrl': (product.images != null && product.images.isNotEmpty) 
+                    ? product.images[0] : "",
         'quantity': quantity,
         'isSelected': true, // Mặc định chọn luôn
+        'slug': product.slug,
       });
     }
 
@@ -167,26 +191,55 @@ class CartService {
 
   // 2. 📖 LẤY GIỎ HÀNG TỪ MÁY (Public)
   Future<List<CartItemModel>> getGuestCart() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? json = prefs.getString('guest_cart');
+  try {
+    const storage = FlutterSecureStorage();
+    String? jsonStr = await storage.read(key: 'guest_cart'); // Dùng chung storage với hàm add
     
-    if (json == null || json.isEmpty) return [];
+    if (jsonStr == null || jsonStr.isEmpty) return [];
     
-    List list = jsonDecode(json);
-    return list.map((item) => CartItemModel.fromJson(item)).toList();
+   List<dynamic> list = jsonDecode(jsonStr);
+    
+    // Thay vì dùng .fromJson, mình gán trực tiếp để đảm bảo KHÔNG BỊ UNKNOWN
+    return list.map((item) {
+      return CartItemModel(
+        id: item['id'] ?? 0,
+        productId: item['productId'] ?? 0,
+        variantName: item['variantName'] ?? 'Unknown Product',
+        price: (item['price'] as num?)?.toDouble() ?? 0.0,
+        imageUrl: item['imageUrl'] ?? '',
+        quantity: item['quantity'] ?? 1,
+        isSelected: item['isSelected'] ?? true,
+        slug: item['slug'],
+        stockQuantity: item['stockQuantity'] ?? 99,
+      );
+    }).toList();
+  } catch (e) {
+    print("Lỗi đọc giỏ hàng Guest: $e");
+    return [];
   }
+}
 
   // 3. 🗑️ XÓA GIỎ HÀNG GUEST (Sau khi đã Merge thành công)
   Future<void> clearGuestCart() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('guest_cart');
+    try {
+      const storage = FlutterSecureStorage();
+      await storage.delete(key: 'guest_cart');
+      print("Guest cart cleared from SecureStorage.");
+    } catch (e) {
+      print("Error clearing guest cart: $e");
+    }
   }
 
+  // CẬP NHẬT: Lưu toàn bộ danh sách dùng SecureStorage
   Future<void> saveAllGuestItems(List<CartItemModel> items) async {
-    final prefs = await SharedPreferences.getInstance();
-    // Chuyển danh sách Model thành chuỗi JSON để lưu
-    String encodedData = jsonEncode(items.map((i) => i.toJson()).toList()); 
-    await prefs.setString('guest_cart', encodedData);
+    try {
+      const storage = FlutterSecureStorage();
+      // Chuyển danh sách Model thành chuỗi JSON để lưu
+      String encodedData = jsonEncode(items.map((i) => i.toJson()).toList()); 
+      await storage.write(key: 'guest_cart', value: encodedData);
+    } catch (e) {
+      print("Error saving guest items: $e");
+    }
   }
 
   Future<int> getCartCountFromApi(String token) async {

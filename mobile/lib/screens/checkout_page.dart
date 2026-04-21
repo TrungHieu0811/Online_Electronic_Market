@@ -233,7 +233,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
   "paymentMethod": _selectedPayment,
   "districtId": _selectedDistrictId, // 👈 Dùng biến đã chọn từ Dropdown
   "wardCode": _selectedWardCode,     // 👈 Dùng biến đã chọn từ Dropdown
-  "couponCode": "", 
+  "couponCode": _couponController.text,
+
+  "productId": widget.selectedItems.length == 1 && widget.selectedItems.first.id == 0 
+                 ? widget.selectedItems.first.productId : null,
+    "quantity": widget.selectedItems.length == 1 && widget.selectedItems.first.id == 0 
+                 ? widget.selectedItems.first.quantity : null,
 };
 
     try {
