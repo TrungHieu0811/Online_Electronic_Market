@@ -18,6 +18,15 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // 👉 THÊM 2 BIẾN NÀY ĐỂ QUẢN LÝ SỐ LƯỢNG HIỂN THỊ
+  int _homeSize = 10;
+  int _searchSize = 10;
+
+  int _totalHomeProducts = 0; // Tổng sản phẩm trên server cho Home
+  int _totalSearchProducts = 0; // Tổng sản phẩm trên server cho Search
+
+  dynamic _lastCategoryIds;
+
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   bool _isSearchLoading = false;
@@ -68,12 +77,12 @@ class _HomePageState extends State<HomePage> {
   // Hàm gọi API lấy sản phẩm nổi bật
   // Hàm gọi API lấy TOÀN BỘ sản phẩm thay vì chỉ featured
   Future<List<ProductModel>> _fetchAllProducts() async {
-    // Gọi thẳng vào /products kèm size=50
-    final response = await _dio.get('/products?size=50');
+    final response = await _dio.get('/products?size=$_homeSize');
 
-    // ĐIỂM KHÁC BIỆT: Phải lấy từ response.data['content'] vì đây là API phân trang
+    // 👉 LƯU TỔNG SỐ LƯỢNG (Dùng để ẩn hiện nút Show more)
+    _totalHomeProducts = response.data['totalElements'] ?? 0;
+
     List data = response.data['content'] ?? [];
-
     return data.map((json) => ProductModel.fromJson(json)).toList();
   }
   // Future<List<ProductModel>> _fetchFeaturedProducts() async {
@@ -83,39 +92,105 @@ class _HomePageState extends State<HomePage> {
   // }
 
   // 👉 SỬA: Đổi kiểu dữ liệu sang dynamic và tên sang categoryIds
-  Future<void> _handleSearch({String? keyword, dynamic categoryIds}) async {
+  // Future<void> _handleSearch({
+  //   String? keyword,
+  //   dynamic categoryIds,
+  //   bool isLoadMore = false,
+  // }) async {
+  //   setState(() {
+  //     _isSearching = true;
+  //     if (!isLoadMore) {
+  //       _isSearchLoading = true;
+  //       _searchSize = 10; // Reset về 10 nếu là cuộc tìm kiếm mới
+  //     }
+  //   });
+
+  //   try {
+  //     Map<String, dynamic> params = {};
+
+  //     if (keyword != null && keyword.isNotEmpty) {
+  //       params['keyword'] = keyword;
+  //       _searchController.text = keyword;
+  //     }
+
+  //     // 👉 SỬA: Dùng tham số categoryIds mới
+  //     if (categoryIds != null) {
+  //       params['categoryIds'] = categoryIds;
+  //     }
+
+  //     params['size'] = _searchSize; // 👉 Dùng _searchSize ở đây
+
+  //     final response = await _dio.get('/products', queryParameters: params);
+
+  //     // 👉 LƯU TỔNG SỐ LƯỢNG TÌM KIẾM ĐƯỢC
+  //     _totalSearchProducts = response.data['totalElements'] ?? 0;
+  //     List data = response.data['content'] ?? [];
+  //     List<ProductModel> newItems = data
+  //         .map((json) => ProductModel.fromJson(json))
+  //         .toList();
+
+  //     setState(() {
+  //       _searchResults =
+  //           newItems; // API trả về từ đầu đến size hiện tại nên gán thẳng là xong
+  //       _isSearchLoading = false;
+  //     });
+
+  //     // setState(() {
+  //     //   _searchResults = data
+  //     //       .map((json) => ProductModel.fromJson(json))
+  //     //       .toList();
+  //     //   _isSearchLoading = false;
+  //     // });
+  //   } catch (e) {
+  //     setState(() {
+  //       _isSearchLoading = false;
+  //       _searchResults = [];
+  //     });
+  //   }
+  // }
+
+  Future<void> _handleSearch({
+    String? keyword,
+    dynamic categoryIds,
+    bool isLoadMore = false,
+  }) async {
     setState(() {
       _isSearching = true;
-      _isSearchLoading = true;
+      // 👉 CHỈ HIỆN LOADING TO nêú không phải là Load More
+      if (!isLoadMore) {
+        _isSearchLoading = true;
+        _searchSize = 10;
+        _searchResults = [];
+        _lastCategoryIds = categoryIds;
+      }
     });
 
     try {
       Map<String, dynamic> params = {};
+      if (keyword != null && keyword.isNotEmpty) params['keyword'] = keyword;
+      if (categoryIds != null) params['categoryIds'] = categoryIds;
 
-      if (keyword != null && keyword.isNotEmpty) {
-        params['keyword'] = keyword;
-        _searchController.text = keyword;
+      dynamic activeCategoryIds = isLoadMore ? _lastCategoryIds : categoryIds;
+      if (activeCategoryIds != null) {
+        params['categoryIds'] = activeCategoryIds;
       }
 
-      // 👉 SỬA: Dùng tham số categoryIds mới
-      if (categoryIds != null) {
-        params['categoryIds'] = categoryIds;
-      }
+      params['size'] = _searchSize;
 
       final response = await _dio.get('/products', queryParameters: params);
+      _totalSearchProducts = response.data['totalElements'] ?? 0;
+
       List data = response.data['content'] ?? [];
+      List<ProductModel> newItems = data
+          .map((json) => ProductModel.fromJson(json))
+          .toList();
 
       setState(() {
-        _searchResults = data
-            .map((json) => ProductModel.fromJson(json))
-            .toList();
-        _isSearchLoading = false;
+        _searchResults = newItems;
+        _isSearchLoading = false; // Tắt loading sau khi có data
       });
     } catch (e) {
-      setState(() {
-        _isSearchLoading = false;
-        _searchResults = [];
-      });
+      setState(() => _isSearchLoading = false);
     }
   }
 
@@ -397,7 +472,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildSearchResults() {
-    if (_isSearchLoading) {
+    // 👉 SỬA ĐIỀU KIỆN: Chỉ hiện loading khi thực sự đang load VÀ danh sách đang trống
+    if (_isSearchLoading && _searchResults.isEmpty) {
       return const Padding(
         padding: EdgeInsets.only(top: 50.0),
         child: Center(child: CircularProgressIndicator()),
@@ -409,7 +485,7 @@ class _HomePageState extends State<HomePage> {
         padding: EdgeInsets.only(top: 50.0),
         child: Center(
           child: Text(
-            "Không tìm thấy sản phẩm nào.",
+            "No results found.",
             style: TextStyle(color: Colors.grey, fontSize: 16),
           ),
         ),
@@ -422,7 +498,7 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Kết quả tìm kiếm (${_searchResults.length})",
+            "Search results (${_searchResults.length})",
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 16),
@@ -439,7 +515,6 @@ class _HomePageState extends State<HomePage> {
             itemBuilder: (context, index) {
               final product = _searchResults[index];
 
-              // Tái sử dụng logic tính toán giá và discount như cũ
               String? discountBadge;
               if (product.salePrice != null &&
                   product.salePrice! < product.basePrice) {
@@ -453,7 +528,6 @@ class _HomePageState extends State<HomePage> {
 
               return GestureDetector(
                 onTap: () {
-                  // 👉 ĐÃ THÊM: Điều hướng sang trang ProductDetailPage và truyền slug
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -474,6 +548,34 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
+
+          // 👉 NÚT SHOW MORE CHO KẾT QUẢ TÌM KIẾM
+          const SizedBox(height: 16),
+          // 👉 NÚT SHOW MORE TRONG _buildSearchResults
+          if (_totalSearchProducts > 10 &&
+              _searchResults.length < _totalSearchProducts)
+            Center(
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    _searchSize += 4; // Tăng size
+                  });
+                  // 👉 Chỉ cần gọi thế này, nó sẽ tự dùng keyword và categoryIds cũ
+                  _handleSearch(isLoadMore: true);
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.blue.shade50,
+                  // ... giữ nguyên style
+                ),
+                child: const Text(
+                  "Show more",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -540,13 +642,13 @@ class _HomePageState extends State<HomePage> {
                     ),
                 ],
               ),
-              IconButton(
-                icon: const Icon(
-                  Icons.shopping_cart_outlined,
-                  color: Colors.black87,
-                ),
-                onPressed: () {},
-              ),
+              // IconButton(
+              //   icon: const Icon(
+              //     Icons.shopping_cart_outlined,
+              //     color: Colors.black87,
+              //   ),
+              //   onPressed: () {},
+              // ),
             ],
           ),
         ],
@@ -824,7 +926,8 @@ class _HomePageState extends State<HomePage> {
           FutureBuilder<List<ProductModel>>(
             future: _fetchAllProducts(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
               } else if (snapshot.hasError) {
                 return Center(child: Text("Error: ${snapshot.error}"));
@@ -833,54 +936,89 @@ class _HomePageState extends State<HomePage> {
               }
 
               final products = snapshot.data!;
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.65, // Chỉnh lại tỷ lệ cho thẻ card
-                ),
-                itemCount: products.length,
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  // Tính phần trăm giảm giá nếu có
-                  String? discountBadge;
-                  if (product.salePrice != null &&
-                      product.salePrice! < product.basePrice) {
-                    int discountPercent =
-                        ((1 - (product.salePrice! / product.basePrice)) * 100)
-                            .round();
-                    discountBadge = "-$discountPercent%";
-                  }
 
-                  // Lấy giá hiển thị (ưu tiên giá sale)
-                  String displayPrice =
-                      "\$${(product.salePrice ?? product.basePrice).toStringAsFixed(0)}";
+              // 👉 ĐÃ SỬA: Bọc GridView vào Column để thêm nút Show more ở dưới
+              return Column(
+                children: [
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 0.65,
+                        ),
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+                      String? discountBadge;
+                      if (product.salePrice != null &&
+                          product.salePrice! < product.basePrice) {
+                        int discountPercent =
+                            ((1 - (product.salePrice! / product.basePrice)) *
+                                    100)
+                                .round();
+                        discountBadge = "-$discountPercent%";
+                      }
 
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ProductDetailPage(slug: product.slug),
+                      String displayPrice =
+                          "\$${(product.salePrice ?? product.basePrice).toStringAsFixed(0)}";
+
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ProductDetailPage(slug: product.slug),
+                            ),
+                          );
+                        },
+                        child: _buildProductCard(
+                          brand: product.brandName,
+                          name: product.variantName,
+                          price: displayPrice,
+                          rating: product.averageRating.toStringAsFixed(1),
+                          reviews: "(${3})",
+                          imageUrl: product.imageUrl,
+                          discount: discountBadge,
                         ),
                       );
                     },
-                    child: _buildProductCard(
-                      brand: product.brandName,
-                      name: product.variantName,
-                      price: displayPrice,
-                      rating: product.averageRating.toStringAsFixed(1),
-                      // reviews: "(${product.viewCount})",
-                      reviews: "(${3})",
-                      imageUrl: product.imageUrl,
-                      discount: discountBadge,
+                  ),
+                  // 👉 NÚT SHOW MORE CHO TRANG CHỦ
+                  const SizedBox(height: 16),
+                  if (_totalHomeProducts > 10 &&
+                      products.length < _totalHomeProducts)
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _homeSize += 4; // Tăng size lên 4 và build lại UI
+                          });
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.blue.shade50,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          "Show more",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ),
                     ),
-                  );
-                },
+                ],
               );
             },
           ),
@@ -933,19 +1071,19 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.white.withOpacity(0.8),
-                    radius: 14,
-                    child: const Icon(
-                      Icons.favorite_border,
-                      size: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ),
+                // Positioned(
+                //   top: 8,
+                //   right: 8,
+                //   child: CircleAvatar(
+                //     backgroundColor: Colors.white.withOpacity(0.8),
+                //     radius: 14,
+                //     child: const Icon(
+                //       Icons.favorite_border,
+                //       size: 16,
+                //       color: Colors.grey,
+                //     ),
+                //   ),
+                // ),
                 if (discount != null)
                   Positioned(
                     top: 8,
@@ -1033,67 +1171,4 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  // 7. BOTTOM NAVBAR (Giữ nguyên)
-  // Widget _buildBottomNavbar() {
-  //   return Container(
-  //     decoration: BoxDecoration(
-  //       border: Border(top: BorderSide(color: Colors.grey.shade300)),
-  //     ),
-  //     child: BottomNavigationBar(
-  //       currentIndex: _selectedIndex,
-  //       onTap: (index) => setState(() => _selectedIndex = index),
-  //       type: BottomNavigationBarType.fixed,
-  //       backgroundColor: Colors.white,
-  //       selectedItemColor: primaryColor,
-  //       unselectedItemColor: Colors.grey,
-  //       selectedFontSize: 10,
-  //       unselectedFontSize: 10,
-  //       elevation: 0,
-  //       items: [
-  //         const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-  //         const BottomNavigationBarItem(
-  //           icon: Icon(Icons.grid_view),
-  //           label: "Categories",
-  //         ),
-  //         BottomNavigationBarItem(
-  //           icon: Stack(
-  //             clipBehavior: Clip.none,
-  //             children: [
-  //               const Icon(Icons.shopping_bag_outlined),
-  //               Positioned(
-  //                 top: -4,
-  //                 right: -4,
-  //                 child: Container(
-  //                   padding: const EdgeInsets.all(4),
-  //                   decoration: BoxDecoration(
-  //                     color: secondaryColor,
-  //                     shape: BoxShape.circle,
-  //                   ),
-  //                   child: const Text(
-  //                     "3",
-  //                     style: TextStyle(
-  //                       color: Colors.white,
-  //                       fontSize: 8,
-  //                       fontWeight: FontWeight.bold,
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //           label: "Cart",
-  //         ),
-  //         const BottomNavigationBarItem(
-  //           icon: Icon(Icons.favorite_border),
-  //           label: "Wishlist",
-  //         ),
-  //         const BottomNavigationBarItem(
-  //           icon: Icon(Icons.person_outline),
-  //           label: "Profile",
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 }
