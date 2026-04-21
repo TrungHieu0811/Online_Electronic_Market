@@ -143,7 +143,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         borderRadius: BorderRadius.circular(15),
                         border: Border.all(color: Colors.grey.shade100),
                         image: DecorationImage(
-                          image: NetworkImage(item.imageUrl ?? ''),
+                          image: NetworkImage(
+                            (item.imageUrl == null ||
+                                    item.imageUrl!.isEmpty ||
+                                    item.imageUrl == "no image")
+                                ? "https://via.placeholder.com/150"
+                                : (item.imageUrl!.startsWith("http")
+                                      ? item.imageUrl!
+                                      : "http://10.0.2.2:8080/uploads/${item.imageUrl!.startsWith("/") ? item.imageUrl!.substring(1) : item.imageUrl!}"),
+                          ),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -341,14 +349,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-void _showCancelConfirmation() {
+  void _showCancelConfirmation() {
     // Xác định nội dung thông báo dựa trên phương thức thanh toán
     String confirmationMessage;
-    
+
     if (widget.order.paymentMethod.toUpperCase() == 'PAYPAL') {
-      confirmationMessage = "Are you sure you want to cancel this order? Since you paid via PayPal, the total amount will be automatically refunded to your PayPal account.";
+      confirmationMessage =
+          "Are you sure you want to cancel this order? Since you paid via PayPal, the total amount will be automatically refunded to your PayPal account.";
     } else {
-      confirmationMessage = "Are you sure you want to cancel this order? This action cannot be undone.";
+      confirmationMessage =
+          "Are you sure you want to cancel this order? This action cannot be undone.";
     }
 
     showDialog(
