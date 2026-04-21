@@ -233,7 +233,7 @@ const Login = () => {
 					</div>
 				</div>
 			</header> */}
-			<Header></Header>
+			<Header/>
 
 			{/* Main Content: Login Card */}
 			<main className="flex-grow flex items-center justify-center p-4 md:p-8">
