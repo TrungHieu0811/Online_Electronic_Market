@@ -329,24 +329,24 @@ export default function Header() {
 
                                                             {product.basePrice >
                                                                 product.salePrice && (
-                                                                <>
-                                                                    <span className='ml-2 text-xs text-gray-400 line-through'>
-                                                                        $
-                                                                        {product.basePrice?.toLocaleString(
-                                                                            'en-us'
-                                                                        )}
-                                                                    </span>
-                                                                    <span className='ml-5 rounded bg-amber-50 px-2 py-0.5 text-sm font-medium text-red-600'>
-                                                                        -
-                                                                        {(((product.basePrice -
-                                                                            product.salePrice) /
-                                                                            product.basePrice) *
-                                                                            100) |
-                                                                            0}
-                                                                        %
-                                                                    </span>
-                                                                </>
-                                                            )}
+                                                                    <>
+                                                                        <span className='ml-2 text-xs text-gray-400 line-through'>
+                                                                            $
+                                                                            {product.basePrice?.toLocaleString(
+                                                                                'en-us'
+                                                                            )}
+                                                                        </span>
+                                                                        <span className='ml-5 rounded bg-amber-50 px-2 py-0.5 text-sm font-medium text-red-600'>
+                                                                            -
+                                                                            {(((product.basePrice -
+                                                                                product.salePrice) /
+                                                                                product.basePrice) *
+                                                                                100) |
+                                                                                0}
+                                                                            %
+                                                                        </span>
+                                                                    </>
+                                                                )}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -371,9 +371,18 @@ export default function Header() {
                                 >
                                     <div className='h-10 w-10 overflow-hidden rounded-full border-2 border-primary/15 bg-surface-container-high'>
                                         <img
-                                            src={IMAGE_BASE_URL + user?.avatarUrl}
+                                            // Lớp 1: Nếu có avatarUrl thì nối chuỗi, nếu không thì dùng UI-Avatars (tạo ảnh theo tên)
+                                            src={
+                                                user?.avatarUrl
+                                                    ? (IMAGE_BASE_URL + user.avatarUrl)
+                                                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || 'User')}&background=045fae&color=fff`
+                                            }
                                             alt='Avatar'
                                             className='h-full w-full object-cover'
+                                            // Lớp 2: Nếu lỡ link ảnh bị 404 (hỏng), nó sẽ tự nhảy về ảnh mặc định an toàn này
+                                            onError={(e) => {
+                                                e.currentTarget.src = "https://www.pngitem.com/pimgs/m/146-1468479_my-profile-icon-blank-profile-picture-circle-hd.png";
+                                            }}
                                         />
                                     </div>
                                     <span>{user?.username}</span>
@@ -459,11 +468,10 @@ export default function Header() {
                                                             onClick={() =>
                                                                 handleNotificationClick(item)
                                                             }
-                                                            className={`w-full border-b border-gray-100 px-4 py-3 text-left hover:bg-gray-50 ${
-                                                                !item.isRead
+                                                            className={`w-full border-b border-gray-100 px-4 py-3 text-left hover:bg-gray-50 ${!item.isRead
                                                                     ? 'bg-blue-50'
                                                                     : 'bg-white'
-                                                            }`}
+                                                                }`}
                                                         >
                                                             <p className='text-sm font-semibold text-gray-900'>
                                                                 {item.title ||
@@ -478,8 +486,8 @@ export default function Header() {
                                                             <p className='mt-1 text-[11px] text-gray-400'>
                                                                 {item.createdAt
                                                                     ? new Date(
-                                                                          item.createdAt
-                                                                      ).toLocaleString()
+                                                                        item.createdAt
+                                                                    ).toLocaleString()
                                                                     : ''}
                                                             </p>
                                                         </button>
@@ -499,10 +507,9 @@ export default function Header() {
                                                         >
                                                             {showAllNotifications
                                                                 ? 'Thu gọn'
-                                                                : `Xem thêm ${
-                                                                      commentNotifications.length -
-                                                                      DEFAULT_VISIBLE_NOTIFICATIONS
-                                                                  } thông báo`}
+                                                                : `Xem thêm ${commentNotifications.length -
+                                                                DEFAULT_VISIBLE_NOTIFICATIONS
+                                                                } thông báo`}
                                                         </button>
                                                     </div>
                                                 )}
