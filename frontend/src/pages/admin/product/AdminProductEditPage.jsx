@@ -524,112 +524,113 @@ export default function AdminProductEditPage() {
 								)}
 							</div>
 
-							{/* Images */}
-							<div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-3">
-								<div className="flex items-center justify-between">
-									<h2 className="text-sm font-bold text-slate-700">Images ({imageList.length})</h2>
-									<button
-										onClick={handleAddImage}
-										className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition-all"
-									>
-										<Plus size={13} /> Add
-									</button>
-								</div>
+{/* Images */}
+                            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4">
+                                {/* Header & Upload Button */}
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-sm font-bold text-slate-700">
+                                        Images ({imageList.length + (imageFiles?.length || 0)})
+                                    </h2>
+                                    {/* Nút Upload mới bọc lấy thẻ input file */}
+                                    <label className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold cursor-pointer transition-all border border-blue-100">
+                                        <Plus size={14} /> Upload Files
+                                        <input 
+                                            type="file" 
+                                            multiple 
+                                            accept="image/*" 
+                                            onChange={handleImageFileChange} 
+                                            className="hidden" 
+                                        />
+                                    </label>
+                                </div>
 
-								{/* Image preview strip */}
-								{imageList.length > 0 && (
-									<div className="flex gap-3 overflow-x-auto pb-2">
-										{imageList.map((img, index) => (
-											<div key={img.id ?? index} className="flex flex-col items-center gap-1 flex-shrink-0">
-												<div className="relative">
-													<img
-														src={img.imageUrl.startsWith('http') ? img.imageUrl : `${IMAGE_BASE_URL + img.imageUrl}`}
-														alt={`img-${index}`}
-														className={`w-16 h-16 object-cover rounded-lg border-2 ${
-															img.displayOrder === 0 ? 'border-blue-500' : 'border-slate-200'
-														}`}
-														onError={(e) => {
-															e.target.onerror = null;
-															e.target.src = 'https://placehold.co/64x64?text=No+Img';
-														}}
-													/>
-													{img.displayOrder === 0 && (
-														<span className="absolute -top-1 -left-1 bg-blue-600 text-white text-[9px] px-1 rounded font-bold">
-															Main
-														</span>
-													)}
-												</div>
+                                {/* Image preview strip (Danh sách ảnh ĐÃ LƯU) */}
+                                {imageList.length > 0 && (
+                                    <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+                                        {imageList.map((img, index) => (
+                                            <div key={img.id ?? index} className="flex flex-col items-center gap-1 flex-shrink-0">
+                                                <div className="relative group">
+                                                    <img
+                                                        src={img.imageUrl.startsWith('http') ? img.imageUrl : `${IMAGE_BASE_URL + img.imageUrl}`}
+                                                        alt={`img-${index}`}
+                                                        className={`w-16 h-16 object-cover rounded-lg border-2 transition-all ${
+                                                            img.displayOrder === 0 ? 'border-blue-500 shadow-sm' : 'border-slate-200'
+                                                        }`}
+                                                        onError={(e) => {
+                                                            e.target.onerror = null;
+                                                            e.target.src = 'https://placehold.co/64x64?text=No+Img';
+                                                        }}
+                                                    />
+                                                    {img.displayOrder === 0 && (
+                                                        <span className="absolute -top-2 -left-2 bg-blue-600 text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm font-bold">
+                                                            Main
+                                                        </span>
+                                                    )}
+                                                </div>
 
-												{/* Set thumbnail — chỉ hiện với ảnh không phải thumbnail */}
-												{img.displayOrder !== 0 && (
-													<button
-														onClick={() => handleSetThumbnail(img)}
-														className="text-[10px] text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
-														title="Set as thumbnail"
-													>
-														★ Main
-													</button>
-												)}
+                                                {/* Hành động (Set Main / Delete) */}
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    {img.displayOrder !== 0 && (
+                                                        <button
+                                                            onClick={() => handleSetThumbnail(img)}
+                                                            className="text-[10px] text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
+                                                            title="Set as thumbnail"
+                                                        >
+                                                            ★ Main
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDeleteImage(img)}
+                                                        className="text-[10px] text-red-500 hover:text-red-700 font-medium"
+                                                        title="Delete image"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
 
-												{/* Xóa ảnh */}
-												<button
-													onClick={() => handleDeleteImage(img)}
-													className="text-[10px] text-red-500 hover:text-red-700 font-medium"
-													title="Delete image"
-												>
-													Delete
-												</button>
-											</div>
-										))}
-									</div>
-								)}
+                                {/* Danh sách file MỚI ĐƯỢC CHỌN (Chưa lưu) */}
+                                {imageFiles && imageFiles.length > 0 && (
+                                    <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+                                        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">
+                                            New Files to Upload ({imageFiles.length})
+                                        </h3>
+                                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                                            {imageFiles.map((file, index) => (
+                                                <div key={index} className="flex items-center gap-3 bg-white p-2 rounded-md border border-slate-100 shadow-sm">
+                                                    <img 
+                                                        src={imagePreviews[index]} 
+                                                        alt={file.name} 
+                                                        className="w-10 h-10 object-cover rounded border border-slate-200" 
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-xs font-medium text-slate-700 truncate">{file.name}</p>
+                                                        <p className="text-[10px] text-slate-400">{(file.size / 1024).toFixed(1)} KB</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleRemoveNewImage(index)}
+                                                        className="p-1.5 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all flex-shrink-0"
+                                                        title="Remove file"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
-								<div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-									{imageList.map((img, index) => (
-										<div key={index} className="flex items-center gap-2">
-											<span className="text-xs text-slate-400 w-5 text-center font-mono">{index}</span>
-											<input
-												value={img.imageUrl}
-												onChange={(e) => handleImageUrlChange(index, e.target.value)}
-												placeholder="Image URL"
-												className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-											/>
-											<button
-												onClick={() => handleRemoveImage(index)}
-												className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0"
-											>
-												<Trash2 size={14} />
-											</button>
-										</div>
-									))}
-								</div>
-							</div>
-							{/* Upload new images */}
-							<div className="border-t border-slate-100 pt-3">
-								<label className="block text-xs font-semibold text-slate-600 mb-2">Upload New Images</label>
-								<label className="flex items-center gap-2 px-3 py-2 border border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-all">
-									<Plus size={14} className="text-slate-400" />
-									<span className="text-xs text-slate-500">Click to select files</span>
-									<input type="file" multiple accept="image/*" onChange={handleImageFileChange} className="hidden" />
-								</label>
-
-								{imageFiles.length > 0 && (
-									<div className="mt-2 space-y-1">
-										{imageFiles.map((file, index) => (
-											<div key={index} className="flex items-center gap-2">
-												<img src={imagePreviews[index]} alt={file.name} className="w-8 h-8 object-cover rounded" />
-												<span className="flex-1 text-xs text-slate-600 truncate">{file.name}</span>
-												<button
-													onClick={() => handleRemoveNewImage(index)}
-													className="p-1 text-red-500 hover:bg-red-50 rounded transition-all"
-												>
-													<Trash2 size={12} />
-												</button>
-											</div>
-										))}
-									</div>
-								)}
-							</div>
+                                {/* Trạng thái trống (Không có ảnh cũ, không có ảnh mới) */}
+                                {imageList.length === 0 && (!imageFiles || imageFiles.length === 0) && (
+                                    <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                                        <p className="text-sm text-slate-500 font-medium mb-1">No images available</p>
+                                        <p className="text-xs text-slate-400">Click the Upload button above to add images</p>
+                                    </div>
+                                )}
+                            </div>
 						</div>
 						{/* Right column - meta */}
 						<div className="space-y-5">
