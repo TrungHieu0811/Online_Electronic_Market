@@ -311,23 +311,36 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       success = await CartService().addToGuestCart(_product!, quantity);
     }
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Added $quantity item(s) to cart!"),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const MainPage(initialIndex: 4),
-        ),
-        (route) => false,
-      );
-    }
+    // 3. Thông báo cho người dùng
+  if (success) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(token != null 
+          ? "Added to your account cart!" 
+          : "Added to local cart (Guest)!"),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    // Chuyển hướng về trang giỏ hàng để khách kiểm tra
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MainPage(initialIndex: 4), // 4 thường là Tab Cart của bé
+      ),
+      (route) => false,
+    );
+  } else {
+    // Xử lý khi lỗi (ví dụ: sản phẩm hết hàng)
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Failed to add to cart. Please try again."),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
   }
 
   void _onConfirmBuyNow(int quantity) async {
@@ -338,13 +351,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     setState(() => _isLoading = true);
 
-    bool success = await CartService().addToCart(
-      _product!.id,
-      quantity,
-      _token!,
-    );
+    // bool success = await CartService().addToCart(
+    //   _product!.id,
+    //   quantity,
+    //   _token!,
+    // );
 
-    if (success) {
+    // if (success) {
       final buyNowItem = CartItemModel(
         id: 0,
         productId: _product!.id,
@@ -373,7 +386,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ),
         );
       }
-    }
+    
     setState(() => _isLoading = false);
   }
 

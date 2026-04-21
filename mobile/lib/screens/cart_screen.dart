@@ -1,4 +1,6 @@
 import 'package:electromart_flutter/screens/checkout_page.dart';
+import 'package:electromart_flutter/screens/login_screen.dart';
+import 'package:electromart_flutter/screens/product_detail_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/models.dart';
@@ -19,7 +21,7 @@ class CartScreenState extends State<CartScreen> {
 
   // Logic tính toán hóa đơn
   double get subtotal => items.where((i) => i.isSelected).fold(0, (sum, i) => sum + (i.price * i.quantity));
-  double get shipping => subtotal > 1500 ? 0.0 : 15.0; // Miễn phí ship trên $500
+  double get shipping => subtotal >= 1500 ? 0.0 : 0.0 ; // Miễn phí ship trên $1500
   double get tax => subtotal * 0.1; 
   double get total => subtotal + shipping + tax;
 
@@ -90,6 +92,40 @@ class CartScreenState extends State<CartScreen> {
     await _cartService.saveAllGuestItems(items);
   }
   fetchCart(); // Load lại data để UI cập nhật
+}
+
+Future<void> _showDeleteConfirmation(CartItemModel item) async {
+  bool? confirm = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Remove Item"),
+      content: const Text("Do you want to remove this item from your cart?"),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text("CANCEL"),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text("REMOVE", style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm == true) {
+    if (_token != null) {
+      // Đã login: Gọi API xóa trên Server
+      await _cartService.removeItem(item.id, _token!);
+    } else {
+      // Khách: Xóa khỏi list local và save máy
+      setState(() {
+        items.removeWhere((i) => i.id == item.id);
+      });
+      await _cartService.saveAllGuestItems(items);
+    }
+    fetchCart(); // Load lại giao diện
+  }
 }
 
 Future<void> _deleteSelectedItems() async {
@@ -213,16 +249,15 @@ Future<void> _deleteSelectedItems() async {
 }
 
 
-  Widget _buildCartItem(CartItemModel item) {
-    String displayUrl = item.imageUrl ?? '';
-    if (displayUrl.isNotEmpty && !displayUrl.startsWith('http')) {
-      displayUrl = 'http://10.0.2.2:8080/uploads$displayUrl';
-    }
+Widget _buildCartItem(CartItemModel item) {
+  String displayUrl = item.imageUrl ?? '';
+  if (displayUrl.isNotEmpty && !displayUrl.startsWith('http')) {
+    displayUrl = 'http://10.0.2.2:8080/uploads$displayUrl';
+  }
+
   return Dismissible(
-    key: Key(item.id.toString()), // Key duy nhất cho mỗi item
-    direction: DismissDirection.endToStart, // Chỉ cho phép trượt từ phải sang trái
-    
-    // Giao diện nền khi trượt (Nút xóa màu đỏ hiện ra bên dưới)
+    key: Key(item.id.toString()),
+    direction: DismissDirection.endToStart,
     background: Container(
       alignment: Alignment.centerRight,
       padding: const EdgeInsets.only(right: 20),
@@ -233,8 +268,6 @@ Future<void> _deleteSelectedItems() async {
       ),
       child: const Icon(Icons.delete, color: Colors.white),
     ),
-
-    // Xác nhận trước khi xóa (Hiện dialog)
     confirmDismiss: (direction) async {
       return await showDialog(
         context: context,
@@ -243,24 +276,23 @@ Future<void> _deleteSelectedItems() async {
           content: const Text("Do you want to delete this item?"),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
-            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("DELETE", style: TextStyle(color: Colors.red))),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("DELETE", style: TextStyle(color: Colors.red)),
+            ),
           ],
         ),
       );
     },
-
-    // Thực hiện xóa khi trượt xong
     onDismissed: (direction) async {
       if (_token != null) {
-        await _cartService.removeItem(item.id, _token!); // Gọi API xóa
+        await _cartService.removeItem(item.id, _token!);
       } else {
         items.removeWhere((i) => i.id == item.id);
-        await _cartService.saveAllGuestItems(items); // Xóa local nếu là Guest
+        await _cartService.saveAllGuestItems(items);
       }
-      fetchCart(); // Load lại giỏ hàng để cập nhật Badge ở MainPage
+      fetchCart();
     },
-
-    // Nội dung của Item
     child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(12),
@@ -268,22 +300,66 @@ Future<void> _deleteSelectedItems() async {
       child: Row(
         children: [
           Checkbox(value: item.isSelected, onChanged: (v) => _toggleItem(item)),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              displayUrl, 
-              width: 70, height: 70, fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported), // Hiện icon nếu link chết
+          
+          // ✨ BẮT ĐẦU PHẦN SỬA: Bọc InkWell để chuyển trang chi tiết
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                print("DEBUG SLUG: ${item.slug}");
+                // Kiểm tra xem item có slug không để điều hướng
+                if (item.slug != null && item.slug!.isNotEmpty) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductDetailPage(slug: item.slug!),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Product details not available")),
+                  );
+                }
+              },
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      displayUrl,
+                      width: 70,
+                      height: 70,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.image_not_supported),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.variantName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          "\$${item.price.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(item.variantName, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1),
-              Text("\$${item.price.toStringAsFixed(2)}", style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-            ],
-          )),
+          // ✨ KẾT THÚC PHẦN SỬA
+
           _buildQtySelector(item),
         ],
       ),
@@ -291,18 +367,94 @@ Future<void> _deleteSelectedItems() async {
   );
 }
 
+
+
+  // Widget _buildQtySelector(CartItemModel item) {
+  //   return Container(
+  //     decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+  //     child: Row(
+  //       children: [
+  //         IconButton(icon: const Icon(Icons.remove, size: 16), onPressed: () => _updateQty(item, item.quantity - 1)),
+  //         Text("${item.quantity}"),
+  //         IconButton(icon: const Icon(Icons.add, size: 16), onPressed: () => _updateQty(item, item.quantity + 1)),
+  //       ],
+  //     ),
+  //   );
+  // }
+
   Widget _buildQtySelector(CartItemModel item) {
-    return Container(
-      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-      child: Row(
-        children: [
-          IconButton(icon: const Icon(Icons.remove, size: 16), onPressed: () => _updateQty(item, item.quantity - 1)),
-          Text("${item.quantity}"),
-          IconButton(icon: const Icon(Icons.add, size: 16), onPressed: () => _updateQty(item, item.quantity + 1)),
-        ],
-      ),
-    );
-  }
+  // Dùng TextEditingController để quản lý việc nhập liệu từ bàn phím
+  final TextEditingController qtyController = TextEditingController(text: item.quantity.toString());
+
+  return Container(
+    decoration: BoxDecoration(
+      border: Border.all(color: Colors.grey.shade300),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      children: [
+        // Nút Giảm (-)
+        IconButton(
+          icon: const Icon(Icons.remove, size: 16),
+          onPressed: () {
+            if (item.quantity > 1) {
+              // Nếu > 1 thì trừ bình thường
+              _updateQty(item, item.quantity - 1);
+            } else {
+              // Nếu đang là 1 mà nhấn trừ -> Hỏi xem có muốn xóa không
+              _showDeleteConfirmation(item);
+            }
+          },
+        ),
+        
+        // Ô nhập số lượng trực tiếp
+        SizedBox(
+          width: 40,
+          child: TextField(
+            controller: qtyController,
+            keyboardType: TextInputType.number, // Hiện bàn phím số
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 8),
+              border: InputBorder.none,
+            ),
+            onSubmitted: (value) {
+              int? newQty = int.tryParse(value);
+              if (newQty != null) {
+                if (newQty <= 0) {
+                  // Nếu nhập 0 hoặc số âm -> Hiện xác nhận xóa
+                  _showDeleteConfirmation(item);
+                } else {
+                  // Logic kiểm tra stock như cũ của
+                  int stockLimit = item.stockQuantity ?? 99;
+                  if (newQty > stockLimit) newQty = stockLimit;
+                  _updateQty(item, newQty);
+                }
+              }
+            },
+          ),
+        ),
+
+        // Nút Tăng (+)
+        IconButton(
+          icon: const Icon(Icons.add, size: 16),
+          onPressed: () {
+            int stockLimit = item.stockQuantity ?? 99;
+            if (item.quantity < stockLimit) {
+              _updateQty(item, item.quantity + 1);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Maximum stock reached!")),
+              );
+            }
+          },
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildOrderSummary() {
     return Container(
@@ -334,15 +486,51 @@ Future<void> _deleteSelectedItems() async {
   }
 
   Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
-      child: ElevatedButton(
-       onPressed: () {
-        // 1. Lấy danh sách các món đã được chọn (isSelected = true)
+  return Container(
+    padding: const EdgeInsets.all(16),
+    color: Colors.white,
+    child: ElevatedButton(
+      onPressed: () async {
+        // 1. Kiểm tra Token để biết đã đăng nhập hay chưa
+        const storage = FlutterSecureStorage();
+        String? token = await storage.read(key: 'jwt_token');
+
+        if (token == null) {
+          // TRƯỜNG HỢP CHƯA LOGIN: Hiện thông báo nhắc nhở
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Login Required"),
+              content: const Text(
+                "You need to login to proceed to checkout. Your guest cart will be saved and merged after login.",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Đóng dialog
+                    // Chuyển hướng sang trang Login
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF045FAE), foregroundColor: Colors.white,),
+                  child: const Text("LOGIN NOW"),
+                ),
+              ],
+            ),
+          );
+          return; // Dừng lại, không cho chuyển sang trang Checkout
+        }
+
+        // 2. TRƯỜNG HỢP ĐÃ LOGIN: Tiếp tục logic kiểm tra giỏ hàng của bé
         List<CartItemModel> selectedItems = items.where((item) => item.isSelected).toList();
 
-        // 2. Kiểm tra nếu chưa chọn món nào thì không cho qua trang thanh toán
         if (selectedItems.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Please select at least one item!")),
@@ -350,7 +538,7 @@ Future<void> _deleteSelectedItems() async {
           return;
         }
 
-        // 3. Chuyển trang và truyền dữ liệu
+        // 3. Chuyển sang trang Checkout như bình thường
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -362,14 +550,19 @@ Future<void> _deleteSelectedItems() async {
             ),
           ),
         );
-        // _fetchCart();
       },
-        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF045FAE), minimumSize: const Size(double.infinity, 54)),
-        child: const Text("Proceed to Checkout", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF045FAE),
+        minimumSize: const Size(double.infinity, 54),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-    );
-    
-  }
+      child: const Text(
+        "Proceed to Checkout",
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+    ),
+  );
+}
 
   Widget _buildEmptyCart() => const Center(child: Text("Your cart is empty!"));
 }

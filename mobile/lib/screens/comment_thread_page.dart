@@ -552,7 +552,7 @@ class _CommentThreadPageState extends State<CommentThreadPage> {
                           children: [
                             OutlinedButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('Quay lại'),
+                              child: const Text('Back'),
                             ),
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
@@ -576,7 +576,7 @@ class _CommentThreadPageState extends State<CommentThreadPage> {
                                 color: Colors.white,
                               ),
                               label: const Text(
-                                'Quay lại sản phẩm',
+                                'Back to Product',
                                 style: TextStyle(color: Colors.white),
                               ),
                             ),

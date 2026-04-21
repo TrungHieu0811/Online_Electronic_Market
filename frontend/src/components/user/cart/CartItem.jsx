@@ -64,17 +64,20 @@ const formatImageUrl = (url) => {
 		}
 
 		let newQty = parseInt(value);
-		const stock = product?.stockQuantity || 0;
-
-		// Validate giá trị nhập
-		if (isNaN(newQty) || newQty < 1) {
-			newQty = 1;
-		} else if (newQty > stock) {
-			newQty = stock; // Ép về số lượng tối đa trong kho
-		}
+    if (isNaN(newQty)) return;
 
 		onUpdate(item.id, newQty);
 	};
+
+	const handleDecrement = () => {
+    if (item.quantity > 1) {
+      // Nếu số lượng > 1 thì giảm bình thường
+      onUpdate(item.id, item.quantity - 1);
+    } else {
+      onRemove(item.id); 
+    }
+  };
+
 
 	if (!product) return <div className="p-4 border rounded-xl bg-red-50 text-red-500">Product data missing</div>;
 
@@ -116,7 +119,7 @@ const formatImageUrl = (url) => {
 					<div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
 						{/* Nút Trừ */}
 						<button
-							onClick={() => onUpdate(item.id, Math.max(1, item.quantity - 1))}
+							onClick={handleDecrement}
 							className="w-8 h-8 flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 rounded-md transition-all text-slate-600"
 						>
 							<span className="text-lg">-</span>
