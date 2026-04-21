@@ -1,12 +1,12 @@
-import React, {useEffect, useState} from 'react';
-import {useParams, useNavigate} from 'react-router-dom';
-import {ChevronLeft, Save, Plus, Trash2, GripVertical, Star, Eye, Package, Clock} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ChevronLeft, Save, Plus, Trash2, GripVertical, Star, Eye, Package, Clock } from 'lucide-react';
 import api from '@/services/api';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 
 export default function AdminProductEditPage() {
-	const {slug} = useParams();
+	const { slug } = useParams();
 	const navigate = useNavigate();
 	const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 	const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ export default function AdminProductEditPage() {
 	const [toast, setToast] = useState(null); // {type: 'success'|'error', message}
 
 	const showToast = (type, message) => {
-		setToast({type, message});
+		setToast({ type, message });
 		setTimeout(() => {
 			setToast(null);
 		}, 3000);
@@ -109,7 +109,7 @@ export default function AdminProductEditPage() {
 							attributes,
 						}),
 					],
-					{type: 'application/json'}, // quan trọng: phải set type JSON
+					{ type: 'application/json' }, // quan trọng: phải set type JSON
 				),
 			);
 
@@ -121,7 +121,7 @@ export default function AdminProductEditPage() {
 			}
 
 			await api.put(`/admin/products/${product.id}`, formData, {
-				headers: {'Content-Type': 'multipart/form-data'},
+				headers: { 'Content-Type': 'multipart/form-data' },
 			});
 
 			// Refresh lại data
@@ -167,11 +167,11 @@ export default function AdminProductEditPage() {
 	};
 
 	const handleAttrChange = (index, field, value) => {
-		setAttributes((prev) => prev.map((a, i) => (i === index ? {...a, [field]: value} : a)));
+		setAttributes((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
 	};
 
 	const handleAddAttr = () => {
-		setAttributes((prev) => [...prev, {name: '', attrValue: ''}]);
+		setAttributes((prev) => [...prev, { name: '', attrValue: '' }]);
 	};
 
 	const handleRemoveAttr = (index) => {
@@ -179,15 +179,15 @@ export default function AdminProductEditPage() {
 	};
 
 	const handleImageUrlChange = (index, value) => {
-		setImageList((prev) => prev.map((img, i) => (i === index ? {...img, imageUrl: value} : img)));
+		setImageList((prev) => prev.map((img, i) => (i === index ? { ...img, imageUrl: value } : img)));
 	};
 
 	const handleAddImage = () => {
-		setImageList((prev) => [...prev, {imageUrl: '', displayOrder: prev.length}]);
+		setImageList((prev) => [...prev, { imageUrl: '', displayOrder: prev.length }]);
 	};
 
 	const handleRemoveImage = (index) => {
-		setImageList((prev) => prev.filter((_, i) => i !== index).map((img, i) => ({...img, displayOrder: i})));
+		setImageList((prev) => prev.filter((_, i) => i !== index).map((img, i) => ({ ...img, displayOrder: i })));
 	};
 	// Cleanup tất cả object URLs khi unmount
 	useEffect(() => {
@@ -251,11 +251,10 @@ export default function AdminProductEditPage() {
 				<div className="p-6 max-w-5xl mx-auto w-full space-y-6 overflow-y-auto">
 					{toast && (
 						<div
-							className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold transition-all ${
-								toast.type === 'success'
+							className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold transition-all ${toast.type === 'success'
 									? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
 									: 'bg-red-50 border border-red-200 text-red-700'
-							}`}
+								}`}
 						>
 							{toast.type === 'success' ? '✓' : '✕'} {toast.message}
 						</div>
@@ -263,7 +262,17 @@ export default function AdminProductEditPage() {
 					{/* Header */}
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-3">
-							<button type="button" onClick={() => navigate(-1)} className="p-2 hover:bg-slate-200 rounded-lg transition-all">
+							<button
+								type="button"
+								onClick={() => {
+									if (product?.productGroup?.id) {
+										navigate(`/admin/products/groups/${product.productGroup.id}`);
+									} else {
+										navigate(-1); // Phòng trường hợp dữ liệu group chưa load kịp
+									}
+								}}
+								className="p-2 hover:bg-slate-200 rounded-lg transition-all"
+							>
 								<ChevronLeft size={22} className="text-slate-700" />
 							</button>
 							<div>
@@ -296,11 +305,11 @@ export default function AdminProductEditPage() {
 					{/* Stats bar */}
 					<div className="grid grid-cols-4 gap-3">
 						{[
-							{icon: Eye, label: 'View Count', value: product.viewCount || 0},
-							{icon: Star, label: 'Avg Rating', value: product.averageRating?.toFixed(1) || 'N/A'},
-							{icon: Package, label: 'Stock', value: product.stockQuantity},
-							{icon: Clock, label: 'Warranty', value: `${product.warrantyMonths} months`},
-						].map(({icon: Icon, label, value}) => (
+							{ icon: Eye, label: 'View Count', value: product.viewCount || 0 },
+							{ icon: Star, label: 'Avg Rating', value: product.averageRating?.toFixed(1) || 'N/A' },
+							{ icon: Package, label: 'Stock', value: product.stockQuantity },
+							{ icon: Clock, label: 'Warranty', value: `${product.warrantyMonths} months` },
+						].map(({ icon: Icon, label, value }) => (
 							<div
 								key={label}
 								className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3 flex items-center gap-3"
@@ -462,7 +471,7 @@ export default function AdminProductEditPage() {
 													handleAttrChange(existingIndex, 'attrValue', value);
 												} else {
 													// Add new attr từ config
-													setAttributes((prev) => [...prev, {name: configAttr.key, attrValue: value}]);
+													setAttributes((prev) => [...prev, { name: configAttr.key, attrValue: value }]);
 												}
 											};
 
@@ -524,113 +533,112 @@ export default function AdminProductEditPage() {
 								)}
 							</div>
 
-{/* Images */}
-                            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4">
-                                {/* Header & Upload Button */}
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-sm font-bold text-slate-700">
-                                        Images ({imageList.length + (imageFiles?.length || 0)})
-                                    </h2>
-                                    {/* Nút Upload mới bọc lấy thẻ input file */}
-                                    <label className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold cursor-pointer transition-all border border-blue-100">
-                                        <Plus size={14} /> Upload Files
-                                        <input 
-                                            type="file" 
-                                            multiple 
-                                            accept="image/*" 
-                                            onChange={handleImageFileChange} 
-                                            className="hidden" 
-                                        />
-                                    </label>
-                                </div>
+							{/* Images */}
+							<div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4">
+								{/* Header & Upload Button */}
+								<div className="flex items-center justify-between">
+									<h2 className="text-sm font-bold text-slate-700">
+										Images ({imageList.length + (imageFiles?.length || 0)})
+									</h2>
+									{/* Nút Upload mới bọc lấy thẻ input file */}
+									<label className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold cursor-pointer transition-all border border-blue-100">
+										<Plus size={14} /> Upload Files
+										<input
+											type="file"
+											multiple
+											accept="image/*"
+											onChange={handleImageFileChange}
+											className="hidden"
+										/>
+									</label>
+								</div>
 
-                                {/* Image preview strip (Danh sách ảnh ĐÃ LƯU) */}
-                                {imageList.length > 0 && (
-                                    <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
-                                        {imageList.map((img, index) => (
-                                            <div key={img.id ?? index} className="flex flex-col items-center gap-1 flex-shrink-0">
-                                                <div className="relative group">
-                                                    <img
-                                                        src={img.imageUrl.startsWith('http') ? img.imageUrl : `${IMAGE_BASE_URL + img.imageUrl}`}
-                                                        alt={`img-${index}`}
-                                                        className={`w-16 h-16 object-cover rounded-lg border-2 transition-all ${
-                                                            img.displayOrder === 0 ? 'border-blue-500 shadow-sm' : 'border-slate-200'
-                                                        }`}
-                                                        onError={(e) => {
-                                                            e.target.onerror = null;
-                                                            e.target.src = 'https://placehold.co/64x64?text=No+Img';
-                                                        }}
-                                                    />
-                                                    {img.displayOrder === 0 && (
-                                                        <span className="absolute -top-2 -left-2 bg-blue-600 text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm font-bold">
-                                                            Main
-                                                        </span>
-                                                    )}
-                                                </div>
+								{/* Image preview strip (Danh sách ảnh ĐÃ LƯU) */}
+								{imageList.length > 0 && (
+									<div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+										{imageList.map((img, index) => (
+											<div key={img.id ?? index} className="flex flex-col items-center gap-1 flex-shrink-0">
+												<div className="relative group">
+													<img
+														src={img.imageUrl.startsWith('http') ? img.imageUrl : `${IMAGE_BASE_URL + img.imageUrl}`}
+														alt={`img-${index}`}
+														className={`w-16 h-16 object-cover rounded-lg border-2 transition-all ${img.displayOrder === 0 ? 'border-blue-500 shadow-sm' : 'border-slate-200'
+															}`}
+														onError={(e) => {
+															e.target.onerror = null;
+															e.target.src = 'https://placehold.co/64x64?text=No+Img';
+														}}
+													/>
+													{img.displayOrder === 0 && (
+														<span className="absolute -top-2 -left-2 bg-blue-600 text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm font-bold">
+															Main
+														</span>
+													)}
+												</div>
 
-                                                {/* Hành động (Set Main / Delete) */}
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    {img.displayOrder !== 0 && (
-                                                        <button
-                                                            onClick={() => handleSetThumbnail(img)}
-                                                            className="text-[10px] text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
-                                                            title="Set as thumbnail"
-                                                        >
-                                                            ★ Main
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        onClick={() => handleDeleteImage(img)}
-                                                        className="text-[10px] text-red-500 hover:text-red-700 font-medium"
-                                                        title="Delete image"
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+												{/* Hành động (Set Main / Delete) */}
+												<div className="flex items-center gap-2 mt-1">
+													{img.displayOrder !== 0 && (
+														<button
+															onClick={() => handleSetThumbnail(img)}
+															className="text-[10px] text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap"
+															title="Set as thumbnail"
+														>
+															★ Main
+														</button>
+													)}
+													<button
+														onClick={() => handleDeleteImage(img)}
+														className="text-[10px] text-red-500 hover:text-red-700 font-medium"
+														title="Delete image"
+													>
+														Delete
+													</button>
+												</div>
+											</div>
+										))}
+									</div>
+								)}
 
-                                {/* Danh sách file MỚI ĐƯỢC CHỌN (Chưa lưu) */}
-                                {imageFiles && imageFiles.length > 0 && (
-                                    <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
-                                        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">
-                                            New Files to Upload ({imageFiles.length})
-                                        </h3>
-                                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                                            {imageFiles.map((file, index) => (
-                                                <div key={index} className="flex items-center gap-3 bg-white p-2 rounded-md border border-slate-100 shadow-sm">
-                                                    <img 
-                                                        src={imagePreviews[index]} 
-                                                        alt={file.name} 
-                                                        className="w-10 h-10 object-cover rounded border border-slate-200" 
-                                                    />
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-medium text-slate-700 truncate">{file.name}</p>
-                                                        <p className="text-[10px] text-slate-400">{(file.size / 1024).toFixed(1)} KB</p>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => handleRemoveNewImage(index)}
-                                                        className="p-1.5 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all flex-shrink-0"
-                                                        title="Remove file"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+								{/* Danh sách file MỚI ĐƯỢC CHỌN (Chưa lưu) */}
+								{imageFiles && imageFiles.length > 0 && (
+									<div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+										<h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">
+											New Files to Upload ({imageFiles.length})
+										</h3>
+										<div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+											{imageFiles.map((file, index) => (
+												<div key={index} className="flex items-center gap-3 bg-white p-2 rounded-md border border-slate-100 shadow-sm">
+													<img
+														src={imagePreviews[index]}
+														alt={file.name}
+														className="w-10 h-10 object-cover rounded border border-slate-200"
+													/>
+													<div className="flex-1 min-w-0">
+														<p className="text-xs font-medium text-slate-700 truncate">{file.name}</p>
+														<p className="text-[10px] text-slate-400">{(file.size / 1024).toFixed(1)} KB</p>
+													</div>
+													<button
+														onClick={() => handleRemoveNewImage(index)}
+														className="p-1.5 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all flex-shrink-0"
+														title="Remove file"
+													>
+														<Trash2 size={14} />
+													</button>
+												</div>
+											))}
+										</div>
+									</div>
+								)}
 
-                                {/* Trạng thái trống (Không có ảnh cũ, không có ảnh mới) */}
-                                {imageList.length === 0 && (!imageFiles || imageFiles.length === 0) && (
-                                    <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
-                                        <p className="text-sm text-slate-500 font-medium mb-1">No images available</p>
-                                        <p className="text-xs text-slate-400">Click the Upload button above to add images</p>
-                                    </div>
-                                )}
-                            </div>
+								{/* Trạng thái trống (Không có ảnh cũ, không có ảnh mới) */}
+								{imageList.length === 0 && (!imageFiles || imageFiles.length === 0) && (
+									<div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+										<p className="text-sm text-slate-500 font-medium mb-1">No images available</p>
+										<p className="text-xs text-slate-400">Click the Upload button above to add images</p>
+									</div>
+								)}
+							</div>
 						</div>
 						{/* Right column - meta */}
 						<div className="space-y-5">

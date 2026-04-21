@@ -1,18 +1,18 @@
-import React, {useEffect, useState, useMemo, useCallback} from 'react';
-import {useParams, useNavigate} from 'react-router-dom';
-import {ChevronLeft, ChevronRight, Search, AlertCircle, Edit, Trash2, Plus} from 'lucide-react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Search, AlertCircle, Edit, Trash2, Plus } from 'lucide-react';
 import api from '@/services/api';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
-import {useProductFilters} from '@/lib/useProductFilters';
+import { useProductFilters } from '@/lib/useProductFilters';
 
 const SORT_OPTIONS = [
-	{label: 'Mới', value: 'createdAt,desc'},
-	{label: 'Cũ', value: 'createdAt,asc'},
-	{label: 'Nổi bật', value: 'isFeatured,desc;createdAt,desc'},
-	{label: 'Bán chạy', value: 'viewCount,desc;averageRating,desc'},
-	{label: 'Giá thấp - cao', value: 'salePrice,asc'},
-	{label: 'Giá cao - thấp', value: 'salePrice,desc'},
+	{ label: 'New', value: 'createdAt,desc' },
+	{ label: 'Old', value: 'createdAt,asc' },
+	{ label: 'Featured', value: 'isFeatured,desc;createdAt,desc' },
+	{ label: 'Best Selling', value: 'viewCount,desc;averageRating,desc' },
+	{ label: 'Price: Low to High', value: 'salePrice,asc' },
+	{ label: 'Price: High to Low', value: 'salePrice,desc' },
 ];
 
 const PRICE_SORT_OPTIONS = [];
@@ -49,7 +49,7 @@ const SkeletonRow = () => (
 );
 
 export default function AdminProductGroupDetailsPage() {
-	const {groupId} = useParams();
+	const { groupId } = useParams();
 	const navigate = useNavigate();
 	const [allProducts, setAllProducts] = useState([]);
 	const [brands, setBrands] = useState([]);
@@ -92,7 +92,7 @@ export default function AdminProductGroupDetailsPage() {
 		handleApplyPriceFilter,
 		handleClearAllFilters,
 		hasActiveFilters,
-	} = useProductFilters({sortOptions: SORT_OPTIONS});
+	} = useProductFilters({ sortOptions: SORT_OPTIONS });
 	const buildApiParams = useCallback(() => {
 		const sortParts = currentSort.split(',');
 		const params = {
@@ -286,9 +286,8 @@ export default function AdminProductGroupDetailsPage() {
 									<button
 										key={opt.value}
 										onClick={() => setCurrentSort(opt.value)}
-										className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-											currentSort === opt.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-										}`}
+										className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${currentSort === opt.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+											}`}
 									>
 										{opt.label}
 									</button>
@@ -384,90 +383,89 @@ export default function AdminProductGroupDetailsPage() {
 								</thead>
 								<tbody>
 									{loading
-										? Array.from({length: 8}).map((_, i) => <SkeletonRow key={i} />)
+										? Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
 										: allProducts.length > 0
 											? allProducts.map((product) => {
-													const imageUrl = product.imageList?.[0]?.imageUrl || '/placeholder.jpg';
-													return (
-														<tr key={product.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-															{/* Product */}
-															<td className="px-4 py-2.5">
-																<div className="flex items-center gap-2 min-w-0">
-																	<div className="relative flex-shrink-0">
-																		<img
-																			src={imageUrl.startsWith('http') ? imageUrl : `${IMAGE_BASE_URL + imageUrl}`}
-																			alt={product.variantName}
-																			className="w-12 h-12 object-cover rounded"
-																		/>
-																		{product.isFeatured && (
-																			<span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1 rounded font-semibold">
-																				Featured
-																			</span>
-																		)}
-																	</div>
-																	<div className="min-w-0 flex-1">
-																		<p className="font-medium text-slate-800 truncate text-xs max-w-xs">{product.variantName}</p>
-																		{product.summary && <p className="text-xs text-slate-400 truncate max-w-xs">{product.summary}</p>}
-																	</div>
+												const imageUrl = product.imageList?.[0]?.imageUrl || '/placeholder.jpg';
+												return (
+													<tr key={product.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+														{/* Product */}
+														<td className="px-4 py-2.5">
+															<div className="flex items-center gap-2 min-w-0">
+																<div className="relative flex-shrink-0">
+																	<img
+																		src={imageUrl.startsWith('http') ? imageUrl : `${IMAGE_BASE_URL + imageUrl}`}
+																		alt={product.variantName}
+																		className="w-12 h-12 object-cover rounded"
+																	/>
+																	{product.isFeatured && (
+																		<span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1 rounded font-semibold">
+																			Featured
+																		</span>
+																	)}
 																</div>
-															</td>
+																<div className="min-w-0 flex-1">
+																	<p className="font-medium text-slate-800 truncate text-xs max-w-xs">{product.variantName}</p>
+																	{product.summary && <p className="text-xs text-slate-400 truncate max-w-xs">{product.summary}</p>}
+																</div>
+															</div>
+														</td>
 
-															{/* Price */}
-															<td className="px-4 py-2.5 text-xs font-semibold text-slate-800">
-																{new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(
-																	product.salePrice || product.basePrice,
-																)}
-															</td>
+														{/* Price */}
+														<td className="px-4 py-2.5 text-xs font-semibold text-slate-800">
+															{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+																product.salePrice || product.basePrice,
+															)}
+														</td>
 
-															{/* Stock */}
-															<td className="px-4 py-2.5 text-xs text-slate-600">{product.stockQuantity || 0}</td>
+														{/* Stock */}
+														<td className="px-4 py-2.5 text-xs text-slate-600">{product.stockQuantity || 0}</td>
 
-															{/* Rating */}
-															<td className="px-4 py-2.5 text-xs text-slate-600">{product.averageRating?.toFixed(1) || 'N/A'}</td>
+														{/* Rating */}
+														<td className="px-4 py-2.5 text-xs text-slate-600">{product.averageRating?.toFixed(1) || 'N/A'}</td>
 
-															{/* Status */}
-															<td className="px-4 py-2.5">
-																<span
-																	className={`px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${
-																		product.status === true || product.status === 'ACTIVE'
-																			? 'bg-emerald-100 text-emerald-700'
-																			: 'bg-slate-100 text-slate-600'
+														{/* Status */}
+														<td className="px-4 py-2.5">
+															<span
+																className={`px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${product.status === true || product.status === 'ACTIVE'
+																		? 'bg-emerald-100 text-emerald-700'
+																		: 'bg-slate-100 text-slate-600'
 																	}`}
-																>
-																	{product.status === true || product.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-																</span>
-															</td>
+															>
+																{product.status === true || product.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+															</span>
+														</td>
 
-															{/* Actions */}
-															<td className="px-4 py-2.5">
-																<div className="flex items-center gap-1">
-																	<button
-																		onClick={() => window.open(`/admin/products/edit/${product.slug}`, '_blank')}
-																		className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-all"
-																		title="Edit"
-																	>
-																		<Edit size={16} />
-																	</button>
-																	<button className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-all" title="Delete">
-																		<Trash2 size={16} />
-																	</button>
-																</div>
-															</td>
-														</tr>
-													);
-												})
-											: !loading && (
-													<tr>
-														<td colSpan="6" className="px-4 py-12 text-center">
-															<div className="flex flex-col items-center justify-center">
-																<AlertCircle size={48} className="text-slate-400 mb-4" />
-																<p className="text-slate-500 text-sm">
-																	{currentSearch ? `No results for "${currentSearch}"` : 'No products found'}
-																</p>
+														{/* Actions */}
+														<td className="px-4 py-2.5">
+															<div className="flex items-center gap-1">
+																<button
+																	onClick={() => window.open(`/admin/products/edit/${product.slug}`, '_blank')}
+																	className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-all"
+																	title="Edit"
+																>
+																	<Edit size={16} />
+																</button>
+																<button className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-all" title="Delete">
+																	<Trash2 size={16} />
+																</button>
 															</div>
 														</td>
 													</tr>
-												)}
+												);
+											})
+											: !loading && (
+												<tr>
+													<td colSpan="6" className="px-4 py-12 text-center">
+														<div className="flex flex-col items-center justify-center">
+															<AlertCircle size={48} className="text-slate-400 mb-4" />
+															<p className="text-slate-500 text-sm">
+																{currentSearch ? `No results for "${currentSearch}"` : 'No products found'}
+															</p>
+														</div>
+													</td>
+												</tr>
+											)}
 								</tbody>
 							</table>
 						</div>
@@ -483,15 +481,14 @@ export default function AdminProductGroupDetailsPage() {
 									<ChevronLeft size={18} />
 								</button>
 
-								{Array.from({length: totalPages}, (_, i) => {
+								{Array.from({ length: totalPages }, (_, i) => {
 									if (i === 0 || i === totalPages - 1 || (i >= currentPage - 1 && i <= currentPage + 1)) {
 										return (
 											<button
 												key={i}
 												onClick={() => setCurrentPage(i)}
-												className={`w-9 h-9 rounded-lg text-sm font-medium transition-all ${
-													currentPage === i ? 'bg-blue-600 text-white' : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
-												}`}
+												className={`w-9 h-9 rounded-lg text-sm font-medium transition-all ${currentPage === i ? 'bg-blue-600 text-white' : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+													}`}
 											>
 												{i + 1}
 											</button>

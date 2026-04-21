@@ -6,11 +6,11 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 
 const SORT_OPTIONS = [
-	{ label: 'Mới nhất', value: 'newest' },
-	{ label: 'Tên A-Z', value: 'name_asc' },
-	{ label: 'Tên Z-A', value: 'name_desc' },
-	{ label: 'Nhiều variant', value: 'count_desc' },
-	{ label: 'Ít variant', value: 'count_asc' },
+	{ label: 'Newest', value: 'newest' },
+	{ label: 'Name A-Z', value: 'name_asc' },
+	{ label: 'Name Z-A', value: 'name_desc' },
+	{ label: 'Most variants', value: 'count_desc' },
+	{ label: 'Least variants', value: 'count_asc' },
 ];
 
 const PAGE_SIZE = 12;

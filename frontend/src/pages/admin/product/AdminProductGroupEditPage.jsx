@@ -180,7 +180,7 @@ export default function AdminProductGroupEditPage() {
 					{/* Page header */}
 					<div className="flex items-center gap-4">
 						<button
-							onClick={() => navigate('/admin/product-groups')}
+							onClick={() => navigate('/admin/products/groups')}
 							className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600"
 						>
 							<ArrowLeft size={20} />

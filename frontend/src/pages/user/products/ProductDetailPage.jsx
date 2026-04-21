@@ -94,6 +94,7 @@ export default function ProductDetailPage() {
     const [hasImageError, setHasImageError] = useState(false);
     const [thumbnailScrollPos, setThumbnailScrollPos] = useState(0);
     const navigate = useNavigate();
+    const [syncedRating, setSyncedRating] = useState(null);
 
     // Keyboard navigation for carousel
     useEffect(() => {
@@ -424,7 +425,9 @@ export default function ProductDetailPage() {
                         </h1>
                         {/* Rating + views */}
                         <div className='flex items-center gap-4 flex-wrap'>
-                            <StarRating rating={averageRating} />
+                            {/* 👉 SỬA DÒNG NÀY: Nếu có syncedRating thì dùng nó, chưa có thì dùng averageRating của product */}
+                            <StarRating rating={syncedRating !== null ? syncedRating : (averageRating || 0)} />
+
                             <span className='flex items-center gap-1 text-xs text-gray-400'>
                                 <FontAwesomeIcon icon={faEye} style={{ fontSize: 11 }} />
                                 {viewCount?.toLocaleString()} views
@@ -446,11 +449,10 @@ export default function ProductDetailPage() {
                                                 window.location.href = `/products/${relatedProduct.slug}`;
                                             }}
                                             className={`flex items-center gap-2 px-1 py-1 rounded-lg border-2 transition-all hover:shadow-md hover:-translate-y-0.5
-										${
-                                            product.id === relatedProduct.id
-                                                ? 'border-blue-600 bg-blue-50 hover:bg-blue-100 shadow-sm'
-                                                : 'border-gray-200 bg-white hover:border-blue-400'
-                                        }`}
+										${product.id === relatedProduct.id
+                                                    ? 'border-blue-600 bg-blue-50 hover:bg-blue-100 shadow-sm'
+                                                    : 'border-gray-200 bg-white hover:border-blue-400'
+                                                }`}
                                         >
                                             {/* Small image thumbnail */}
                                             <div className='w-15 h-15 rounded-sm overflow-hidden bg-gray-50 flex-shrink-0'>
@@ -602,11 +604,10 @@ export default function ProductDetailPage() {
                                     stock={stockQuantity}
                                     product={product}
                                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white text-lg text-blue-600 border-2 border-blue-600 font-semibold transition-all
-            ${
-                unavailable
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
-            }`}
+            ${unavailable
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
+                                        }`}
                                 ></AddToCartButton>
                                 <BuyNowButton
                                     product={product}
@@ -614,11 +615,10 @@ export default function ProductDetailPage() {
                                     unavailable={unavailable}
                                     // disabled={product.stockQuantity <= 0}
                                     className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all
-            ${
-                unavailable
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
-            }`}
+            ${unavailable
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
+                                        }`}
                                 >
                                     <FontAwesomeIcon icon={faBolt} />
                                     Buy Now
@@ -687,7 +687,15 @@ export default function ProductDetailPage() {
                 )}
 
                 {/* Customer Reviews placeholder */}
-                <CustomerReviewsSection productId={product?.id} />
+                {/* Customer Reviews placeholder */}
+                {/* Customer Reviews placeholder */}
+                <CustomerReviewsSection
+                    productId={product?.id}
+                    // 👉 ĐÃ SỬA: Nếu số sao thực tế (realRating) là 0, thì lấy số sao từ Database (averageRating)
+                    onSummaryFetched={(realRating) => {
+                        setSyncedRating(realRating > 0 ? realRating : (averageRating || 0));
+                    }}
+                />
 
                 {/* Q&A Section */}
                 <QuestionAnswerSection productId={product?.id} />
