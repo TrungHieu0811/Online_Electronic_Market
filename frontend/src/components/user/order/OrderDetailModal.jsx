@@ -7,6 +7,9 @@ const OrderDetailModal = ({ isOpen, onClose, orderId }) => {
 	const [items, setItems] = useState([]);
 	const [loading, setLoading] = useState(true);
 
+	const API_BASE_URL = "http://localhost:8080";
+	const UPLOADS_URL = `${API_BASE_URL}/uploads/`;
+
 	useEffect(() => {
 		const fetchDetails = async () => {
 			if (!isOpen || !orderId) return;
@@ -148,9 +151,20 @@ const OrderDetailModal = ({ isOpen, onClose, orderId }) => {
 										<div className="col-span-6 flex items-center gap-6">
 											<div className="w-20 h-20 rounded-3xl bg-slate-50 overflow-hidden flex-shrink-0 border border-slate-100 group-hover:scale-105 transition-transform">
 												<img
-													src={item.imageUrl || "/api/placeholder/80/80"}
-													alt={item.product?.name}
+													src={
+														item.imageUrl
+															? (item.imageUrl.startsWith("http")
+																? item.imageUrl
+																: `${UPLOADS_URL}${item.imageUrl.startsWith("/") ? item.imageUrl.substring(1) : item.imageUrl}`)
+															: "/api/placeholder/80/80"
+													}
+													alt={item.product?.variantName}
 													className="w-full h-full object-cover"
+													onError={(e) => {
+														e.target.onerror = null;
+														// Bạn có thể dùng một ảnh mặc định nếu link bị hỏng hoàn toàn
+														e.target.src = "https://via.placeholder.com/80?text=No+Image";
+													}}
 												/>
 											</div>
 											<div>
@@ -204,7 +218,7 @@ const OrderDetailModal = ({ isOpen, onClose, orderId }) => {
 									<span>Payment Method</span>
 									<span className="text-orange-400">
 										{(() => {
-											
+
 											const method = order.paymentMethod?.toUpperCase();
 											switch (method) {
 												case 'PAYPAL': return 'PayPal / Credit Card';
