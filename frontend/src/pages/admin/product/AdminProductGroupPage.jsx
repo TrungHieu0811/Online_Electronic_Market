@@ -1,16 +1,16 @@
-import React, {useEffect, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
-import {ChevronLeft, ChevronRight, AlertCircle, Search, Filter, Plus, Edit} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, AlertCircle, Search, Filter, Plus, Edit } from 'lucide-react';
 import api from '@/services/api';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 
 const SORT_OPTIONS = [
-	{label: 'Mới nhất', value: 'newest'},
-	{label: 'Tên A-Z', value: 'name_asc'},
-	{label: 'Tên Z-A', value: 'name_desc'},
-	{label: 'Nhiều variant', value: 'count_desc'},
-	{label: 'Ít variant', value: 'count_asc'},
+	{ label: 'Newest', value: 'newest' },
+	{ label: 'Name A-Z', value: 'name_asc' },
+	{ label: 'Name Z-A', value: 'name_desc' },
+	{ label: 'Most variants', value: 'count_desc' },
+	{ label: 'Least variants', value: 'count_asc' },
 ];
 
 const PAGE_SIZE = 12;
@@ -63,8 +63,8 @@ export default function AdminProductGroupPage() {
 	// Load brand + category cho filter panel
 	useEffect(() => {
 		Promise.all([
-			api.get('/public/brands').catch(() => ({data: []})),
-			api.get('/public/categories').catch(() => ({data: []})),
+			api.get('/public/brands').catch(() => ({ data: [] })),
+			api.get('/public/categories').catch(() => ({ data: [] })),
 		]).then(([brandRes, catRes]) => {
 			setBrands(brandRes.data || []);
 			setCategories(catRes.data || []);
@@ -198,9 +198,8 @@ export default function AdminProductGroupPage() {
 									<button
 										key={opt.value}
 										onClick={() => setCurrentSort(opt.value)}
-										className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-											currentSort === opt.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-										}`}
+										className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${currentSort === opt.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+											}`}
 									>
 										{opt.label}
 									</button>
@@ -208,11 +207,10 @@ export default function AdminProductGroupPage() {
 
 								<button
 									onClick={() => setShowFilters(!showFilters)}
-									className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all ${
-										showFilters || selectedBrandId || selectedCategoryId
+									className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all ${showFilters || selectedBrandId || selectedCategoryId
 											? 'bg-blue-600 text-white'
 											: 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-									}`}
+										}`}
 								>
 									<Filter size={14} />
 									Filters
@@ -234,9 +232,8 @@ export default function AdminProductGroupPage() {
 												<button
 													key={brand.id}
 													onClick={() => handleBrandToggle(brand.id)}
-													className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-														selectedBrandId === brand.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-													}`}
+													className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${selectedBrandId === brand.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+														}`}
 												>
 													{brand.name}
 												</button>
@@ -253,11 +250,10 @@ export default function AdminProductGroupPage() {
 												<button
 													key={cat.id}
 													onClick={() => handleCategoryToggle(cat.id)}
-													className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-														selectedCategoryId === cat.id
+													className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${selectedCategoryId === cat.id
 															? 'bg-blue-600 text-white'
 															: 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-													}`}
+														}`}
 												>
 													{cat.name}
 												</button>
@@ -295,7 +291,7 @@ export default function AdminProductGroupPage() {
 								</thead>
 								<tbody>
 									{loading ? (
-										Array.from({length: 8}).map((_, i) => <SkeletonRow key={i} />)
+										Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
 									) : groups.length > 0 ? (
 										groups.map((group) => {
 											const imageUrl = group.thumbnailUrl
@@ -340,9 +336,8 @@ export default function AdminProductGroupPage() {
 													{/* Variants */}
 													<td className="px-4 py-2.5">
 														<span
-															className={`text-xs font-medium px-2 py-1 rounded ${
-																hasVariants ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'
-															}`}
+															className={`text-xs font-medium px-2 py-1 rounded ${hasVariants ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'
+																}`}
 														>
 															{group.variantCount ?? 0} variant{(group.variantCount ?? 0) !== 1 ? 's' : ''}
 														</span>
@@ -350,11 +345,10 @@ export default function AdminProductGroupPage() {
 													{/* Status */}
 													<td className="px-4 py-2.5">
 														<span
-															className={`px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${
-																group.status === true || group.status === 'ACTIVE'
+															className={`px-2 py-0.5 rounded text-xs font-semibold whitespace-nowrap ${group.status === true || group.status === 'ACTIVE'
 																	? 'bg-emerald-100 text-emerald-700'
 																	: 'bg-slate-100 text-slate-600'
-															}`}
+																}`}
 														>
 															{/* <p>status day: {group.status}</p> */}
 															{group.status === true || group.status === 'ACTIVE' ? 'Active' : 'Inactive'}
@@ -363,7 +357,7 @@ export default function AdminProductGroupPage() {
 													{/* Price */}
 													<td className="px-4 py-2.5 text-xs font-semibold text-slate-800">
 														{group.minPrice ? (
-															new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(group.minPrice)
+															new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(group.minPrice)
 														) : (
 															<span className="text-slate-400 font-normal">—</span>
 														)}
@@ -416,15 +410,14 @@ export default function AdminProductGroupPage() {
 									<ChevronLeft size={18} />
 								</button>
 
-								{Array.from({length: totalPages}, (_, i) => {
+								{Array.from({ length: totalPages }, (_, i) => {
 									if (i === 0 || i === totalPages - 1 || (i >= currentPage - 1 && i <= currentPage + 1)) {
 										return (
 											<button
 												key={i}
 												onClick={() => setCurrentPage(i)}
-												className={`w-9 h-9 rounded-lg text-sm font-medium transition-all ${
-													currentPage === i ? 'bg-blue-600 text-white' : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
-												}`}
+												className={`w-9 h-9 rounded-lg text-sm font-medium transition-all ${currentPage === i ? 'bg-blue-600 text-white' : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+													}`}
 											>
 												{i + 1}
 											</button>

@@ -6,19 +6,19 @@ import AdminHeader from '@/components/admin/AdminHeader';
 import {useProductFilters} from '@/lib/useProductFilters';
 
 const SORT_OPTIONS = [
-	{label: 'Mới', value: 'createdAt,desc'},
-	{label: 'Nổi bật', value: 'isFeatured,desc;createdAt,desc'},
-	{label: 'Bán chạy', value: 'viewCount,desc;averageRating,desc'},
+	{label: 'New', value: 'createdAt,desc'},
+	{label: 'Featured', value: 'isFeatured,desc;createdAt,desc'},
+	{label: 'Best Sellers', value: 'viewCount,desc;averageRating,desc'},
 ];
 
 const PRICE_SORT_OPTIONS = [
-	{label: 'Giá thấp - cao', value: 'salePrice,asc'},
-	{label: 'Giá cao - thấp', value: 'salePrice,desc'},
+	{label: 'Low to High', value: 'salePrice,asc'},
+	{label: 'High to Low', value: 'salePrice,desc'},
 ];
 
 const STOCK_SORT_OPTIONS = [
-	{label: 'Kho cao - thấp', value: 'stockQuantity,desc'},
-	{label: 'Kho thấp - cao', value: 'stockQuantity,asc'},
+	{label: 'High to Low', value: 'stockQuantity,desc'},
+	{label: 'Low to High', value: 'stockQuantity,asc'},
 ];
 
 function SkeletonRow() {

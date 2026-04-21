@@ -102,7 +102,7 @@ function formatDate(dateString) {
     });
 }
 
-export default function CustomerReviewsSection({ productId }) {
+export default function CustomerReviewsSection({ productId, onSummaryFetched }) {
     const [summary, setSummary] = useState(null);
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -123,6 +123,12 @@ export default function CustomerReviewsSection({ productId }) {
 
                 setSummary(summaryData);
                 setReviews(Array.isArray(reviewsData) ? reviewsData : []);
+
+                // 👉 THÊM ĐOẠN NÀY: Truyền điểm rating thực tế lên component cha
+                if (onSummaryFetched && summaryData) {
+                    onSummaryFetched(summaryData.averageRating ?? 0);
+                }
+
             } catch (error) {
                 console.error('Error loading review section:', error);
                 setSummary(null);
@@ -133,7 +139,7 @@ export default function CustomerReviewsSection({ productId }) {
         };
 
         fetchReviewData();
-    }, [productId]);
+    }, [productId]); // Xóa onSummaryFetched khỏi dependency array để tránh loop
 
     useEffect(() => {
         setExpanded(false);
