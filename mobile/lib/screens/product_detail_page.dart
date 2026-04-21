@@ -558,12 +558,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             fontSize: 18,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share, color: Colors.black87),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 20),
@@ -1364,18 +1358,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       child: SafeArea(
         child: Row(
           children: [
-            Container(
-              height: 54,
-              width: 54,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300, width: 2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.favorite_border, color: Colors.grey),
-                onPressed: () {},
-              ),
-            ),
+            // Container(
+            //   height: 54,
+            //   width: 54,
+            //   decoration: BoxDecoration(
+            //     border: Border.all(color: Colors.grey.shade300, width: 2),
+            //     borderRadius: BorderRadius.circular(14),
+            //   ),
+            //   // child: IconButton(
+            //   //   icon: const Icon(Icons.favorite_border, color: Colors.grey),
+            //   //   onPressed: () {},
+            //   // ),
+            // ),
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton.icon(
