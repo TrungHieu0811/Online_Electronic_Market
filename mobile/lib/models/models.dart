@@ -9,14 +9,22 @@ class CategoryModel {
   final int id;
   final String name;
   final String slug;
+  final int? parentId; // Trả lại thành parentId cho dễ xử lý
 
-  CategoryModel({required this.id, required this.name, required this.slug});
+  CategoryModel({
+    required this.id,
+    required this.name,
+    required this.slug,
+    this.parentId,
+  });
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
       slug: json['slug'] ?? '',
+      // 👉 CHÌA KHÓA: Nếu có object parent thì lấy id của nó, nếu không thì null
+      parentId: json['parent'] != null ? json['parent']['id'] : null,
     );
   }
 }
