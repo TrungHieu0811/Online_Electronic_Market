@@ -168,19 +168,17 @@ Widget _renderMessage(String text, bool isUser) {
       ),
       child: isUser 
         ? Text(text.trim(), style: const TextStyle(color: Colors.white, fontSize: 14))
-        : SingleChildScrollView( // Cho phép bảng cuộn ngang
-            scrollDirection: Axis.horizontal,
-            child: MarkdownBody(
-              data: text.trim(),
-              styleSheet: MarkdownStyleSheet(
-                p: const TextStyle(color: Colors.black87, fontSize: 14),
-                // Ép cỡ chữ bảng nhỏ lại và không ngắt dòng Price
-                tableBody: const TextStyle(fontSize: 11),
-                tableCellsPadding: const EdgeInsets.all(4),
-                tableBorder: TableBorder.all(color: Colors.grey.shade300, width: 0.5),
-              ),
-            ),
-          ),
+        : MarkdownBody(
+        data: text.trim(),
+        shrinkWrap: true, // Thêm thuộc tính này để Markdown chiếm diện tích tối thiểu cần thiết
+        styleSheet: MarkdownStyleSheet(
+          p: const TextStyle(color: Colors.black87, fontSize: 14, height: 1.4), // Thêm height để giãn dòng dễ đọc
+          // Cấu hình bảng
+          tableBody: const TextStyle(fontSize: 11),
+          tableCellsPadding: const EdgeInsets.all(4),
+          tableBorder: TableBorder.all(color: Colors.grey.shade300, width: 0.5),
+        ),
+      ),
     );
   }
 

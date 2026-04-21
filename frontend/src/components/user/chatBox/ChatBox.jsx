@@ -73,8 +73,11 @@ const ChatBox = () => {
     const renderMessageContent = (text, sender) => {
         if (sender === 'user') return <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>;
 
-        const productRegex = /\[ID:([\w-]+)\|([^|]+)\|([^|]+)\|([^\]]+)\]/g;
+        const productRegex = /\[ID:([^|]+)\|([^|]+)\|([^|]+)\|([^\]]+)\]/g;
         const orderRegex = /\[ORDER:([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^\]]+)\]/g;
+        const API_BASE_URL = "http://localhost:8080";
+        const UPLOADS_URL = `${API_BASE_URL}/uploads/`;
+        const INTERNAL_NO_IMAGE = `${UPLOADS_URL}products/no-image.jpg`;
 
         const elements = [];
         let lastIndex = 0;
@@ -107,9 +110,28 @@ const ChatBox = () => {
 
             if (m.type === 'product') {
                 const [full, slug, imageUrl, name, price] = m.data;
+
+                let finalImageUrl = INTERNAL_NO_IMAGE;
+                if (imageUrl && imageUrl !== "no image") {
+                    if (imageUrl.startsWith("http")) {
+                        finalImageUrl = imageUrl;
+                    } else {
+                        // imageUrl từ AI gửi qua giờ đã là "products/filename.webp"
+                        // Nối UPLOADS_URL + imageUrl và dọn dẹp dấu // thừa
+                        finalImageUrl = `${UPLOADS_URL}${imageUrl}`.replace(/([^:]\/)\/+/g, "$1");
+                    }
+                }
                 elements.push(
                     <div key={`prod-${idx}`} style={cardStyle}>
-                        <img src={imageUrl === "no image" ? "https://via.placeholder.com/150" : imageUrl} alt={name} style={imgStyle} />
+                        <img
+                            src={finalImageUrl}
+                            alt={name}
+                            style={{ width: '80px', height: '80px', objectFit: 'contain' }}
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = INTERNAL_NO_IMAGE; // Đã hết lỗi ReferenceError
+                            }}
+                        />
                         <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{name}</div>
                             <div style={{ color: '#d32f2f', fontWeight: 'bold' }}>{price}</div>
@@ -164,45 +186,45 @@ const ChatBox = () => {
         <div style={{ position: 'fixed', bottom: '20px', right: '20px', width: '350px', height: '500px', background: 'white', borderRadius: '15px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', zIndex: 999999, overflow: 'hidden', border: '1px solid #e0e0e0', fontFamily: 'sans-serif' }}>
             {/* CSS ĐỊNH DẠNG BẢNG SO SÁNH TRONG KHUNG TRẮNG */}
             <style>{`
-    .markdown-body {
-        overflow-x: auto;
-        width: 100%;
-        background-color: transparent !important;
-        margin: 0;
-        padding: 0;
-    }
-    table {
-        border-collapse: collapse;
-        width: 100%;
-        min-width: 320px; /* Tăng nhẹ min-width để bảng có không gian */
-        margin: 8px 0;
-        background-color: white;
-        border: 1px solid #dee2e6;
-    }
-    table th, table td {
-        border: 1px solid #dee2e6;
-        padding: 8px 6px;
-        text-align: left;
-        font-size: 11px;
-        word-break: break-word;
-    }
-    /* CSS CẢI TIẾN: Ép cột Price không được xuống dòng */
-    table th:last-child, 
-    table td:last-child {
-        white-space: nowrap; /* Không cho phép ngắt dòng */
-        width: 1%;           /* Ép cột co lại vừa khít nội dung */
-        min-width: 60px;     /* Đảm bảo đủ chỗ cho con số và ký hiệu $ */
-        text-align: right;   /* Căn lề phải cho giá tiền nhìn sẽ chuyên nghiệp hơn */
-    }
-    table th {
-        background-color: #f8f9fa;
-        font-weight: bold;
-    }
-    @keyframes typingAnimation {
-        0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-        40% { opacity: 1; transform: scale(1.2); }
-    }
-`}</style>
+        .markdown-body {
+            overflow-x: auto;
+            width: 100%;
+            background-color: transparent !important;
+            margin: 0;
+            padding: 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            min-width: 320px; /* Tăng nhẹ min-width để bảng có không gian */
+            margin: 8px 0;
+            background-color: white;
+            border: 1px solid #dee2e6;
+        }
+        table th, table td {
+            border: 1px solid #dee2e6;
+            padding: 8px 6px;
+            text-align: left;
+            font-size: 11px;
+            word-break: break-word;
+        }
+        /* CSS CẢI TIẾN: Ép cột Price không được xuống dòng */
+        table th:last-child, 
+        table td:last-child {
+            white-space: nowrap; /* Không cho phép ngắt dòng */
+            width: 1%;           /* Ép cột co lại vừa khít nội dung */
+            min-width: 60px;     /* Đảm bảo đủ chỗ cho con số và ký hiệu $ */
+            text-align: right;   /* Căn lề phải cho giá tiền nhìn sẽ chuyên nghiệp hơn */
+        }
+        table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        @keyframes typingAnimation {
+            0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+            40% { opacity: 1; transform: scale(1.2); }
+        }
+    `}</style>
 
             <div style={{ background: '#1a73e8', color: 'white', padding: '15px', textAlign: 'center', fontWeight: 'bold', position: 'relative' }}>
                 ELECTROMART AI
